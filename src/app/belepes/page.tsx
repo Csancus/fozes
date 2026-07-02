@@ -21,13 +21,19 @@ export default async function LoginPage({
     <main className="min-h-dvh flex flex-col bg-[var(--color-background)]">
       <div className="relative flex-1 flex flex-col items-center justify-center px-5 py-10">
         <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute -top-40 -right-32 w-96 h-96 rounded-full bg-orange-400/20 blur-3xl" />
-          <div className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-amber-400/15 blur-3xl" />
+          <div
+            className="absolute -top-40 -right-32 w-96 h-96 rounded-full blur-3xl opacity-25"
+            style={{ background: "var(--color-gradient-from)" }}
+          />
+          <div
+            className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full blur-3xl opacity-20"
+            style={{ background: "var(--color-gradient-to)" }}
+          />
         </div>
 
         <div className="relative w-full max-w-sm animate-fade-up">
           <div className="flex flex-col items-center mb-8">
-            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+            <div className="w-16 h-16 rounded-2xl brand-gradient flex items-center justify-center shadow-lg">
               <ChefHat className="w-8 h-8 text-white" strokeWidth={2} />
             </div>
             <h1 className="mt-4 text-3xl font-bold tracking-tight">Főzés</h1>

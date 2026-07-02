@@ -35,7 +35,7 @@ export default async function CsaladPage() {
               <li key={m.id}>
                 <Card>
                   <div className="flex items-center gap-3 p-4">
-                    <div className="w-11 h-11 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-semibold shadow-sm shrink-0">
+                    <div className="w-11 h-11 rounded-full brand-gradient text-white flex items-center justify-center font-semibold shadow-sm shrink-0">
                       {initialsOf(m.name) || "?"}
                     </div>
                     <div className="flex-1 min-w-0">

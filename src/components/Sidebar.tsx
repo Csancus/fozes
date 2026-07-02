@@ -14,6 +14,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
+import { ThemeSwitcher } from "./ThemeSwitcher";
 
 type NavItem = { href: string; label: string; icon: LucideIcon };
 
@@ -61,7 +62,7 @@ export function Sidebar() {
   return (
     <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-64 border-r border-[var(--color-border)] bg-[var(--color-card)] z-40">
       <div className="px-5 pt-6 pb-4 flex items-center gap-3">
-        <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-sm shrink-0">
+        <div className="w-10 h-10 rounded-xl brand-gradient flex items-center justify-center shadow-sm shrink-0">
           <ChefHat className="w-5 h-5 text-white" strokeWidth={2} />
         </div>
         <div>
@@ -84,10 +85,13 @@ export function Sidebar() {
         ))}
       </nav>
 
-      <div className="p-3 border-t border-[var(--color-border)]">
-        <p className="px-3 text-[11px] text-[var(--color-muted-foreground)]">
-          Csancsus Fozes
-        </p>
+      <div className="p-4 border-t border-[var(--color-border)] space-y-3">
+        <div>
+          <p className="text-[10px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider mb-2">
+            Téma
+          </p>
+          <ThemeSwitcher />
+        </div>
       </div>
     </aside>
   );

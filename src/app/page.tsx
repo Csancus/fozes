@@ -66,7 +66,7 @@ export default async function Home() {
     <main className="min-h-dvh px-5 pt-5 pb-8 max-w-md md:max-w-5xl mx-auto">
       <header className="flex items-center justify-between">
         <div className="flex items-center gap-3 min-w-0">
-          <div className="w-11 h-11 rounded-full bg-gradient-to-br from-orange-500 to-amber-500 text-white flex items-center justify-center font-semibold shadow-sm">
+          <div className="w-11 h-11 rounded-full brand-gradient text-white flex items-center justify-center font-semibold shadow-sm">
             {initials || "?"}
           </div>
           <div className="min-w-0">
