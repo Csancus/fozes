@@ -1,10 +1,12 @@
 import { requireUser } from "@/lib/auth";
 import { redis, key } from "@/lib/redis";
-import type { User } from "@/lib/types";
+import type { User, Household } from "@/lib/types";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
+import { headers } from "next/headers";
+import { InviteLink } from "./InviteLink";
 
 function initialsOf(name: string): string {
   return name
@@ -17,12 +19,18 @@ function initialsOf(name: string): string {
 
 export default async function CsaladPage() {
   const me = await requireUser();
-  const memberIds = await redis.smembers(key.householdMembers(me.householdId));
+  const [memberIds, hh, h] = await Promise.all([
+    redis.smembers(key.householdMembers(me.householdId)),
+    redis.get<Household>(key.household(me.householdId)),
+    headers(),
+  ]);
   const members = (
     await Promise.all(memberIds.map((id) => redis.get<User>(key.user(id))))
   ).filter((u): u is User => !!u);
 
-  const invitePath = `/belepes?mode=reg&hh=${me.householdId}`;
+  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "fozes.vercel.app";
+  const proto = h.get("x-forwarded-proto") ?? "https";
+  const inviteUrl = `${proto}://${host}/belepes?mode=reg&hh=${me.householdId}`;
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
@@ -54,18 +62,13 @@ export default async function CsaladPage() {
 
         <Section title="Meghívó link">
           <p className="text-sm text-[var(--color-muted-foreground)] mb-3 px-1">
-            Küldd el ezt a linket, akinek hozzáférést adnál a közös háztartáshoz. A regisztráció
-            után rögtön ehhez a háztartáshoz csatlakozik.
+            Küldd el ezt a linket, akinek hozzáférést adnál a közös
+            háztartáshoz. A regisztráció után rögtön ehhez a háztartáshoz
+            csatlakozik.
           </p>
           <Card>
             <div className="p-4">
-              <div className="font-mono text-xs text-[var(--color-foreground)] break-all bg-[var(--color-muted)] rounded-lg px-3 py-2.5">
-                {invitePath}
-              </div>
-              <p className="text-[11px] text-[var(--color-muted-foreground)] mt-3">
-                A böngésző címsorában látható domain elé illeszd — pl.{" "}
-                <span className="font-mono">https://fozes.vercel.app{invitePath}</span>
-              </p>
+              <InviteLink url={inviteUrl} householdName={hh?.name ?? "háztartás"} />
             </div>
           </Card>
         </Section>

@@ -4,6 +4,7 @@ import { stringifyIngredients } from "@/lib/ingredient-parse";
 import { Input, Textarea, Select, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Save } from "lucide-react";
+import { RecipeImageInput } from "./RecipeImageInput";
 
 export function RecipeForm({
   action,
@@ -15,6 +16,10 @@ export function RecipeForm({
   return (
     <form action={action} className="space-y-5">
       {initial && <input type="hidden" name="id" value={initial.id} />}
+
+      <Field label="Borítókép">
+        <RecipeImageInput initial={initial?.imageUrl ?? null} />
+      </Field>
 
       <Field label="Név" required>
         <Input

@@ -29,6 +29,11 @@ export async function saveRecipeAction(fd: FormData) {
     : null;
   const eventIdRaw = String(fd.get("eventId") ?? "").trim();
   const eventId = eventIdRaw || null;
+  const imageUrlRaw = String(fd.get("imageUrl") ?? "").trim();
+  const imageUrl =
+    imageUrlRaw.startsWith("data:image/") || imageUrlRaw.startsWith("https://")
+      ? imageUrlRaw
+      : null;
 
   if (!name) return;
 
@@ -40,6 +45,7 @@ export async function saveRecipeAction(fd: FormData) {
     eventId,
     caloriesPerServing: Number.isFinite(caloriesPerServing as number) ? caloriesPerServing : null,
     proteinPerServing: Number.isFinite(proteinPerServing as number) ? proteinPerServing : null,
+    imageUrl,
     ingredients: parseIngredientText(ingredientsText),
     instructions,
     tags,

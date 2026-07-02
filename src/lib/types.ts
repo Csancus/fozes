@@ -71,6 +71,7 @@ export type Recipe = {
   eventId?: string | null;
   caloriesPerServing?: number | null;
   proteinPerServing?: number | null;
+  imageUrl?: string | null;
   ingredients: Ingredient[];
   instructions: string;
   tags: string[];

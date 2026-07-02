@@ -97,6 +97,7 @@ export async function saveRecipe(
     eventId: input.eventId ?? null,
     caloriesPerServing: input.caloriesPerServing ?? null,
     proteinPerServing: input.proteinPerServing ?? null,
+    imageUrl: input.imageUrl ?? null,
     ingredients: input.ingredients,
     instructions: input.instructions,
     tags: input.tags,

@@ -70,9 +70,18 @@ export default async function ReceptekPage() {
                     <li key={r.id}>
                       <LinkCard href={`/receptek/${r.id}`} className="group p-4">
                         <div className="flex items-center gap-3">
-                          <div className="w-11 h-11 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
-                            <ChefHat className="w-5 h-5" strokeWidth={2} />
-                          </div>
+                          {r.imageUrl ? (
+                            /* eslint-disable-next-line @next/next/no-img-element */
+                            <img
+                              src={r.imageUrl}
+                              alt=""
+                              className="w-14 h-14 rounded-xl object-cover shrink-0"
+                            />
+                          ) : (
+                            <div className="w-14 h-14 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                              <ChefHat className="w-5 h-5" strokeWidth={2} />
+                            </div>
+                          )}
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-[15px] truncate">
                               {r.name}
