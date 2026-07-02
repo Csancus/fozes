@@ -13,7 +13,13 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { notFound } from "next/navigation";
 import { RecipeForm } from "../RecipeForm";
-import { saveRecipeAction, deleteRecipeAction } from "../actions";
+import {
+  saveRecipeAction,
+  deleteRecipeAction,
+  duplicateRecipeAction,
+  archiveRecipeAction,
+  unarchiveRecipeAction,
+} from "../actions";
 import {
   Trash2,
   CheckCircle2,
@@ -22,6 +28,10 @@ import {
   Star,
   ImageOff,
   ChevronRight,
+  ChefHat,
+  Copy,
+  Archive,
+  ArchiveRestore,
 } from "lucide-react";
 
 function formatDate(ts: number): string {
@@ -47,20 +57,78 @@ export default async function EditReceptPage({
   if (!recipe) notFound();
 
   const { total: costTotal } = estimateRecipeCost(recipe.ingredients, pantry);
+  const isArchived = (recipe.archivedAt ?? null) != null;
 
   return (
     <main className="min-h-dvh px-5 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader title={recipe.name} back="/receptek" />
 
       <div className="mt-5 animate-fade-up space-y-5">
-        <Button
-          href={`/etelek/uj?recipeId=${recipe.id}`}
-          size="lg"
-          fullWidth
-          leftIcon={<CheckCircle2 className="w-4 h-4" />}
-        >
-          Elkészítettem
-        </Button>
+        {isArchived && (
+          <div className="flex justify-center">
+            <Badge tone="muted">Archiválva</Badge>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <Button
+            href={`/receptek/${recipe.id}/fozes`}
+            size="lg"
+            fullWidth
+            variant="primary"
+            leftIcon={<ChefHat className="w-4 h-4" />}
+          >
+            Főzés
+          </Button>
+          <Button
+            href={`/etelek/uj?recipeId=${recipe.id}`}
+            size="lg"
+            fullWidth
+            variant="secondary"
+            leftIcon={<CheckCircle2 className="w-4 h-4" />}
+          >
+            Elkészítettem
+          </Button>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <form action={duplicateRecipeAction}>
+            <input type="hidden" name="id" value={recipe.id} />
+            <Button
+              type="submit"
+              variant="secondary"
+              fullWidth
+              leftIcon={<Copy className="w-4 h-4" />}
+            >
+              Duplikálás
+            </Button>
+          </form>
+          {isArchived ? (
+            <form action={unarchiveRecipeAction}>
+              <input type="hidden" name="id" value={recipe.id} />
+              <Button
+                type="submit"
+                variant="secondary"
+                fullWidth
+                leftIcon={<ArchiveRestore className="w-4 h-4" />}
+              >
+                Visszaállítás
+              </Button>
+            </form>
+          ) : (
+            <form action={archiveRecipeAction}>
+              <input type="hidden" name="id" value={recipe.id} />
+              <Button
+                type="submit"
+                variant="secondary"
+                fullWidth
+                leftIcon={<Archive className="w-4 h-4" />}
+              >
+                Archiválás
+              </Button>
+            </form>
+          )}
+        </div>
 
         <Card className="p-3.5">
           <div className="flex items-start gap-3">
@@ -145,16 +213,18 @@ export default async function EditReceptPage({
         </Section>
       </div>
 
-      <form action={deleteRecipeAction} className="mt-6 flex justify-center">
-        <input type="hidden" name="id" value={recipe.id} />
-        <button
-          type="submit"
-          className="inline-flex items-center gap-2 h-9 px-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-500/10 transition active:scale-[0.98]"
-        >
-          <Trash2 className="w-4 h-4" />
-          <span>Recept törlése</span>
-        </button>
-      </form>
+      <footer className="mt-8">
+        <form action={deleteRecipeAction} className="flex justify-center">
+          <input type="hidden" name="id" value={recipe.id} />
+          <button
+            type="submit"
+            className="inline-flex items-center gap-2 h-9 px-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-500/10 transition active:scale-[0.98]"
+          >
+            <Trash2 className="w-4 h-4" />
+            <span>Recept törlése</span>
+          </button>
+        </form>
+      </footer>
     </main>
   );
 }

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { LinkCard } from "@/components/ui/Card";
-import { ChefHat, ChevronRight, Plus } from "lucide-react";
+import Link from "next/link";
+import { Archive, ChefHat, ChevronLeft, ChevronRight, Plus } from "lucide-react";
 import {
   RECIPE_CATEGORIES,
   RECIPE_CATEGORY_LABEL,
@@ -13,9 +14,21 @@ import {
   type RecipeCategory,
 } from "@/lib/types";
 
-export default async function ReceptekPage() {
+export default async function ReceptekPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ archive?: string }>;
+}) {
   const me = await requireUser();
-  const recipes = await listRecipes(me.householdId);
+  const sp = await searchParams;
+  const archiveMode = sp.archive === "1";
+
+  const all = await listRecipes(me.householdId, {
+    includeArchived: archiveMode,
+  });
+  const recipes = archiveMode
+    ? all.filter((r) => (r.archivedAt ?? null) != null)
+    : all;
 
   const grouped = new Map<RecipeCategory | "egyeb", Recipe[]>();
   for (const c of RECIPE_CATEGORIES) grouped.set(c, []);
@@ -28,30 +41,69 @@ export default async function ReceptekPage() {
   return (
     <main className="min-h-dvh px-5 pb-8 max-w-md md:max-w-4xl mx-auto">
       <PageHeader
-        title="Receptek"
+        title={archiveMode ? "Archívum" : "Receptek"}
         action={
-          <Button
-            href="/receptek/uj"
-            size="sm"
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            Új recept
-          </Button>
+          archiveMode ? (
+            <Button
+              href="/receptek"
+              size="sm"
+              variant="secondary"
+              leftIcon={<ChevronLeft className="w-4 h-4" />}
+            >
+              Aktívak
+            </Button>
+          ) : (
+            <div className="flex items-center gap-2">
+              <Button
+                href="/receptek?archive=1"
+                size="sm"
+                variant="secondary"
+                leftIcon={<Archive className="w-4 h-4" />}
+              >
+                Archívum
+              </Button>
+              <Button
+                href="/receptek/uj"
+                size="sm"
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                Új recept
+              </Button>
+            </div>
+          )
         }
       />
 
+      {archiveMode && (
+        <div className="mt-3">
+          <Link
+            href="/receptek"
+            className="inline-flex items-center gap-1 text-sm text-[var(--color-muted-foreground)] hover:text-[var(--color-primary)] transition"
+          >
+            <ChevronLeft className="w-4 h-4" />
+            <span>Vissza az aktívokhoz</span>
+          </Link>
+        </div>
+      )}
+
       {recipes.length === 0 ? (
         <EmptyState
-          icon={ChefHat}
-          title="Nincs még recepted"
-          description="Vidd fel a kedvenceid, aztán generálj bevásárlólistát belőlük."
+          icon={archiveMode ? Archive : ChefHat}
+          title={archiveMode ? "Nincs archivált recept" : "Nincs még recepted"}
+          description={
+            archiveMode
+              ? "Az archivált receptek itt jelennek meg."
+              : "Vidd fel a kedvenceid, aztán generálj bevásárlólistát belőlük."
+          }
           action={
-            <Button
-              href="/receptek/uj"
-              leftIcon={<Plus className="w-4 h-4" />}
-            >
-              Új recept
-            </Button>
+            archiveMode ? undefined : (
+              <Button
+                href="/receptek/uj"
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                Új recept
+              </Button>
+            )
           }
         />
       ) : (
@@ -83,9 +135,14 @@ export default async function ReceptekPage() {
                             </div>
                           )}
                           <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-[15px] truncate">
-                              {r.name}
-                            </p>
+                            <div className="flex items-center gap-2">
+                              <p className="font-semibold text-[15px] truncate">
+                                {r.name}
+                              </p>
+                              {(r.archivedAt ?? null) != null && (
+                                <Badge tone="muted">Archivált</Badge>
+                              )}
+                            </div>
                             <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5 truncate">
                               {r.servings} adag · {r.ingredients.length} hozzávaló
                               {r.caloriesPerServing != null && (

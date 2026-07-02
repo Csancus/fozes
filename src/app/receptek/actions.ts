@@ -1,7 +1,13 @@
 "use server";
 
 import { requireUser } from "@/lib/auth";
-import { saveRecipe, deleteRecipe } from "@/lib/data";
+import {
+  saveRecipe,
+  deleteRecipe,
+  getRecipe,
+  archiveRecipe,
+  unarchiveRecipe,
+} from "@/lib/data";
 import { parseIngredientText } from "@/lib/ingredient-parse";
 import { RECIPE_CATEGORIES } from "@/lib/types";
 import type { RecipeCategory } from "@/lib/types";
@@ -61,4 +67,47 @@ export async function deleteRecipeAction(fd: FormData) {
   await deleteRecipe(me.householdId, id);
   revalidatePath("/receptek");
   redirect("/receptek");
+}
+
+export async function duplicateRecipeAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  const src = await getRecipe(me.householdId, id);
+  if (!src) return;
+  const copy = await saveRecipe(me.householdId, {
+    name: `${src.name} (másolat)`,
+    servings: src.servings,
+    category: src.category ?? null,
+    eventId: src.eventId ?? null,
+    caloriesPerServing: src.caloriesPerServing ?? null,
+    proteinPerServing: src.proteinPerServing ?? null,
+    imageUrl: src.imageUrl ?? null,
+    ingredients: src.ingredients.map((i) => ({ ...i })),
+    instructions: src.instructions,
+    tags: [...src.tags],
+    archivedAt: null,
+  });
+  revalidatePath("/receptek");
+  redirect(`/receptek/${copy.id}`);
+}
+
+export async function archiveRecipeAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await archiveRecipe(me.householdId, id);
+  revalidatePath("/receptek");
+  revalidatePath(`/receptek/${id}`);
+  redirect("/receptek");
+}
+
+export async function unarchiveRecipeAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await unarchiveRecipe(me.householdId, id);
+  revalidatePath("/receptek");
+  revalidatePath(`/receptek/${id}`);
+  redirect(`/receptek/${id}`);
 }

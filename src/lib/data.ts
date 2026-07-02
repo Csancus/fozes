@@ -69,14 +69,19 @@ export async function ensureDefaultLocations(hh: string) {
 
 // ============ RECIPES ============
 
-export async function listRecipes(hh: string): Promise<Recipe[]> {
+export async function listRecipes(
+  hh: string,
+  opts?: { includeArchived?: boolean }
+): Promise<Recipe[]> {
   const ids = await redis.smembers(key.recipes(hh));
   if (ids.length === 0) return [];
   const items = await Promise.all(
     ids.map((id) => redis.get<Recipe>(key.recipe(hh, id)))
   );
+  const includeArchived = opts?.includeArchived ?? false;
   return items
     .filter((r): r is Recipe => !!r)
+    .filter((r) => (includeArchived ? true : (r.archivedAt ?? null) == null))
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
@@ -86,7 +91,10 @@ export async function getRecipe(hh: string, id: string) {
 
 export async function saveRecipe(
   hh: string,
-  input: Omit<Recipe, "id" | "createdAt" | "updatedAt"> & { id?: string }
+  input: Omit<Recipe, "id" | "createdAt" | "updatedAt" | "archivedAt"> & {
+    id?: string;
+    archivedAt?: number | null;
+  }
 ) {
   const now = Date.now();
   const id = input.id ?? newId();
@@ -103,6 +111,10 @@ export async function saveRecipe(
     ingredients: input.ingredients,
     instructions: input.instructions,
     tags: input.tags,
+    archivedAt:
+      input.archivedAt !== undefined
+        ? input.archivedAt
+        : existing?.archivedAt ?? null,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };
@@ -114,6 +126,22 @@ export async function saveRecipe(
 export async function deleteRecipe(hh: string, id: string) {
   await redis.del(key.recipe(hh, id));
   await redis.srem(key.recipes(hh), id);
+}
+
+export async function archiveRecipe(hh: string, id: string) {
+  const cur = await getRecipe(hh, id);
+  if (!cur) return null;
+  const next: Recipe = { ...cur, archivedAt: Date.now(), updatedAt: Date.now() };
+  await redis.set(key.recipe(hh, id), next);
+  return next;
+}
+
+export async function unarchiveRecipe(hh: string, id: string) {
+  const cur = await getRecipe(hh, id);
+  if (!cur) return null;
+  const next: Recipe = { ...cur, archivedAt: null, updatedAt: Date.now() };
+  await redis.set(key.recipe(hh, id), next);
+  return next;
 }
 
 // ============ PANTRY ============

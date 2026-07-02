@@ -127,14 +127,15 @@ export default async function Home() {
       )}
 
       <section className="mt-6 grid grid-cols-4 gap-3">
-        <Stat label="Recept" value={recipes.length} />
-        <Stat label="Spájz" value={pantry.length} />
+        <Stat label="Recept" value={recipes.length} href="/receptek" />
+        <Stat label="Spájz" value={pantry.length} href="/spajz" />
         <Stat
           label="Venni való"
           value={openItemsCount}
           highlight={openItemsCount > 0}
+          href="/bevasarlas"
         />
-        <Stat label="Vásárlás" value={purchases.length} />
+        <Stat label="Vásárlás" value={purchases.length} href="/vasarlas" />
       </section>
 
       <section className="mt-8 grid gap-3 md:grid-cols-2">
@@ -259,13 +260,15 @@ function Stat({
   label,
   value,
   highlight,
+  href,
 }: {
   label: string;
   value: number;
   highlight?: boolean;
+  href?: string;
 }) {
-  return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 text-center">
+  const inner = (
+    <>
       <p
         className={
           "text-xl font-bold tabular-nums " +
@@ -277,8 +280,12 @@ function Stat({
       <p className="text-[10px] font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mt-0.5">
         {label}
       </p>
-    </div>
+    </>
   );
+  const cls =
+    "block rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 text-center transition hover:border-[var(--color-primary)]/40 hover:shadow-sm active:scale-[0.98]";
+  if (href) return <Link href={href} className={cls}>{inner}</Link>;
+  return <div className={cls}>{inner}</div>;
 }
 
 function ModuleTile({

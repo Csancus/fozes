@@ -75,6 +75,7 @@ export type Recipe = {
   ingredients: Ingredient[];
   instructions: string;
   tags: string[];
+  archivedAt: number | null;
   createdAt: number;
   updatedAt: number;
 };
