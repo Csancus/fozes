@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import type { Recipe } from "@/lib/types";
+import type { Recipe, Unit } from "@/lib/types";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
@@ -29,8 +29,31 @@ function formatElapsed(ms: number): string {
   return `${mm}:${ss}`;
 }
 
-export function CookingView({ recipe }: { recipe: Recipe }) {
+function roundQty(qty: number, unit: Unit): number {
+  if (unit === "db" || unit === "csipet") {
+    return Math.max(1, Math.round(qty));
+  }
+  return Math.round(qty * 10) / 10;
+}
+
+function formatQty(qty: number): string {
+  if (Number.isInteger(qty)) return String(qty);
+  return qty.toFixed(1).replace(".", ",");
+}
+
+export function CookingView({
+  recipe,
+  servingsOverride,
+}: {
+  recipe: Recipe;
+  servingsOverride?: number;
+}) {
   const router = useRouter();
+  const effectiveServings =
+    servingsOverride && servingsOverride > 0
+      ? servingsOverride
+      : recipe.servings;
+  const factor = effectiveServings / (recipe.servings || 1);
 
   const steps = useMemo(
     () =>
@@ -203,7 +226,7 @@ export function CookingView({ recipe }: { recipe: Recipe }) {
                       {ing.name}
                     </span>
                     <span className="block text-xs text-[var(--color-muted-foreground)] mt-0.5">
-                      {ing.qty} {ing.unit}
+                      {formatQty(roundQty(ing.qty * factor, ing.unit))} {ing.unit}
                     </span>
                   </span>
                 </button>

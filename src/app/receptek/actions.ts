@@ -11,6 +11,7 @@ import {
 import { parseIngredientText } from "@/lib/ingredient-parse";
 import { RECIPE_CATEGORIES } from "@/lib/types";
 import type { RecipeCategory } from "@/lib/types";
+import { isRecipeCost, isRecipeDifficulty } from "@/lib/recipe-labels";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -25,10 +26,20 @@ export async function saveRecipeAction(fd: FormData) {
   const proteinPerServing = proteinRaw === "" ? null : Math.max(0, Number(proteinRaw));
   const ingredientsText = String(fd.get("ingredients") ?? "");
   const instructions = String(fd.get("instructions") ?? "").trim();
-  const tags = String(fd.get("tags") ?? "")
-    .split(",")
-    .map((t) => t.trim())
-    .filter(Boolean);
+  const tags = Array.from(
+    new Set(
+      fd
+        .getAll("tags")
+        .map(String)
+        .map((s) => s.trim())
+        .filter(Boolean)
+    )
+  );
+  const costRaw = String(fd.get("cost") ?? "").trim();
+  const cost = costRaw && isRecipeCost(costRaw) ? costRaw : null;
+  const difficultyRaw = String(fd.get("difficulty") ?? "").trim();
+  const difficulty =
+    difficultyRaw && isRecipeDifficulty(difficultyRaw) ? difficultyRaw : null;
   const categoryRaw = String(fd.get("category") ?? "").trim();
   const category = (RECIPE_CATEGORIES as string[]).includes(categoryRaw)
     ? (categoryRaw as RecipeCategory)
@@ -55,6 +66,8 @@ export async function saveRecipeAction(fd: FormData) {
     ingredients: parseIngredientText(ingredientsText),
     instructions,
     tags,
+    cost,
+    difficulty,
   });
   revalidatePath("/receptek");
   redirect("/receptek");
@@ -86,6 +99,8 @@ export async function duplicateRecipeAction(fd: FormData) {
     ingredients: src.ingredients.map((i) => ({ ...i })),
     instructions: src.instructions,
     tags: [...src.tags],
+    cost: src.cost ?? null,
+    difficulty: src.difficulty ?? null,
     archivedAt: null,
   });
   revalidatePath("/receptek");

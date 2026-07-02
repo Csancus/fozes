@@ -111,6 +111,8 @@ export async function saveRecipe(
     ingredients: input.ingredients,
     instructions: input.instructions,
     tags: input.tags,
+    cost: input.cost ?? null,
+    difficulty: input.difficulty ?? null,
     archivedAt:
       input.archivedAt !== undefined
         ? input.archivedAt

@@ -63,6 +63,9 @@ export type Event = {
   createdAt: number;
 };
 
+export type RecipeCost = "cheap" | "average" | "expensive";
+export type RecipeDifficulty = "easy" | "medium" | "hard";
+
 export type Recipe = {
   id: string;
   name: string;
@@ -75,6 +78,8 @@ export type Recipe = {
   ingredients: Ingredient[];
   instructions: string;
   tags: string[];
+  cost?: RecipeCost | null;
+  difficulty?: RecipeDifficulty | null;
   archivedAt: number | null;
   createdAt: number;
   updatedAt: number;

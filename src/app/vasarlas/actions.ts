@@ -33,9 +33,9 @@ async function extractPdfText(file: File): Promise<string> {
 
 export async function createPurchaseAction(fd: FormData) {
   const me = await requireUser();
-  const source = (String(fd.get("source") ?? "text") === "pdf" ? "pdf" : "text") as
-    | "text"
-    | "pdf";
+  const sourceRaw = String(fd.get("source") ?? "text");
+  const source: "text" | "pdf" | "photo" =
+    sourceRaw === "pdf" ? "pdf" : sourceRaw === "photo" ? "photo" : "text";
   const store = String(fd.get("store") ?? "").trim();
   const purchasedAtRaw = String(fd.get("purchasedAt") ?? "").trim();
   const purchasedAt = parseDate(purchasedAtRaw) ?? Date.now();
@@ -51,6 +51,7 @@ export async function createPurchaseAction(fd: FormData) {
       }
     }
   } else {
+    // text and photo (photo is client-side OCR'd; raw contains the OCR text)
     raw = String(fd.get("raw") ?? "");
   }
 

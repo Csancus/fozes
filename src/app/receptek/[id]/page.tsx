@@ -13,6 +13,7 @@ import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { notFound } from "next/navigation";
 import { RecipeForm } from "../RecipeForm";
+import { RecipeViewer } from "./RecipeViewer";
 import {
   saveRecipeAction,
   deleteRecipeAction,
@@ -28,7 +29,6 @@ import {
   Star,
   ImageOff,
   ChevronRight,
-  ChefHat,
   Copy,
   Archive,
   ArchiveRestore,
@@ -70,16 +70,9 @@ export default async function EditReceptPage({
           </div>
         )}
 
+        <RecipeViewer recipe={recipe} />
+
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          <Button
-            href={`/receptek/${recipe.id}/fozes`}
-            size="lg"
-            fullWidth
-            variant="primary"
-            leftIcon={<ChefHat className="w-4 h-4" />}
-          >
-            Főzés
-          </Button>
           <Button
             href={`/etelek/uj?recipeId=${recipe.id}`}
             size="lg"
@@ -89,20 +82,21 @@ export default async function EditReceptPage({
           >
             Elkészítettem
           </Button>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <form action={duplicateRecipeAction}>
             <input type="hidden" name="id" value={recipe.id} />
             <Button
               type="submit"
               variant="secondary"
+              size="lg"
               fullWidth
               leftIcon={<Copy className="w-4 h-4" />}
             >
               Duplikálás
             </Button>
           </form>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {isArchived ? (
             <form action={unarchiveRecipeAction}>
               <input type="hidden" name="id" value={recipe.id} />
