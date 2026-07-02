@@ -42,10 +42,33 @@ export type Ingredient = {
   unit: Unit;
 };
 
+export type RecipeCategory = "leves" | "foetel" | "sutemeny";
+
+export const RECIPE_CATEGORIES: RecipeCategory[] = [
+  "leves",
+  "foetel",
+  "sutemeny",
+];
+
+export const RECIPE_CATEGORY_LABEL: Record<RecipeCategory, string> = {
+  leves: "Leves",
+  foetel: "Főétel",
+  sutemeny: "Sütemény",
+};
+
+export type Event = {
+  id: string;
+  name: string;
+  archived: boolean;
+  createdAt: number;
+};
+
 export type Recipe = {
   id: string;
   name: string;
   servings: number;
+  category?: RecipeCategory | null;
+  eventId?: string | null;
   caloriesPerServing?: number | null;
   proteinPerServing?: number | null;
   ingredients: Ingredient[];

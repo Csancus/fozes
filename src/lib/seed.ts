@@ -20,6 +20,7 @@ export async function seedExampleData(hh: string): Promise<void> {
   await saveRecipe(hh, {
     name: "Babgulyás [példa]",
     servings: 4,
+    category: "leves",
     caloriesPerServing: 480,
     proteinPerServing: 28,
     ingredients: [
@@ -42,6 +43,7 @@ export async function seedExampleData(hh: string): Promise<void> {
   await saveRecipe(hh, {
     name: "Almás pite [példa]",
     servings: 8,
+    category: "sutemeny",
     caloriesPerServing: 320,
     proteinPerServing: 4,
     ingredients: [

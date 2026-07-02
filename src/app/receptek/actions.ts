@@ -3,6 +3,8 @@
 import { requireUser } from "@/lib/auth";
 import { saveRecipe, deleteRecipe } from "@/lib/data";
 import { parseIngredientText } from "@/lib/ingredient-parse";
+import { RECIPE_CATEGORIES } from "@/lib/types";
+import type { RecipeCategory } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -21,6 +23,12 @@ export async function saveRecipeAction(fd: FormData) {
     .split(",")
     .map((t) => t.trim())
     .filter(Boolean);
+  const categoryRaw = String(fd.get("category") ?? "").trim();
+  const category = (RECIPE_CATEGORIES as string[]).includes(categoryRaw)
+    ? (categoryRaw as RecipeCategory)
+    : null;
+  const eventIdRaw = String(fd.get("eventId") ?? "").trim();
+  const eventId = eventIdRaw || null;
 
   if (!name) return;
 
@@ -28,6 +36,8 @@ export async function saveRecipeAction(fd: FormData) {
     id,
     name,
     servings,
+    category,
+    eventId,
     caloriesPerServing: Number.isFinite(caloriesPerServing as number) ? caloriesPerServing : null,
     proteinPerServing: Number.isFinite(proteinPerServing as number) ? proteinPerServing : null,
     ingredients: parseIngredientText(ingredientsText),

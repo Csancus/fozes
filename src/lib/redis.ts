@@ -36,6 +36,9 @@ export const key = {
   purchases: (hh: string) => `hh:${hh}:purchases`,
   purchase: (hh: string, id: string) => `hh:${hh}:purchase:${id}`,
 
+  events: (hh: string) => `hh:${hh}:events`,
+  event: (hh: string, id: string) => `hh:${hh}:event:${id}`,
+
   priceHistory: (hh: string, itemNameSlug: string) =>
     `hh:${hh}:price:${itemNameSlug}`,
 };

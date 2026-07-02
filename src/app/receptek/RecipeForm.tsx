@@ -1,6 +1,7 @@
 import type { Recipe } from "@/lib/types";
+import { RECIPE_CATEGORIES, RECIPE_CATEGORY_LABEL } from "@/lib/types";
 import { stringifyIngredients } from "@/lib/ingredient-parse";
-import { Input, Textarea, Field } from "@/components/ui/Input";
+import { Input, Textarea, Select, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { Save } from "lucide-react";
 
@@ -22,6 +23,20 @@ export function RecipeForm({
           defaultValue={initial?.name ?? ""}
           placeholder="pl. Palacsinta"
         />
+      </Field>
+
+      <Field label="Kategória">
+        <Select
+          name="category"
+          defaultValue={initial?.category ?? ""}
+        >
+          <option value="">— nincs —</option>
+          {RECIPE_CATEGORIES.map((c) => (
+            <option key={c} value={c}>
+              {RECIPE_CATEGORY_LABEL[c]}
+            </option>
+          ))}
+        </Select>
       </Field>
 
       <div className="grid grid-cols-3 gap-3">

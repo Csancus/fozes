@@ -28,6 +28,12 @@ import {
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function fmtFt(n: number): string {
+  return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
+}
+
 export default async function Home() {
   const me = await currentUser();
   if (!me) redirect("/belepes");
@@ -45,15 +51,19 @@ export default async function Home() {
     recipes.length === 0 && pantry.length === 0 && purchases.length === 0;
 
   const now = Date.now();
-  const dayMs = 24 * 60 * 60 * 1000;
   const expiringSoon = pantry
-    .filter((p) => p.expiresAt != null && p.expiresAt - now <= 3 * dayMs)
+    .filter((p) => p.expiresAt != null && p.expiresAt - now <= 3 * DAY_MS)
     .sort((a, b) => (a.expiresAt ?? 0) - (b.expiresAt ?? 0));
+
   const activeLists = lists.filter((l) => !l.completedAt);
+  const doneLists = lists.length - activeLists.length;
   const openItemsCount = activeLists.reduce(
     (sum, l) => sum + l.items.filter((it) => !it.checked && it.need > 0).length,
     0
   );
+  const spent30d = purchases
+    .filter((p) => now - p.purchasedAt < 30 * DAY_MS)
+    .reduce((s, p) => s + p.total, 0);
 
   const initials = me.name
     .split(" ")
@@ -116,10 +126,73 @@ export default async function Home() {
         </Link>
       )}
 
-      <section className="mt-6 grid grid-cols-3 gap-3">
+      <section className="mt-6 grid grid-cols-4 gap-3">
         <Stat label="Recept" value={recipes.length} />
-        <Stat label="Spájz tétel" value={pantry.length} />
-        <Stat label="Venni való" value={openItemsCount} highlight={openItemsCount > 0} />
+        <Stat label="Spájz" value={pantry.length} />
+        <Stat
+          label="Venni való"
+          value={openItemsCount}
+          highlight={openItemsCount > 0}
+        />
+        <Stat label="Vásárlás" value={purchases.length} />
+      </section>
+
+      <section className="mt-8 grid gap-3 md:grid-cols-2">
+        <ModuleTile
+          href="/receptek"
+          icon={BookOpen}
+          title="Receptek"
+          desc="Kedvenceid, hozzávalókkal"
+          badge={recipes.length ? String(recipes.length) : undefined}
+        />
+        <ModuleTile
+          href="/spajz"
+          icon={Refrigerator}
+          title="Spájz"
+          desc={
+            expiringSoon.length
+              ? `${expiringSoon.length} tétel lejár 3 napon belül`
+              : "Mi van itthon, meddig áll el"
+          }
+          badge={pantry.length ? String(pantry.length) : undefined}
+          badgeTone={expiringSoon.length ? "warning" : "neutral"}
+        />
+        <ModuleTile
+          href="/bevasarlas"
+          icon={ShoppingCart}
+          title="Bevásárlás"
+          desc={
+            activeLists.length
+              ? `${activeLists.length} folyamatban · ${doneLists} lezárt`
+              : `${doneLists} lezárt lista`
+          }
+          badge={
+            activeLists.length
+              ? `${activeLists.length} lista`
+              : undefined
+          }
+          badgeTone={activeLists.length ? "primary" : "neutral"}
+        />
+        <ModuleTile
+          href="/vasarlas"
+          icon={Receipt}
+          title="Vásárlás"
+          desc={
+            spent30d > 0
+              ? `30 nap: ${fmtFt(spent30d)}`
+              : "Blokk import + ártörténet"
+          }
+          badge={
+            purchases.length ? String(purchases.length) : undefined
+          }
+        />
+        <ModuleTile
+          href="/statisztika"
+          icon={BarChart3}
+          title="Statisztika"
+          desc="Költések, top termékek, árak"
+          className="md:col-span-2"
+        />
       </section>
 
       {isEmpty && (
@@ -138,7 +211,8 @@ export default async function Home() {
                     Példa adatok betöltése
                   </p>
                   <p className="text-xs text-[var(--color-primary)]/80 mt-0.5">
-                    2 recept, 5 spájz tétel, 1 blokk (7 sor) és 1 bevásárlólista. Bármikor törölhető.
+                    2 recept, 5 spájz tétel, 1 blokk (7 sor) és 1
+                    bevásárlólista. Bármikor törölhető.
                   </p>
                 </div>
               </div>
@@ -146,44 +220,6 @@ export default async function Home() {
           </form>
         </section>
       )}
-
-      <section className="mt-8 grid gap-3 md:grid-cols-2">
-        <ModuleTile
-          href="/receptek"
-          icon={BookOpen}
-          title="Receptek"
-          desc="Kedvenceid, hozzávalókkal"
-          badge={recipes.length ? String(recipes.length) : undefined}
-        />
-        <ModuleTile
-          href="/spajz"
-          icon={Refrigerator}
-          title="Spájz"
-          desc="Mi van itthon, meddig áll el"
-          badge={pantry.length ? String(pantry.length) : undefined}
-          badgeTone={expiringSoon.length ? "warning" : "neutral"}
-        />
-        <ModuleTile
-          href="/bevasarlas"
-          icon={ShoppingCart}
-          title="Bevásárlás"
-          desc="Mit kell venni, receptek alapján"
-          badge={activeLists.length ? `${activeLists.length} lista` : undefined}
-        />
-        <ModuleTile
-          href="/vasarlas"
-          icon={Receipt}
-          title="Vásárlás"
-          desc="Blokk import + ártörténet"
-        />
-        <ModuleTile
-          href="/statisztika"
-          icon={BarChart3}
-          title="Statisztika"
-          desc="Költések, top termékek, árak"
-          className="md:col-span-2"
-        />
-      </section>
 
       <section className="mt-8">
         <Link
@@ -206,7 +242,12 @@ export default async function Home() {
       </section>
 
       <div className="mt-6 flex justify-center">
-        <Button href="/receptek/uj" variant="soft" size="sm" leftIcon={<Plus className="w-4 h-4" />}>
+        <Button
+          href="/receptek/uj"
+          variant="soft"
+          size="sm"
+          leftIcon={<Plus className="w-4 h-4" />}
+        >
           Új recept
         </Button>
       </div>
@@ -214,13 +255,26 @@ export default async function Home() {
   );
 }
 
-function Stat({ label, value, highlight }: { label: string; value: number; highlight?: boolean }) {
+function Stat({
+  label,
+  value,
+  highlight,
+}: {
+  label: string;
+  value: number;
+  highlight?: boolean;
+}) {
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3.5 text-center">
-      <p className={"text-2xl font-bold tabular-nums " + (highlight ? "text-[var(--color-primary)]" : "")}>
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 text-center">
+      <p
+        className={
+          "text-xl font-bold tabular-nums " +
+          (highlight ? "text-[var(--color-primary)]" : "")
+        }
+      >
         {value}
       </p>
-      <p className="text-[11px] font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mt-0.5">
+      <p className="text-[10px] font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mt-0.5">
         {label}
       </p>
     </div>
@@ -258,9 +312,23 @@ function ModuleTile({
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
           <p className="font-semibold text-[15px]">{title}</p>
-          {badge && <Badge tone={badgeTone === "warning" ? "warning" : "muted"}>{badge}</Badge>}
+          {badge && (
+            <Badge
+              tone={
+                badgeTone === "warning"
+                  ? "warning"
+                  : badgeTone === "primary"
+                  ? "primary"
+                  : "muted"
+              }
+            >
+              {badge}
+            </Badge>
+          )}
         </div>
-        <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5 truncate">{desc}</p>
+        <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5 truncate">
+          {desc}
+        </p>
       </div>
       <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] group-hover:text-[var(--color-primary)] transition" />
     </Link>
