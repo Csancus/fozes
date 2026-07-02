@@ -249,7 +249,6 @@ export function EditPurchaseForm({
                         expiresAt: isNaN(t) ? null : t,
                       });
                     }}
-                    disabled={!l.addToPantry}
                     className={inputClass}
                   />
                 </label>

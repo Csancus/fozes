@@ -202,8 +202,8 @@ export default async function ItemHistoryPage({
             <h2 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
               Ártörténet
             </h2>
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-hidden">
-              <table className="w-full text-sm">
+            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-x-auto">
+              <table className="w-full min-w-[520px] text-sm">
                 <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-xs text-zinc-500">
                   <tr>
                     <th className="text-left px-3 py-2 font-medium">Dátum</th>

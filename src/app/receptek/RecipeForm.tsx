@@ -21,15 +21,39 @@ export function RecipeForm({
         />
       </Field>
 
-      <Field label="Adag (fő)">
-        <input
-          name="servings"
-          type="number"
-          min="1"
-          defaultValue={initial?.servings ?? 4}
-          className={inputClass}
-        />
-      </Field>
+      <div className="grid grid-cols-3 gap-3">
+        <Field label="Adag (fő)">
+          <input
+            name="servings"
+            type="number"
+            min="1"
+            defaultValue={initial?.servings ?? 4}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Kcal / adag">
+          <input
+            name="caloriesPerServing"
+            type="number"
+            min="0"
+            step="1"
+            placeholder="pl. 450"
+            defaultValue={initial?.caloriesPerServing ?? ""}
+            className={inputClass}
+          />
+        </Field>
+        <Field label="Fehérje g / adag">
+          <input
+            name="proteinPerServing"
+            type="number"
+            min="0"
+            step="0.1"
+            placeholder="pl. 28"
+            defaultValue={initial?.proteinPerServing ?? ""}
+            className={inputClass}
+          />
+        </Field>
+      </div>
 
       <Field label="Hozzávalók (soronként egy)">
         <textarea

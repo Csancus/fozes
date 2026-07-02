@@ -11,6 +11,10 @@ export async function saveRecipeAction(fd: FormData) {
   const id = String(fd.get("id") ?? "") || undefined;
   const name = String(fd.get("name") ?? "").trim();
   const servings = Math.max(1, Number(fd.get("servings") ?? 4));
+  const kcalRaw = String(fd.get("caloriesPerServing") ?? "").trim();
+  const proteinRaw = String(fd.get("proteinPerServing") ?? "").trim();
+  const caloriesPerServing = kcalRaw === "" ? null : Math.max(0, Math.round(Number(kcalRaw)));
+  const proteinPerServing = proteinRaw === "" ? null : Math.max(0, Number(proteinRaw));
   const ingredientsText = String(fd.get("ingredients") ?? "");
   const instructions = String(fd.get("instructions") ?? "").trim();
   const tags = String(fd.get("tags") ?? "")
@@ -24,6 +28,8 @@ export async function saveRecipeAction(fd: FormData) {
     id,
     name,
     servings,
+    caloriesPerServing: Number.isFinite(caloriesPerServing as number) ? caloriesPerServing : null,
+    proteinPerServing: Number.isFinite(proteinPerServing as number) ? proteinPerServing : null,
     ingredients: parseIngredientText(ingredientsText),
     instructions,
     tags,

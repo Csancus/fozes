@@ -46,6 +46,8 @@ export type Recipe = {
   id: string;
   name: string;
   servings: number;
+  caloriesPerServing?: number | null;
+  proteinPerServing?: number | null;
   ingredients: Ingredient[];
   instructions: string;
   tags: string[];

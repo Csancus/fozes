@@ -31,6 +31,12 @@ export default async function ReceptekPage() {
                 <div className="font-medium">{r.name}</div>
                 <div className="text-xs text-zinc-500 mt-0.5">
                   {r.servings} adag · {r.ingredients.length} hozzávaló
+                  {r.caloriesPerServing != null && (
+                    <> · {r.caloriesPerServing} kcal/adag</>
+                  )}
+                  {r.proteinPerServing != null && (
+                    <> · {r.proteinPerServing} g fehérje</>
+                  )}
                 </div>
               </div>
               <span className="text-zinc-400">›</span>

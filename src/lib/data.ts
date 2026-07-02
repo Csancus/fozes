@@ -93,6 +93,8 @@ export async function saveRecipe(
     id,
     name: input.name.trim(),
     servings: input.servings,
+    caloriesPerServing: input.caloriesPerServing ?? null,
+    proteinPerServing: input.proteinPerServing ?? null,
     ingredients: input.ingredients,
     instructions: input.instructions,
     tags: input.tags,
