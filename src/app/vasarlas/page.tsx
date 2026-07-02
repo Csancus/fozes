@@ -1,7 +1,11 @@
 import { requireUser } from "@/lib/auth";
 import { listPurchases } from "@/lib/data";
-import { PageHeader } from "@/components/PageHeader";
-import Link from "next/link";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { LinkCard } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Button } from "@/components/ui/Button";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { Receipt, Plus, ChevronRight } from "lucide-react";
 
 function fmtDate(ts: number): string {
   const d = new Date(ts);
@@ -22,54 +26,69 @@ const SOURCE_LABEL: Record<string, string> = {
   manual: "Kézi",
 };
 
+const SOURCE_TONE: Record<string, "neutral" | "primary" | "muted"> = {
+  text: "neutral",
+  pdf: "primary",
+  photo: "primary",
+  manual: "muted",
+};
+
 export default async function VasarlasPage() {
   const me = await requireUser();
   const purchases = await listPurchases(me.householdId);
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-24">
-      <PageHeader title="Vásárlások" />
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md mx-auto">
+      <PageHeader
+        title="Vásárlás"
+        action={
+          <Button href="/vasarlas/uj" variant="primary" size="sm" leftIcon={<Plus className="w-4 h-4" />}>
+            Új
+          </Button>
+        }
+      />
 
-      <div className="mt-4">
-        <Link
-          href="/vasarlas/uj"
-          className="rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 px-3 py-2 text-sm font-medium"
-        >
-          + Új vásárlás
-        </Link>
-      </div>
-
-      {purchases.length === 0 && (
-        <p className="mt-8 text-center text-sm text-zinc-500">
-          Még nincs vásárlás rögzítve. Illessz be egy blokkot vagy tölts fel PDF-et!
-        </p>
-      )}
-
-      <ul className="mt-6 divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        {purchases.map((p) => (
-          <li key={p.id}>
-            <Link
-              href={`/vasarlas/${p.id}`}
-              className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-            >
-              <div className="min-w-0">
-                <div className="font-medium truncate">{p.store}</div>
-                <div className="text-xs text-zinc-500 mt-0.5 flex gap-2 items-center">
-                  <span>{fmtDate(p.purchasedAt)}</span>
-                  <span className="inline-flex items-center rounded-full bg-zinc-100 dark:bg-zinc-800 px-2 py-0.5 text-[10px] uppercase tracking-wide">
-                    {SOURCE_LABEL[p.source] ?? p.source}
-                  </span>
-                  <span>{p.lines.length} tétel</span>
+      {purchases.length === 0 ? (
+        <EmptyState
+          icon={Receipt}
+          title="Nincs rögzített vásárlás"
+          description="Vidd fel a blokkot szöveggel, PDF-fel vagy fotóval."
+          action={
+            <Button href="/vasarlas/uj" leftIcon={<Plus className="w-4 h-4" />}>
+              Új vásárlás
+            </Button>
+          }
+        />
+      ) : (
+        <ul className="mt-5 space-y-2.5 animate-fade-up">
+          {purchases.map((p) => (
+            <li key={p.id}>
+              <LinkCard href={`/vasarlas/${p.id}`} className="flex items-center gap-3.5 p-4">
+                <div className="w-11 h-11 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                  <Receipt className="w-5 h-5" strokeWidth={2} />
                 </div>
-              </div>
-              <div className="text-right shrink-0 pl-3">
-                <div className="font-semibold">{fmtFt(p.total)}</div>
-                <div className="text-xs text-zinc-400">›</div>
-              </div>
-            </Link>
-          </li>
-        ))}
-      </ul>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2">
+                    <p className="font-semibold text-[15px] truncate">{p.store}</p>
+                  </div>
+                  <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
+                    {fmtDate(p.purchasedAt)} · {p.lines.length} tétel
+                  </p>
+                </div>
+                <div className="flex flex-col items-end gap-1 shrink-0">
+                  <span className="font-semibold tabular-nums font-mono text-[14px]">
+                    {fmtFt(p.total)}
+                  </span>
+                  <Badge tone={SOURCE_TONE[p.source] ?? "neutral"}>
+                    {SOURCE_LABEL[p.source] ?? p.source}
+                  </Badge>
+                </div>
+                <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+              </LinkCard>
+            </li>
+          ))}
+        </ul>
+      )}
     </main>
   );
 }

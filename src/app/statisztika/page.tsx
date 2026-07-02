@@ -1,8 +1,13 @@
 import { requireUser } from "@/lib/auth";
 import { listPurchases } from "@/lib/data";
 import { slug } from "@/lib/redis";
-import { PageHeader } from "@/components/PageHeader";
-import Link from "next/link";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Section } from "@/components/ui/Section";
+import { Card } from "@/components/ui/Card";
+import { LinkCard } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { BarChart3, ChevronRight, Receipt } from "lucide-react";
 
 function fmtDate(ts: number): string {
   const d = new Date(ts);
@@ -40,7 +45,6 @@ export default async function StatisztikaPage() {
   const me = await requireUser();
   const purchases = await listPurchases(me.householdId);
 
-  // Havi összesítés
   const monthlyMap = new Map<string, number>();
   for (const p of purchases) {
     const d = new Date(p.purchasedAt);
@@ -52,7 +56,6 @@ export default async function StatisztikaPage() {
     .slice(0, 6);
   const monthlyMax = monthly.reduce((m, [, v]) => Math.max(m, v), 0);
 
-  // Top 10 termékek
   type TopEntry = { slug: string; name: string; total: number; lastTs: number };
   const topMap = new Map<string, TopEntry>();
   for (const p of purchases) {
@@ -80,111 +83,94 @@ export default async function StatisztikaPage() {
     .sort((a, b) => b.total - a.total)
     .slice(0, 10);
 
-  // Legutóbbi 5 vásárlás
   const recent = purchases.slice(0, 5);
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-24">
-      <PageHeader title="Statisztika" />
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md mx-auto">
+      <PageHeader title="Statisztika" back="/" />
 
-      <section className="mt-6">
-        <h2 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-          Havi összesített költés
-        </h2>
-        {monthly.length === 0 ? (
-          <p className="text-sm text-zinc-500 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-            Még nincs adat.
-          </p>
-        ) : (
-          <ul className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
-            {monthly.map(([ym, total]) => {
-              const pct = monthlyMax > 0 ? (total / monthlyMax) * 100 : 0;
-              return (
-                <li key={ym} className="px-4 py-3">
-                  <div className="flex items-center justify-between text-sm mb-1.5">
-                    <span className="font-medium">{fmtMonth(ym)}</span>
-                    <span className="text-zinc-700 dark:text-zinc-300">
-                      {fmtFt(total)}
-                    </span>
-                  </div>
-                  <div className="h-2 rounded-full bg-zinc-100 dark:bg-zinc-800 overflow-hidden">
-                    <div
-                      className="h-full bg-zinc-800 dark:bg-zinc-200"
-                      style={{ width: `${pct}%` }}
-                    />
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        )}
-      </section>
+      {purchases.length === 0 ? (
+        <EmptyState
+          icon={BarChart3}
+          title="Nincs statisztika még"
+          description="Vidd fel az első vásárlást."
+        />
+      ) : (
+        <div className="mt-5 space-y-8 animate-fade-up">
+          <Section title="Havi költés">
+            <ul className="space-y-2">
+              {monthly.map(([ym, total]) => {
+                const pct = monthlyMax > 0 ? (total / monthlyMax) * 100 : 0;
+                return (
+                  <li key={ym}>
+                    <Card>
+                      <div className="p-4">
+                        <div className="flex items-center justify-between text-sm mb-2">
+                          <span className="font-medium">{fmtMonth(ym)}</span>
+                          <span className="tabular-nums font-mono font-semibold">{fmtFt(total)}</span>
+                        </div>
+                        <div className="h-2 rounded-full bg-[var(--color-primary-soft)] overflow-hidden">
+                          <div
+                            className="h-full bg-[var(--color-primary)] transition-all"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      </div>
+                    </Card>
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
 
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-          Top 10 termék által elköltött összeg
-        </h2>
-        {top10.length === 0 ? (
-          <p className="text-sm text-zinc-500 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-            Még nincs tétel.
-          </p>
-        ) : (
-          <ul className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
-            {top10.map((t, i) => (
-              <li key={t.slug}>
-                <Link
-                  href={`/statisztika/${t.slug}`}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                >
-                  <div className="min-w-0 flex items-center gap-3">
-                    <span className="text-xs text-zinc-400 w-5 shrink-0">
-                      {i + 1}.
-                    </span>
-                    <span className="font-medium truncate">{t.name}</span>
-                  </div>
-                  <div className="text-right shrink-0 pl-3">
-                    <div className="font-semibold text-sm">
-                      {fmtFt(t.total)}
-                    </div>
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          {top10.length > 0 && (
+            <Section title="Top termékek">
+              <ul className="space-y-2">
+                {top10.map((t, i) => (
+                  <li key={t.slug}>
+                    <LinkCard href={`/statisztika/${t.slug}`} className="flex items-center gap-3 px-4 py-3">
+                      <Badge tone="muted" className="tabular-nums w-8 justify-center">
+                        {i + 1}
+                      </Badge>
+                      <p className="font-medium truncate flex-1">{t.name}</p>
+                      <span className="tabular-nums font-mono font-semibold text-[14px] shrink-0">
+                        {fmtFt(t.total)}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+                    </LinkCard>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
 
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-          Legutóbbi vásárlások
-        </h2>
-        {recent.length === 0 ? (
-          <p className="text-sm text-zinc-500 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-            Még nincs vásárlás.
-          </p>
-        ) : (
-          <ul className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 divide-y divide-zinc-200 dark:divide-zinc-800">
-            {recent.map((p) => (
-              <li key={p.id}>
-                <Link
-                  href={`/vasarlas/${p.id}`}
-                  className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-                >
-                  <div className="min-w-0">
-                    <div className="font-medium truncate">{p.store}</div>
-                    <div className="text-xs text-zinc-500 mt-0.5">
-                      {fmtDate(p.purchasedAt)}
-                    </div>
-                  </div>
-                  <div className="text-right shrink-0 pl-3 font-semibold text-sm">
-                    {fmtFt(p.total)}
-                  </div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        )}
-      </section>
+          {recent.length > 0 && (
+            <Section title="Legutóbbi vásárlások">
+              <ul className="space-y-2">
+                {recent.map((p) => (
+                  <li key={p.id}>
+                    <LinkCard href={`/vasarlas/${p.id}`} className="flex items-center gap-3.5 p-4">
+                      <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                        <Receipt className="w-4.5 h-4.5" strokeWidth={2} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-[15px] truncate">{p.store}</p>
+                        <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
+                          {fmtDate(p.purchasedAt)}
+                        </p>
+                      </div>
+                      <span className="tabular-nums font-mono font-semibold text-[14px] shrink-0">
+                        {fmtFt(p.total)}
+                      </span>
+                      <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+                    </LinkCard>
+                  </li>
+                ))}
+              </ul>
+            </Section>
+          )}
+        </div>
+      )}
     </main>
   );
 }

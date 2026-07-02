@@ -4,7 +4,7 @@ import {
   getPurchase,
   listLocations,
 } from "@/lib/data";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { notFound } from "next/navigation";
 import { slug } from "@/lib/redis";
 import { MatchForm } from "./MatchForm";
@@ -46,13 +46,17 @@ export default async function MatchPurchasePage({
   });
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-24">
-      <PageHeader title="Tételek párosítása" back={`/bevasarlas/${list.id}`} />
-      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-        Kösd össze a blokk tételeit a listaelemekkel. Az egyezőket kipipáljuk,
-        opcionálisan a spájzba is berakhatod.
-      </p>
-      <div className="mt-4">
+    <main className="min-h-dvh px-5 pb-8 max-w-md mx-auto">
+      <PageHeader
+        title="Számla párosítása"
+        subtitle={`${purchase.lines.length} tétel · ${list.name}`}
+        back={`/bevasarlas/${list.id}`}
+      />
+      <div className="mt-5 animate-fade-up">
+        <p className="text-sm text-[var(--color-muted-foreground)] mb-5">
+          Kösd össze a blokk tételeit a listaelemekkel. Az egyezőket
+          kipipáljuk, opcionálisan a spájzba is berakhatod.
+        </p>
         <MatchForm
           list={list}
           purchase={purchase}

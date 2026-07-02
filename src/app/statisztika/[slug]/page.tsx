@@ -1,7 +1,11 @@
 import { requireUser } from "@/lib/auth";
 import { listPurchases } from "@/lib/data";
 import { redis, key, slug as toSlug } from "@/lib/redis";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Section } from "@/components/ui/Section";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { TrendingUp } from "lucide-react";
 import type { Unit } from "@/lib/types";
 
 type PriceEntry = {
@@ -71,7 +75,6 @@ export default async function ItemHistoryPage({
     .filter((e): e is PriceEntry => e !== null)
     .sort((a, b) => a.ts - b.ts);
 
-  // Find item name from most recent purchase line matching this slug
   const purchases = await listPurchases(me.householdId);
   let displayName = slug;
   let bestTs = -Infinity;
@@ -96,7 +99,6 @@ export default async function ItemHistoryPage({
   const latest = entries.length > 0 ? entries[entries.length - 1] : null;
   const latestUnit = latest?.unit ?? "";
 
-  // SVG chart geometry
   const chartW = 600;
   const chartH = 200;
   const padX = 24;
@@ -129,116 +131,115 @@ export default async function ItemHistoryPage({
   }
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-24">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md mx-auto">
       <PageHeader title={displayName} back="/statisztika" />
 
       {entries.length === 0 ? (
-        <p className="mt-8 text-center text-sm text-zinc-500">
-          Nincs ártörténet ehhez a termékhez.
-        </p>
+        <EmptyState
+          icon={TrendingUp}
+          title="Nincs ártörténet"
+          description="Ehhez a termékhez még nincs rögzített ár."
+        />
       ) : (
-        <>
-          <section className="mt-6 grid grid-cols-2 gap-3">
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-              <div className="text-xs text-zinc-500 mb-1">Aktuális átlagár</div>
-              <div className="font-semibold">
-                {fmtUnitPrice(avgUnitPrice)} Ft
-                {latestUnit && (
-                  <span className="text-zinc-500 font-normal">/{latestUnit}</span>
+        <div className="mt-5 space-y-6 animate-fade-up">
+          <section className="grid grid-cols-2 gap-3">
+            <Card>
+              <div className="p-4">
+                <div className="text-[10px] uppercase tracking-wider text-[var(--color-muted-foreground)] mb-1">
+                  Átlagár
+                </div>
+                <div className="text-lg font-bold tabular-nums font-mono">
+                  {fmtUnitPrice(avgUnitPrice)}
+                  <span className="text-sm font-normal text-[var(--color-muted-foreground)]">
+                    {" "}
+                    Ft{latestUnit && `/${latestUnit}`}
+                  </span>
+                </div>
+              </div>
+            </Card>
+            <Card>
+              <div className="p-4">
+                <div className="text-[10px] uppercase tracking-wider text-[var(--color-muted-foreground)] mb-1">
+                  Legutóbbi ár
+                </div>
+                <div className="text-lg font-bold tabular-nums font-mono">
+                  {latest ? fmtFt(latest.price) : "-"}
+                </div>
+                {latest && (
+                  <div className="text-[11px] text-[var(--color-muted-foreground)] mt-0.5">
+                    {latest.qty} {latest.unit} · {fmtDate(latest.ts)}
+                  </div>
                 )}
               </div>
-            </div>
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4">
-              <div className="text-xs text-zinc-500 mb-1">Legutóbbi ár</div>
-              <div className="font-semibold">
-                {latest ? fmtFt(latest.price) : "-"}
+            </Card>
+          </section>
+
+          <Section title="Ártörténet">
+            <Card>
+              <div className="p-4">
+                <svg
+                  viewBox={`0 0 ${chartW} ${chartH}`}
+                  className="w-full h-[200px]"
+                  preserveAspectRatio="none"
+                >
+                  <rect x={0} y={0} width={chartW} height={chartH} fill="transparent" />
+                  {points.length > 1 && (
+                    <path
+                      d={pathD}
+                      fill="none"
+                      strokeWidth={2}
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      className="stroke-[var(--color-primary)]"
+                    />
+                  )}
+                  {points.map((p, i) => (
+                    <circle
+                      key={i}
+                      cx={p.x}
+                      cy={p.y}
+                      r={3.5}
+                      className="fill-[var(--color-primary)]"
+                    />
+                  ))}
+                </svg>
               </div>
-              {latest && (
-                <div className="text-xs text-zinc-500 mt-0.5">
-                  {latest.qty} {latest.unit} • {fmtDate(latest.ts)}
+            </Card>
+          </Section>
+
+          <Section title="Táblázat">
+            <Card>
+              <div className="divide-y divide-[var(--color-border)]">
+                <div className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-2.5 text-[10px] uppercase tracking-wider text-[var(--color-muted-foreground)] font-semibold">
+                  <span>Dátum</span>
+                  <span className="text-right">Ár</span>
+                  <span className="text-right">Menny.</span>
+                  <span className="text-right">Egységár</span>
                 </div>
-              )}
-            </div>
-          </section>
-
-          <section className="mt-6 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3">
-            <div className="text-xs text-zinc-500 mb-2 px-1">
-              Egységár változás
-            </div>
-            <svg
-              viewBox={`0 0 ${chartW} ${chartH}`}
-              className="w-full h-[200px]"
-              preserveAspectRatio="none"
-            >
-              <rect
-                x={0}
-                y={0}
-                width={chartW}
-                height={chartH}
-                fill="transparent"
-              />
-              {points.length > 1 && (
-                <path
-                  d={pathD}
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth={2}
-                  className="text-zinc-800 dark:text-zinc-200"
-                />
-              )}
-              {points.map((p, i) => (
-                <circle
-                  key={i}
-                  cx={p.x}
-                  cy={p.y}
-                  r={3}
-                  className="fill-zinc-800 dark:fill-zinc-200"
-                />
-              ))}
-            </svg>
-          </section>
-
-          <section className="mt-6">
-            <h2 className="text-sm font-semibold text-zinc-600 dark:text-zinc-400 mb-2">
-              Ártörténet
-            </h2>
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 overflow-x-auto">
-              <table className="w-full min-w-[520px] text-sm">
-                <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-xs text-zinc-500">
-                  <tr>
-                    <th className="text-left px-3 py-2 font-medium">Dátum</th>
-                    <th className="text-right px-3 py-2 font-medium">Ár</th>
-                    <th className="text-right px-3 py-2 font-medium">Menny.</th>
-                    <th className="text-right px-3 py-2 font-medium">Egység</th>
-                    <th className="text-right px-3 py-2 font-medium">
-                      Egységár
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                  {[...entries].reverse().map((e, i) => {
-                    const up = e.qty > 0 ? e.price / e.qty : 0;
-                    return (
-                      <tr key={i}>
-                        <td className="px-3 py-2">{fmtDate(e.ts)}</td>
-                        <td className="px-3 py-2 text-right">
-                          {fmtFt(e.price)}
-                        </td>
-                        <td className="px-3 py-2 text-right">{e.qty}</td>
-                        <td className="px-3 py-2 text-right text-zinc-500">
-                          {e.unit}
-                        </td>
-                        <td className="px-3 py-2 text-right">
-                          {fmtUnitPrice(up)} Ft/{e.unit}
-                        </td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-          </section>
-        </>
+                {[...entries].reverse().map((e, i) => {
+                  const up = e.qty > 0 ? e.price / e.qty : 0;
+                  return (
+                    <div
+                      key={i}
+                      className="grid grid-cols-[1fr_auto_auto_auto] gap-3 px-4 py-2.5 text-sm items-center"
+                    >
+                      <span className="text-[var(--color-muted-foreground)]">
+                        {fmtDate(e.ts)}
+                      </span>
+                      <span className="text-right tabular-nums font-mono">{fmtFt(e.price)}</span>
+                      <span className="text-right tabular-nums font-mono text-[var(--color-muted-foreground)]">
+                        {e.qty} {e.unit}
+                      </span>
+                      <span className="text-right tabular-nums font-mono font-medium">
+                        {fmtUnitPrice(up)}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            </Card>
+          </Section>
+        </div>
       )}
     </main>
   );

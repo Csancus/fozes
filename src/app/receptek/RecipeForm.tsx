@@ -1,5 +1,8 @@
 import type { Recipe } from "@/lib/types";
 import { stringifyIngredients } from "@/lib/ingredient-parse";
+import { Input, Textarea, Field } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Save } from "lucide-react";
 
 export function RecipeForm({
   action,
@@ -9,98 +12,90 @@ export function RecipeForm({
   initial?: Recipe;
 }) {
   return (
-    <form action={action} className="space-y-4">
+    <form action={action} className="space-y-5">
       {initial && <input type="hidden" name="id" value={initial.id} />}
 
-      <Field label="Név">
-        <input
+      <Field label="Név" required>
+        <Input
           name="name"
           required
           defaultValue={initial?.name ?? ""}
-          className={inputClass}
+          placeholder="pl. Palacsinta"
         />
       </Field>
 
       <div className="grid grid-cols-3 gap-3">
-        <Field label="Adag (fő)">
-          <input
+        <Field label="Adag">
+          <Input
             name="servings"
             type="number"
             min="1"
+            inputMode="numeric"
             defaultValue={initial?.servings ?? 4}
-            className={inputClass}
           />
         </Field>
-        <Field label="Kcal / adag">
-          <input
+        <Field label="Kcal/adag">
+          <Input
             name="caloriesPerServing"
             type="number"
             min="0"
             step="1"
-            placeholder="pl. 450"
+            inputMode="numeric"
+            placeholder="450"
             defaultValue={initial?.caloriesPerServing ?? ""}
-            className={inputClass}
           />
         </Field>
-        <Field label="Fehérje g / adag">
-          <input
+        <Field label="Fehérje g/adag">
+          <Input
             name="proteinPerServing"
             type="number"
             min="0"
             step="0.1"
-            placeholder="pl. 28"
+            inputMode="decimal"
+            placeholder="28"
             defaultValue={initial?.proteinPerServing ?? ""}
-            className={inputClass}
           />
         </Field>
       </div>
 
-      <Field label="Hozzávalók (soronként egy)">
-        <textarea
+      <Field
+        label="Hozzávalók"
+        hint="Soronként egy, formátum: mennyiség egység név (pl. 500 g liszt). Egységek: db, g, dkg, kg, ml, dl, l, csomag, csipet, ek, kk."
+      >
+        <Textarea
           name="ingredients"
           rows={8}
           defaultValue={initial ? stringifyIngredients(initial.ingredients) : ""}
-          placeholder={`Példa:\n500 g liszt\n2 db tojás\n1 dl tej\n1 csipet só`}
-          className={`${inputClass} font-mono text-sm`}
+          placeholder={"500 g liszt\n2 db tojás\n1 dl tej\n1 csipet só"}
+          className="font-mono text-sm"
         />
-        <p className="text-xs text-zinc-500 mt-1">
-          Formátum: <code>mennyiség egység név</code> (pl. 500 g liszt). Egységek: db, g, dkg, kg, ml, dl, l, csomag, csipet, ek, kk.
-        </p>
       </Field>
 
       <Field label="Elkészítés">
-        <textarea
+        <Textarea
           name="instructions"
-          rows={6}
+          rows={8}
           defaultValue={initial?.instructions ?? ""}
-          className={inputClass}
+          placeholder="Írd le lépésről lépésre…"
         />
       </Field>
 
-      <Field label="Címkék (vesszővel elválasztva)">
-        <input
+      <Field label="Címkék" hint="Vesszővel elválasztva">
+        <Input
           name="tags"
           defaultValue={initial?.tags.join(", ") ?? ""}
           placeholder="pl. leves, gyors, vegán"
-          className={inputClass}
         />
       </Field>
 
-      <button className="w-full rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 py-3 font-medium">
+      <Button
+        type="submit"
+        size="lg"
+        fullWidth
+        leftIcon={<Save className="w-4 h-4" />}
+      >
         Mentés
-      </button>
+      </Button>
     </form>
-  );
-}
-
-const inputClass =
-  "w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-zinc-900 dark:text-zinc-50";
-
-function Field({ label, children }: { label: string; children: React.ReactNode }) {
-  return (
-    <label className="block">
-      <span className="text-sm text-zinc-700 dark:text-zinc-300">{label}</span>
-      <div className="mt-1">{children}</div>
-    </label>
   );
 }

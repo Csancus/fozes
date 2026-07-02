@@ -1,62 +1,104 @@
 import { requireUser } from "@/lib/auth";
 import { listShoppingLists } from "@/lib/data";
-import { PageHeader } from "@/components/PageHeader";
-import Link from "next/link";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { LinkCard } from "@/components/ui/Card";
+import { ShoppingCart, ClipboardList, ChevronRight, Plus } from "lucide-react";
+
+function formatDate(ts: number): string {
+  const d = new Date(ts);
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${y}. ${m}. ${day}.`;
+}
 
 export default async function BevasarlasPage() {
   const me = await requireUser();
   const lists = await listShoppingLists(me.householdId);
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-24">
-      <PageHeader title="Bevásárlás" />
-      <div className="mt-4">
-        <Link
-          href="/bevasarlas/uj"
-          className="rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 px-3 py-2 text-sm font-medium"
-        >
-          + Új lista
-        </Link>
-      </div>
+    <main className="min-h-dvh px-5 pb-8 max-w-md mx-auto">
+      <PageHeader
+        title="Bevásárlás"
+        action={
+          <Button
+            href="/bevasarlas/uj"
+            size="sm"
+            leftIcon={<Plus className="w-4 h-4" />}
+          >
+            Új lista
+          </Button>
+        }
+      />
 
-      {lists.length === 0 && (
-        <p className="mt-8 text-center text-sm text-zinc-500">
-          Még nincs bevásárlólistád. Készíts egyet receptekből!
-        </p>
+      {lists.length === 0 ? (
+        <EmptyState
+          icon={ShoppingCart}
+          title="Nincs bevásárlólista"
+          description="Válassz recepteket vagy adj hozzá tételeket manuálisan."
+          action={
+            <Button
+              href="/bevasarlas/uj"
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              Új lista
+            </Button>
+          }
+        />
+      ) : (
+        <ul className="mt-5 space-y-3 animate-fade-up">
+          {lists.map((l) => {
+            const toBuy = l.items.filter((it) => it.need > 0);
+            const boughtCount = toBuy.filter((it) => it.checked).length;
+            const done = l.completedAt != null;
+            const pct =
+              toBuy.length > 0
+                ? Math.round((boughtCount / toBuy.length) * 100)
+                : 0;
+            const Icon = done ? ClipboardList : ShoppingCart;
+            return (
+              <li key={l.id}>
+                <LinkCard href={`/bevasarlas/${l.id}`} className="group p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-11 h-11 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                      <Icon className="w-5 h-5" strokeWidth={2} />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <p className="font-semibold text-[15px] truncate">
+                          {l.name}
+                        </p>
+                        {done && <Badge tone="success">Kész</Badge>}
+                      </div>
+                      <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5 truncate">
+                        {formatDate(l.createdAt)}
+                        {toBuy.length > 0 && (
+                          <>
+                            {" "}
+                            · {boughtCount} / {toBuy.length} megvéve
+                          </>
+                        )}
+                      </p>
+                      {toBuy.length > 0 && !done && (
+                        <div className="mt-2 h-1.5 w-full rounded-full bg-[var(--color-muted)] overflow-hidden">
+                          <div
+                            className="h-full bg-[var(--color-primary)] transition-[width]"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                      )}
+                    </div>
+                    <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] group-hover:text-[var(--color-primary)] transition shrink-0" />
+                  </div>
+                </LinkCard>
+              </li>
+            );
+          })}
+        </ul>
       )}
-
-      <ul className="mt-6 divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-        {lists.map((l) => {
-          const toBuy = l.items.filter((it) => it.need > 0);
-          const boughtCount = toBuy.filter((it) => it.checked).length;
-          const done = toBuy.length > 0 && boughtCount === toBuy.length;
-          return (
-            <li key={l.id}>
-              <Link
-                href={`/bevasarlas/${l.id}`}
-                className="flex items-center justify-between px-4 py-3 hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-              >
-                <div>
-                  <div className="font-medium flex items-center gap-2">
-                    <span>{l.name}</span>
-                    {done && (
-                      <span className="text-xs px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-400">
-                        kész
-                      </span>
-                    )}
-                  </div>
-                  <div className="text-xs text-zinc-500 mt-0.5">
-                    {toBuy.length === 0
-                      ? `${l.items.length} tétel · nincs mit venni`
-                      : `${boughtCount}/${toBuy.length} bevásárolva · ${l.items.length} tétel`}
-                  </div>
-                </div>
-                <span className="text-zinc-400">›</span>
-              </Link>
-            </li>
-          );
-        })}
-      </ul>
     </main>
   );
 }

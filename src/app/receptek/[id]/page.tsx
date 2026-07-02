@@ -1,9 +1,10 @@
 import { requireUser } from "@/lib/auth";
 import { getRecipe } from "@/lib/data";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { notFound } from "next/navigation";
 import { RecipeForm } from "../RecipeForm";
 import { saveRecipeAction, deleteRecipeAction } from "../actions";
+import { Trash2 } from "lucide-react";
 
 export default async function EditReceptPage({
   params,
@@ -16,14 +17,24 @@ export default async function EditReceptPage({
   if (!recipe) notFound();
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
-      <PageHeader title="Recept" back="/receptek" />
-      <div className="mt-6">
+    <main className="min-h-dvh px-5 pb-8 max-w-md mx-auto">
+      <PageHeader title={recipe.name} back="/receptek" />
+      <div className="mt-5 animate-fade-up">
         <RecipeForm action={saveRecipeAction} initial={recipe} />
       </div>
-      <form action={deleteRecipeAction} className="mt-6">
+
+      <form
+        action={deleteRecipeAction}
+        className="mt-6 flex justify-center"
+      >
         <input type="hidden" name="id" value={recipe.id} />
-        <button className="text-sm text-red-600 hover:underline">Törlés</button>
+        <button
+          type="submit"
+          className="inline-flex items-center gap-2 h-9 px-3 rounded-xl text-sm font-medium text-red-600 hover:bg-red-500/10 transition active:scale-[0.98]"
+        >
+          <Trash2 className="w-4 h-4" />
+          <span>Recept törlése</span>
+        </button>
       </form>
     </main>
   );

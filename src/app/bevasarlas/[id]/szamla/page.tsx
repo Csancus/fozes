@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { getShoppingList, listLocations } from "@/lib/data";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { notFound } from "next/navigation";
 import { AttachReceiptForm } from "./AttachReceiptForm";
 
@@ -18,17 +18,18 @@ export default async function AttachReceiptPage({
   if (!list) notFound();
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-24">
+    <main className="min-h-dvh px-5 pb-8 max-w-md mx-auto">
       <PageHeader
         title="Számla hozzáfűzése"
+        subtitle={list.name}
         back={`/bevasarlas/${list.id}`}
       />
-      <p className="mt-3 text-sm text-zinc-600 dark:text-zinc-400">
-        Illeszd be a blokk szövegét, tölts fel PDF-et, vagy fényképezd le a
-        blokkot. A rendszer értelmezi a tételeket és felajánlja a listaelemek
-        párosítását.
-      </p>
-      <div className="mt-4">
+      <div className="mt-5 animate-fade-up">
+        <p className="text-sm text-[var(--color-muted-foreground)] mb-5">
+          Illeszd be a blokk szövegét, tölts fel PDF-et, vagy fényképezd le
+          a blokkot. A rendszer értelmezi a tételeket és felajánlja a
+          listaelemek párosítását.
+        </p>
         <AttachReceiptForm list={list} locations={locations} />
       </div>
     </main>

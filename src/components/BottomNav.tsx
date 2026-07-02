@@ -2,57 +2,46 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { Home, BookOpen, Refrigerator, ShoppingCart, Receipt } from "lucide-react";
+import { cn } from "@/lib/cn";
 
-type Tab = {
-  href: string;
-  icon: string;
-  label: string;
-};
-
-const TABS: Tab[] = [
-  { href: "/", icon: "🏠", label: "Kezdő" },
-  { href: "/receptek", icon: "📖", label: "Receptek" },
-  { href: "/spajz", icon: "🥫", label: "Spájz" },
-  { href: "/bevasarlas", icon: "🛒", label: "Bevásárlás" },
-  { href: "/vasarlas", icon: "🧾", label: "Vásárlás" },
+const items = [
+  { href: "/", label: "Kezdő", icon: Home, match: (p: string) => p === "/" },
+  { href: "/receptek", label: "Receptek", icon: BookOpen, match: (p: string) => p.startsWith("/receptek") },
+  { href: "/spajz", label: "Spájz", icon: Refrigerator, match: (p: string) => p.startsWith("/spajz") || p.startsWith("/helyek") },
+  { href: "/bevasarlas", label: "Bevásárlás", icon: ShoppingCart, match: (p: string) => p.startsWith("/bevasarlas") },
+  { href: "/vasarlas", label: "Vásárlás", icon: Receipt, match: (p: string) => p.startsWith("/vasarlas") || p.startsWith("/statisztika") },
 ];
 
-function isActive(pathname: string, href: string): boolean {
-  if (href === "/") return pathname === "/";
-  return pathname === href || pathname.startsWith(href + "/");
-}
-
 export function BottomNav() {
-  const pathname = usePathname();
-
-  if (pathname === "/belepes" || pathname.startsWith("/belepes/")) {
-    return null;
-  }
+  const pathname = usePathname() ?? "/";
+  if (pathname.startsWith("/belepes")) return null;
 
   return (
     <nav
-      className="fixed bottom-0 inset-x-0 z-40 border-t border-zinc-200 dark:border-zinc-800 bg-white/95 dark:bg-zinc-950/95 backdrop-blur pb-[env(safe-area-inset-bottom)]"
-      aria-label="Fő navigáció"
+      className="md:hidden fixed bottom-0 inset-x-0 z-40 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <ul className="grid grid-cols-5">
-        {TABS.map((tab) => {
-          const active = isActive(pathname, tab.href);
+      <ul className="grid grid-cols-5 max-w-md mx-auto">
+        {items.map((it) => {
+          const active = it.match(pathname);
+          const Icon = it.icon;
           return (
-            <li key={tab.href} className="contents">
+            <li key={it.href}>
               <Link
-                href={tab.href}
-                aria-current={active ? "page" : undefined}
-                className={
-                  "flex flex-col items-center justify-center gap-0.5 py-2 text-[11px] leading-tight " +
-                  (active
-                    ? "font-semibold text-orange-600 dark:text-orange-400"
-                    : "text-zinc-500 dark:text-zinc-400 hover:text-zinc-900 dark:hover:text-zinc-50")
-                }
+                href={it.href}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition relative",
+                  active
+                    ? "text-[var(--color-primary)]"
+                    : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+                )}
               >
-                <span className="text-xl leading-none" aria-hidden="true">
-                  {tab.icon}
-                </span>
-                <span>{tab.label}</span>
+                {active && (
+                  <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-[var(--color-primary)]" />
+                )}
+                <Icon className="w-5 h-5" strokeWidth={active ? 2.25 : 1.85} />
+                <span>{it.label}</span>
               </Link>
             </li>
           );

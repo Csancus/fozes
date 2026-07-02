@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { listRecipes } from "@/lib/data";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { RecipeMatrix } from "./RecipeMatrix";
 
 export default async function UjBevasarlasPage() {
@@ -8,9 +8,9 @@ export default async function UjBevasarlasPage() {
   const recipes = await listRecipes(me.householdId);
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-24">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-3xl mx-auto">
       <PageHeader title="Új bevásárlólista" back="/bevasarlas" />
-      <div className="mt-6">
+      <div className="mt-5 animate-fade-up">
         <RecipeMatrix recipes={recipes} />
       </div>
     </main>

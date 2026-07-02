@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import type {
   Location,
   Purchase,
@@ -8,22 +8,18 @@ import type {
 } from "@/lib/types";
 import { fmt } from "@/lib/units";
 import { finalizeMatchAction } from "../../szamla/actions";
-
-function dateInput(ts: number | null): string {
-  if (!ts) return "";
-  const d = new Date(ts);
-  const yyyy = d.getFullYear();
-  const mm = String(d.getMonth() + 1).padStart(2, "0");
-  const dd = String(d.getDate()).padStart(2, "0");
-  return `${yyyy}-${mm}-${dd}`;
-}
+import { Select, Input, Field } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Badge } from "@/components/ui/Badge";
+import { Card } from "@/components/ui/Card";
+import { EmptyState } from "@/components/ui/EmptyState";
+import { cn } from "@/lib/cn";
+import { Check, Sparkles, Package, Receipt } from "lucide-react";
+import Link from "next/link";
 
 function fmtFt(n: number): string {
   return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
 }
-
-const inputClass =
-  "w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-2 py-1.5 text-sm text-zinc-900 dark:text-zinc-50";
 
 type LineUi = {
   match: string; // itemIndex-as-string | "none" | "skip"
@@ -49,9 +45,10 @@ export function MatchForm({
     purchase.lines.map((_, i) => {
       const suggested = suggestedMatches[i];
       return {
-        match: suggested !== null && suggested !== undefined
-          ? String(suggested)
-          : "none",
+        match:
+          suggested !== null && suggested !== undefined
+            ? String(suggested)
+            : "none",
         addToPantry: true,
         locationId: defaultLoc,
         expiresAt: "",
@@ -59,197 +56,182 @@ export function MatchForm({
     })
   );
 
-  const matchedIndices = useMemo(() => {
-    const s = new Set<number>();
-    for (const r of rows) {
-      if (r.match !== "none" && r.match !== "skip") {
-        const n = Number(r.match);
-        if (Number.isFinite(n)) s.add(n);
-      }
-    }
-    return s;
-  }, [rows]);
-
   function patch(i: number, next: Partial<LineUi>) {
-    setRows((cur) => cur.map((r, idx) => (idx === i ? { ...r, ...next } : r)));
+    setRows((cur) =>
+      cur.map((r, idx) => (idx === i ? { ...r, ...next } : r))
+    );
+  }
+
+  if (purchase.lines.length === 0) {
+    return (
+      <div>
+        <EmptyState
+          icon={Receipt}
+          title="Nem sikerült tételt beolvasni"
+          description="Nyisd meg a blokkot a vásárlások szerkesztőjében és add hozzá kézzel."
+          action={
+            <Link
+              href={`/vasarlas/${purchase.id}/szerkesztes`}
+              className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:underline"
+            >
+              Blokk szerkesztése
+            </Link>
+          }
+        />
+      </div>
+    );
   }
 
   return (
-    <form action={finalizeMatchAction} className="space-y-6">
+    <form action={finalizeMatchAction} className="space-y-5">
       <input type="hidden" name="listId" value={list.id} />
       <input type="hidden" name="purchaseId" value={purchase.id} />
 
-      <div className="grid gap-6 md:grid-cols-[2fr_1fr]">
-        {/* LEFT: parsed lines */}
-        <section>
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
-            Blokk tételek ({purchase.lines.length})
-          </h2>
+      <ul className="space-y-3">
+        {purchase.lines.map((line, i) => {
+          const row = rows[i];
+          const suggested = suggestedMatches[i];
+          const suggestedName =
+            suggested !== null && suggested !== undefined
+              ? list.items[suggested]?.name
+              : null;
+          return (
+            <li key={i}>
+              <Card className="p-4 space-y-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0 flex-1">
+                    <p className="font-semibold text-[15px] truncate">
+                      {line.name}
+                    </p>
+                    <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
+                      {fmt(line.qty, line.unit)}
+                      {line.unitPrice > 0 && (
+                        <>
+                          {" "}
+                          × {fmtFt(line.unitPrice)}/{line.unit}
+                        </>
+                      )}
+                    </p>
+                    {suggestedName && (
+                      <div className="mt-2">
+                        <Badge tone="primary">
+                          <Sparkles className="w-3 h-3" />
+                          Auto: {suggestedName}
+                        </Badge>
+                      </div>
+                    )}
+                  </div>
+                  <div className="text-right shrink-0">
+                    <p className="text-base font-semibold tabular-nums">
+                      {fmtFt(line.total)}
+                    </p>
+                  </div>
+                </div>
 
-          {purchase.lines.length === 0 && (
-            <p className="mt-3 text-sm text-zinc-500">
-              Nem sikerült tételt beolvasni. Nyisd meg a blokkot a{" "}
-              <a
-                href={`/vasarlas/${purchase.id}/szerkesztes`}
-                className="underline"
-              >
-                vásárlások szerkesztőjében
-              </a>{" "}
-              és add hozzá kézzel.
-            </p>
-          )}
+                <Field label="Kösd hozzá a lista tételéhez">
+                  <Select
+                    name={`match-${i}`}
+                    value={row.match}
+                    onChange={(e) => patch(i, { match: e.target.value })}
+                  >
+                    <option value="none">
+                      — egyik sem (spájzba mehet) —
+                    </option>
+                    <option value="skip">Kihagyás</option>
+                    <optgroup label="Listaelemek">
+                      {list.items.map((it, itIdx) => (
+                        <option key={itIdx} value={String(itIdx)}>
+                          {it.name} ({fmt(it.need, it.unit)})
+                          {it.checked ? " ✓" : ""}
+                        </option>
+                      ))}
+                    </optgroup>
+                  </Select>
+                </Field>
 
-          <ul className="mt-2 space-y-3">
-            {purchase.lines.map((line, i) => {
-              const row = rows[i];
-              return (
-                <li
-                  key={i}
-                  className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3 space-y-3"
-                >
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-medium truncate">{line.name}</div>
-                      <div className="text-xs text-zinc-500 mt-0.5">
-                        {fmt(line.qty, line.unit)}
-                        {line.unitPrice > 0 && (
-                          <>
-                            {" "}× {fmtFt(line.unitPrice)}/{line.unit}
-                          </>
-                        )}
+                <div className="rounded-xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 p-3 space-y-3">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <span
+                      className={cn(
+                        "w-8 h-8 rounded-lg flex items-center justify-center shrink-0 transition",
+                        row.addToPantry
+                          ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)]"
+                          : "border-2 border-[var(--color-input)] bg-[var(--color-card)] text-transparent"
+                      )}
+                    >
+                      <Check className="w-4 h-4" strokeWidth={2.5} />
+                    </span>
+                    <input
+                      type="checkbox"
+                      name={`addToPantry-${i}`}
+                      checked={row.addToPantry}
+                      onChange={(e) =>
+                        patch(i, {
+                          addToPantry: e.target.checked,
+                          locationId: e.target.checked
+                            ? row.locationId || defaultLoc
+                            : row.locationId,
+                        })
+                      }
+                      className="sr-only"
+                    />
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <Package className="w-3.5 h-3.5 text-[var(--color-muted-foreground)]" />
+                        <span className="text-sm font-medium">
+                          Spájzba tesz
+                        </span>
                       </div>
                     </div>
-                    <div className="text-right shrink-0 text-sm font-medium">
-                      {fmtFt(line.total)}
-                    </div>
-                  </div>
-
-                  <label className="block">
-                    <span className="text-[10px] uppercase text-zinc-500">
-                      Kösd hozzá
-                    </span>
-                    <select
-                      name={`match-${i}`}
-                      value={row.match}
-                      onChange={(e) => patch(i, { match: e.target.value })}
-                      className={inputClass}
-                    >
-                      <option value="none">— egyik sem (spájzba mehet) —</option>
-                      <option value="skip">kihagyás</option>
-                      <optgroup label="Listaelemek">
-                        {list.items.map((it, itIdx) => (
-                          <option key={itIdx} value={String(itIdx)}>
-                            {it.name} ({fmt(it.need, it.unit)})
-                            {it.checked ? " ✓" : ""}
-                          </option>
-                        ))}
-                      </optgroup>
-                    </select>
                   </label>
 
-                  <div className="grid grid-cols-[auto_1fr_1fr] gap-2 items-end">
-                    <label className="flex items-center gap-2 text-sm h-9">
-                      <input
-                        type="checkbox"
-                        name={`addToPantry-${i}`}
-                        checked={row.addToPantry}
-                        onChange={(e) =>
-                          patch(i, {
-                            addToPantry: e.target.checked,
-                            locationId: e.target.checked
-                              ? row.locationId || defaultLoc
-                              : row.locationId,
-                          })
-                        }
-                      />
-                      <span>Spájzba</span>
-                    </label>
-
-                    <label className="block">
-                      <span className="text-[10px] uppercase text-zinc-500">Hely</span>
-                      <select
-                        name={`locationId-${i}`}
-                        value={row.locationId}
-                        onChange={(e) => patch(i, { locationId: e.target.value })}
-                        disabled={!row.addToPantry}
-                        className={inputClass}
-                      >
-                        <option value="">—</option>
-                        {locations.map((loc) => (
-                          <option key={loc.id} value={loc.id}>
-                            {loc.name}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-
-                    <label className="block">
-                      <span className="text-[10px] uppercase text-zinc-500">Lejár</span>
-                      <input
-                        type="date"
-                        name={`expiresAt-${i}`}
-                        value={row.expiresAt}
-                        onChange={(e) => patch(i, { expiresAt: e.target.value })}
-                        disabled={!row.addToPantry}
-                        className={inputClass}
-                      />
-                    </label>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </section>
-
-        {/* RIGHT: shopping list summary */}
-        <aside>
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
-            Lista ({list.items.length})
-          </h2>
-          <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 text-sm">
-            {list.items.map((it, i) => {
-              const matched = matchedIndices.has(i);
-              return (
-                <li
-                  key={i}
-                  className="px-3 py-2 flex items-center gap-2"
-                >
-                  <span
-                    className={`h-4 w-4 rounded border flex-shrink-0 flex items-center justify-center text-[10px] ${
-                      matched || it.checked
-                        ? "bg-zinc-900 dark:bg-zinc-50 border-zinc-900 dark:border-zinc-50 text-zinc-50 dark:text-zinc-900"
-                        : "border-zinc-400 dark:border-zinc-600"
-                    }`}
-                  >
-                    {matched || it.checked ? "✓" : ""}
-                  </span>
-                  <div className="flex-1 min-w-0">
-                    <div
-                      className={`truncate ${
-                        matched || it.checked
-                          ? "line-through text-zinc-400"
-                          : ""
-                      }`}
-                    >
-                      {it.name}
+                  {row.addToPantry && (
+                    <div className="grid grid-cols-2 gap-2.5">
+                      <Field label="Hely">
+                        <Select
+                          name={`locationId-${i}`}
+                          value={row.locationId}
+                          onChange={(e) =>
+                            patch(i, { locationId: e.target.value })
+                          }
+                          disabled={!row.addToPantry}
+                        >
+                          <option value="">—</option>
+                          {locations.map((loc) => (
+                            <option key={loc.id} value={loc.id}>
+                              {loc.name}
+                            </option>
+                          ))}
+                        </Select>
+                      </Field>
+                      <Field label="Lejárat">
+                        <Input
+                          type="date"
+                          name={`expiresAt-${i}`}
+                          value={row.expiresAt}
+                          onChange={(e) =>
+                            patch(i, { expiresAt: e.target.value })
+                          }
+                          disabled={!row.addToPantry}
+                        />
+                      </Field>
                     </div>
-                    <div className="text-[10px] text-zinc-500">
-                      {fmt(it.need, it.unit)}
-                    </div>
-                  </div>
-                </li>
-              );
-            })}
-          </ul>
-        </aside>
-      </div>
+                  )}
+                </div>
+              </Card>
+            </li>
+          );
+        })}
+      </ul>
 
-      <button
+      <Button
         type="submit"
-        className="w-full rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 py-3 font-medium"
+        size="lg"
+        fullWidth
+        leftIcon={<Check className="w-4 h-4" />}
       >
-        Mentés és lista frissítése
-      </button>
+        Mentés
+      </Button>
     </form>
   );
 }

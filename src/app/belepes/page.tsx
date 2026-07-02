@@ -1,6 +1,10 @@
 import { login, register } from "./actions";
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
+import { ChefHat, Mail, Lock, User, ArrowRight } from "lucide-react";
+import { Button } from "@/components/ui/Button";
+import { Input, Field } from "@/components/ui/Input";
+import Link from "next/link";
 
 export default async function LoginPage({
   searchParams,
@@ -11,79 +15,128 @@ export default async function LoginPage({
   if (me) redirect("/");
   const sp = await searchParams;
   const isRegister = sp.mode === "reg";
+  const joiningHousehold = Boolean(sp.hh);
 
   return (
-    <main className="min-h-dvh flex items-center justify-center px-6 py-16 bg-zinc-50 dark:bg-zinc-950">
-      <div className="w-full max-w-sm rounded-2xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-6 shadow-sm">
-        <h1 className="text-2xl font-bold text-zinc-900 dark:text-zinc-50">
-          {isRegister ? "Regisztráció" : "Belépés"}
-        </h1>
-        <p className="mt-1 text-sm text-zinc-500">
-          {isRegister ? "Új felhasználó" : "Főzés"}
-        </p>
+    <main className="min-h-dvh flex flex-col bg-[var(--color-background)]">
+      <div className="relative flex-1 flex flex-col items-center justify-center px-5 py-10">
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute -top-40 -right-32 w-96 h-96 rounded-full bg-orange-400/20 blur-3xl" />
+          <div className="absolute -bottom-32 -left-32 w-80 h-80 rounded-full bg-amber-400/15 blur-3xl" />
+        </div>
 
-        {sp.err && (
-          <div className="mt-4 rounded-lg bg-red-50 dark:bg-red-950 text-red-700 dark:text-red-300 px-3 py-2 text-sm">
-            {decodeURIComponent(sp.err)}
+        <div className="relative w-full max-w-sm animate-fade-up">
+          <div className="flex flex-col items-center mb-8">
+            <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 flex items-center justify-center shadow-lg shadow-orange-500/25">
+              <ChefHat className="w-8 h-8 text-white" strokeWidth={2} />
+            </div>
+            <h1 className="mt-4 text-3xl font-bold tracking-tight">Főzés</h1>
+            <p className="mt-1 text-sm text-[var(--color-muted-foreground)] text-center">
+              Receptek, spájz és bevásárlás egy helyen
+            </p>
           </div>
-        )}
 
-        <form
-          action={isRegister ? register : login}
-          className="mt-5 space-y-3"
-        >
-          {isRegister && (
-            <>
-              <Field name="name" label="Név" type="text" required />
-              <input type="hidden" name="hh" value={sp.hh ?? ""} />
-            </>
-          )}
-          <Field name="email" label="Email" type="email" required />
-          <Field name="password" label="Jelszó" type="password" required minLength={6} />
-          <button
-            type="submit"
-            className="w-full rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 py-2.5 font-medium hover:opacity-90 transition"
-          >
-            {isRegister ? "Regisztráció" : "Belépés"}
-          </button>
-        </form>
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm p-6">
+            <div className="flex items-center gap-1 mb-6 p-1 bg-[var(--color-muted)] rounded-xl">
+              <TabLink active={!isRegister} href={`/belepes${sp.hh ? `?hh=${sp.hh}` : ""}`}>
+                Belépés
+              </TabLink>
+              <TabLink active={isRegister} href={`/belepes?mode=reg${sp.hh ? `&hh=${sp.hh}` : ""}`}>
+                Regisztráció
+              </TabLink>
+            </div>
 
-        <div className="mt-4 text-center text-sm text-zinc-500">
-          {isRegister ? (
-            <a href="/belepes" className="underline">Van már fiókod? Belépés</a>
-          ) : (
-            <a href="/belepes?mode=reg" className="underline">Nincs fiókod? Regisztráció</a>
-          )}
+            {joiningHousehold && isRegister && (
+              <div className="mb-4 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] px-3.5 py-2.5 text-xs">
+                Meghívóval csatlakozol egy meglévő háztartáshoz.
+              </div>
+            )}
+
+            {sp.err && (
+              <div className="mb-4 rounded-xl bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 px-3.5 py-2.5 text-sm">
+                {decodeURIComponent(sp.err)}
+              </div>
+            )}
+
+            <form action={isRegister ? register : login} className="space-y-4">
+              {isRegister && (
+                <>
+                  <Field label="Név" required>
+                    <div className="relative">
+                      <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-muted-foreground)]" />
+                      <Input name="name" required placeholder="Kis Ferenc" className="pl-10" />
+                    </div>
+                  </Field>
+                  <input type="hidden" name="hh" value={sp.hh ?? ""} />
+                </>
+              )}
+              <Field label="Email" required>
+                <div className="relative">
+                  <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-muted-foreground)]" />
+                  <Input
+                    name="email"
+                    type="email"
+                    required
+                    autoComplete="email"
+                    placeholder="pl. te@email.hu"
+                    className="pl-10"
+                  />
+                </div>
+              </Field>
+              <Field label="Jelszó" required hint={isRegister ? "Minimum 6 karakter" : undefined}>
+                <div className="relative">
+                  <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-muted-foreground)]" />
+                  <Input
+                    name="password"
+                    type="password"
+                    required
+                    minLength={6}
+                    autoComplete={isRegister ? "new-password" : "current-password"}
+                    className="pl-10"
+                  />
+                </div>
+              </Field>
+              <Button type="submit" size="lg" fullWidth rightIcon={<ArrowRight className="w-4 h-4" />}>
+                {isRegister ? "Fiók létrehozása" : "Belépés"}
+              </Button>
+            </form>
+          </div>
+
+          <p className="mt-6 text-center text-xs text-[var(--color-muted-foreground)]">
+            {isRegister ? (
+              <>
+                Van már fiókod?{" "}
+                <Link href="/belepes" className="text-[var(--color-primary)] font-medium hover:underline">
+                  Belépés
+                </Link>
+              </>
+            ) : (
+              <>
+                Új itt?{" "}
+                <Link href={`/belepes?mode=reg${sp.hh ? `&hh=${sp.hh}` : ""}`} className="text-[var(--color-primary)] font-medium hover:underline">
+                  Regisztrálj
+                </Link>
+              </>
+            )}
+          </p>
         </div>
       </div>
     </main>
   );
 }
 
-function Field({
-  name,
-  label,
-  type,
-  required,
-  minLength,
-}: {
-  name: string;
-  label: string;
-  type: string;
-  required?: boolean;
-  minLength?: number;
-}) {
+function TabLink({ active, href, children }: { active: boolean; href: string; children: string }) {
   return (
-    <label className="block">
-      <span className="text-sm text-zinc-700 dark:text-zinc-300">{label}</span>
-      <input
-        name={name}
-        type={type}
-        required={required}
-        minLength={minLength}
-        autoComplete={type === "password" ? "current-password" : type}
-        className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-zinc-900 dark:text-zinc-50 focus:outline-none focus:ring-2 focus:ring-zinc-900 dark:focus:ring-zinc-100"
-      />
-    </label>
+    <Link
+      href={href}
+      className={
+        "flex-1 text-center text-sm font-medium py-2 rounded-lg transition " +
+        (active
+          ? "bg-[var(--color-card)] text-[var(--color-foreground)] shadow-sm"
+          : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]")
+      }
+    >
+      {children}
+    </Link>
   );
 }

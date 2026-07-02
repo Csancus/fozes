@@ -3,6 +3,18 @@
 import { useRef, useState } from "react";
 import type { Location, ShoppingList } from "@/lib/types";
 import { parseAndMatchAction } from "./actions";
+import { Input, Textarea, Field } from "@/components/ui/Input";
+import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
+import { cn } from "@/lib/cn";
+import {
+  Type,
+  FileText,
+  Camera,
+  Upload,
+  ArrowRight,
+  AlertCircle,
+} from "lucide-react";
 
 function todayInput(): string {
   const d = new Date();
@@ -11,9 +23,6 @@ function todayInput(): string {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
-
-const inputClass =
-  "w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-zinc-900 dark:text-zinc-50";
 
 type Mode = "text" | "pdf" | "photo";
 
@@ -31,6 +40,7 @@ export function AttachReceiptForm({
   const [ocrStatus, setOcrStatus] = useState<string>("");
   const [ocrError, setOcrError] = useState<string | null>(null);
   const [photoPreview, setPhotoPreview] = useState<string | null>(null);
+  const [pdfName, setPdfName] = useState<string | null>(null);
   const formRef = useRef<HTMLFormElement>(null);
 
   async function runOcr(file: File) {
@@ -78,192 +88,216 @@ export function AttachReceiptForm({
     void runOcr(file);
   }
 
+  function onPdfChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    setPdfName(file ? file.name : null);
+  }
+
   return (
     <form
       ref={formRef}
       action={parseAndMatchAction}
       encType="multipart/form-data"
-      className="space-y-4"
+      className="space-y-5"
     >
       <input type="hidden" name="listId" value={list.id} />
       <input type="hidden" name="mode" value={mode} />
 
       <div className="grid grid-cols-2 gap-3">
-        <label className="block">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">Bolt neve</span>
-          <input
-            name="store"
-            placeholder="pl. Lidl, Tesco"
-            className={`${inputClass} mt-1`}
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">Dátum</span>
-          <input
+        <Field label="Bolt">
+          <Input name="store" placeholder="pl. Lidl, Tesco" />
+        </Field>
+        <Field label="Dátum">
+          <Input
             name="purchasedAt"
             type="date"
             defaultValue={todayInput()}
-            className={`${inputClass} mt-1`}
           />
-        </label>
+        </Field>
       </div>
 
-      <div>
-        <div className="text-sm text-zinc-700 dark:text-zinc-300 mb-2">Forrás</div>
-        <div className="inline-flex rounded-lg border border-zinc-300 dark:border-zinc-700 overflow-hidden">
-          <TabButton active={mode === "text"} onClick={() => setMode("text")}>
-            Szöveg
-          </TabButton>
-          <TabButton
-            active={mode === "pdf"}
-            onClick={() => setMode("pdf")}
-            border
-          >
-            PDF
-          </TabButton>
-          <TabButton
-            active={mode === "photo"}
-            onClick={() => setMode("photo")}
-            border
-          >
-            Fotó
-          </TabButton>
-        </div>
+      <div className="flex items-center gap-1 p-1 bg-[var(--color-muted)] rounded-xl">
+        <TabButton
+          active={mode === "text"}
+          onClick={() => setMode("text")}
+          icon={<Type className="w-4 h-4" />}
+        >
+          Szöveg
+        </TabButton>
+        <TabButton
+          active={mode === "pdf"}
+          onClick={() => setMode("pdf")}
+          icon={<FileText className="w-4 h-4" />}
+        >
+          PDF
+        </TabButton>
+        <TabButton
+          active={mode === "photo"}
+          onClick={() => setMode("photo")}
+          icon={<Camera className="w-4 h-4" />}
+        >
+          Fotó
+        </TabButton>
       </div>
 
       {mode === "text" && (
-        <label className="block">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">
-            Blokk szövege
-          </span>
-          <textarea
+        <Field label="Blokk szövege">
+          <Textarea
             name="raw"
             rows={12}
             value={textValue}
             onChange={(e) => setTextValue(e.target.value)}
             placeholder="Illeszd be ide a blokk teljes szövegét..."
-            className={`${inputClass} mt-1 font-mono text-xs`}
+            className="font-mono text-xs min-h-48"
           />
-        </label>
+        </Field>
       )}
 
       {mode === "pdf" && (
-        <label className="block">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">PDF blokk</span>
-          <input
-            name="pdf"
-            type="file"
-            accept="application/pdf"
-            className="mt-1 block w-full text-sm text-zinc-700 dark:text-zinc-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zinc-900 dark:file:bg-zinc-50 file:text-zinc-50 dark:file:text-zinc-900 file:text-sm file:font-medium"
-          />
-          <span className="text-xs text-zinc-500 mt-1 block">
+        <div>
+          <label
+            htmlFor="pdf-upload"
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--color-input)] bg-[var(--color-card)] p-8 text-center cursor-pointer hover:border-[var(--color-primary)]/60 hover:bg-[var(--color-primary-soft)]/30 transition"
+          >
+            <div className="w-12 h-12 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center">
+              <Upload className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-medium">
+              {pdfName ?? "PDF blokk feltöltése"}
+            </p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              Koppints ide, vagy húzz ide egy PDF-et
+            </p>
+            <input
+              id="pdf-upload"
+              name="pdf"
+              type="file"
+              accept="application/pdf"
+              className="hidden"
+              onChange={onPdfChange}
+            />
+          </label>
+          <p className="mt-2 text-xs text-[var(--color-muted-foreground)] text-center">
             A rendszer kinyeri a szöveget és értelmezi a tételeket.
-          </span>
-        </label>
+          </p>
+        </div>
       )}
 
       {mode === "photo" && (
         <div className="space-y-3">
-          <label className="block">
-            <span className="text-sm text-zinc-700 dark:text-zinc-300">
-              Blokk fotó
-            </span>
+          <label
+            htmlFor="photo-upload"
+            className="flex flex-col items-center justify-center gap-2 rounded-2xl border-2 border-dashed border-[var(--color-input)] bg-[var(--color-card)] p-8 text-center cursor-pointer hover:border-[var(--color-primary)]/60 hover:bg-[var(--color-primary-soft)]/30 transition"
+          >
+            <div className="w-12 h-12 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center">
+              <Camera className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-medium">Blokk fotó készítése</p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              Koppints a fotózáshoz vagy válassz képet
+            </p>
             <input
+              id="photo-upload"
               type="file"
               accept="image/*"
               capture="environment"
               onChange={onPhotoChange}
-              className="mt-1 block w-full text-sm text-zinc-700 dark:text-zinc-300 file:mr-3 file:py-2 file:px-3 file:rounded-lg file:border-0 file:bg-zinc-900 dark:file:bg-zinc-50 file:text-zinc-50 dark:file:text-zinc-900 file:text-sm file:font-medium"
+              className="hidden"
             />
-            <span className="text-xs text-zinc-500 mt-1 block">
-              Az OCR a böngésződben fut (tesseract.js, magyar+angol). Az első
-              betöltés kb. 15 MB.
-            </span>
           </label>
+          <p className="text-xs text-[var(--color-muted-foreground)] text-center">
+            Az OCR a böngésződben fut (tesseract.js, magyar+angol). Az első
+            betöltés kb. 15 MB.
+          </p>
 
           {photoPreview && (
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3">
+            <Card className="p-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={photoPreview}
                 alt="Blokk előnézet"
-                className="max-h-64 w-auto mx-auto rounded"
+                className="max-h-64 w-auto mx-auto rounded-xl"
               />
-            </div>
+            </Card>
           )}
 
           {ocrProgress !== null && (
-            <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3">
-              <div className="text-xs text-zinc-600 dark:text-zinc-400 mb-1">
-                {ocrStatus} — {ocrProgress}%
+            <Card className="p-3.5">
+              <div className="flex items-center justify-between text-xs text-[var(--color-muted-foreground)] mb-2">
+                <span>{ocrStatus}</span>
+                <span className="tabular-nums font-medium text-[var(--color-foreground)]">
+                  {ocrProgress}%
+                </span>
               </div>
-              <div className="h-2 w-full rounded bg-zinc-200 dark:bg-zinc-800 overflow-hidden">
+              <div className="h-2 w-full rounded-full bg-[var(--color-muted)] overflow-hidden">
                 <div
-                  className="h-full bg-zinc-900 dark:bg-zinc-50 transition-[width] duration-200"
+                  className="h-full bg-[var(--color-primary)] transition-[width] duration-200"
                   style={{ width: `${ocrProgress}%` }}
                 />
               </div>
-            </div>
+            </Card>
           )}
 
           {ocrError && (
-            <div className="rounded-xl border border-red-300 dark:border-red-800 bg-red-50 dark:bg-red-950/30 p-3 text-sm text-red-700 dark:text-red-300">
-              {ocrError}
+            <div className="rounded-2xl border border-red-500/30 bg-red-500/10 p-3.5 flex items-start gap-2.5">
+              <AlertCircle className="w-4 h-4 text-red-700 dark:text-red-400 mt-0.5 shrink-0" />
+              <p className="text-sm text-red-700 dark:text-red-400">
+                {ocrError}
+              </p>
             </div>
           )}
 
-          <label className="block">
-            <span className="text-sm text-zinc-700 dark:text-zinc-300">
-              Felismert szöveg (szerkeszthető)
-            </span>
-            <textarea
+          <Field label="Felismert szöveg (szerkeszthető)">
+            <Textarea
               rows={10}
               value={ocrText}
               onChange={(e) => setOcrText(e.target.value)}
               placeholder="Itt jelenik meg az OCR eredménye..."
-              className={`${inputClass} mt-1 font-mono text-xs`}
+              className="font-mono text-xs min-h-40"
             />
-          </label>
+          </Field>
 
           {/* Server action reads the OCR text via `raw` when mode=photo */}
           <input type="hidden" name="raw" value={ocrText} />
         </div>
       )}
 
-      <button
+      <Button
         type="submit"
-        className="w-full rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 py-3 font-medium"
+        size="lg"
+        fullWidth
+        rightIcon={<ArrowRight className="w-4 h-4" />}
       >
         Parseolás és összekötés
-      </button>
+      </Button>
     </form>
   );
 }
 
 function TabButton({
   active,
-  border = false,
   onClick,
+  icon,
   children,
 }: {
   active: boolean;
-  border?: boolean;
   onClick: () => void;
+  icon: React.ReactNode;
   children: React.ReactNode;
 }) {
   return (
     <button
       type="button"
       onClick={onClick}
-      className={`px-4 py-2 text-sm ${
-        border ? "border-l border-zinc-300 dark:border-zinc-700" : ""
-      } ${
+      className={cn(
+        "flex-1 inline-flex items-center justify-center gap-1.5 py-2 rounded-lg text-sm font-medium transition",
         active
-          ? "bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900"
-          : "bg-white dark:bg-zinc-900 text-zinc-700 dark:text-zinc-300"
-      }`}
+          ? "bg-[var(--color-card)] text-[var(--color-foreground)] shadow-sm"
+          : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+      )}
     >
-      {children}
+      {icon}
+      <span>{children}</span>
     </button>
   );
 }

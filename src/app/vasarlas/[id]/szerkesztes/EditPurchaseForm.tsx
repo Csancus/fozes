@@ -4,6 +4,11 @@ import { useMemo, useState } from "react";
 import { UNITS } from "@/lib/units";
 import type { Location, Purchase, PurchaseLine, Unit } from "@/lib/types";
 import { updatePurchaseAction } from "../../actions";
+import { Button } from "@/components/ui/Button";
+import { Input, Select, Field } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
+import { Badge } from "@/components/ui/Badge";
+import { Plus, Save, Trash2, Sprout } from "lucide-react";
 
 function dateInput(ts: number | null): string {
   if (!ts) return "";
@@ -13,9 +18,6 @@ function dateInput(ts: number | null): string {
   const dd = String(d.getDate()).padStart(2, "0");
   return `${yyyy}-${mm}-${dd}`;
 }
-
-const inputClass =
-  "w-full rounded-md border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-2 py-1.5 text-sm text-zinc-900 dark:text-zinc-50";
 
 type LineState = PurchaseLine;
 
@@ -35,6 +37,20 @@ function emptyLine(): LineState {
 function fmtFt(n: number): string {
   return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
 }
+
+const SOURCE_LABEL: Record<string, string> = {
+  text: "Szöveg",
+  pdf: "PDF",
+  photo: "Fotó",
+  manual: "Kézi",
+};
+
+const SOURCE_TONE: Record<string, "neutral" | "primary" | "muted"> = {
+  text: "neutral",
+  pdf: "primary",
+  photo: "primary",
+  manual: "muted",
+};
 
 export function EditPurchaseForm({
   purchase,
@@ -68,8 +84,7 @@ export function EditPurchaseForm({
     setLines((cur) => [...cur, emptyLine()]);
   }
 
-  const allChecked =
-    lines.length > 0 && lines.every((l) => l.addToPantry);
+  const allChecked = lines.length > 0 && lines.every((l) => l.addToPantry);
 
   function toggleAll(checked: boolean) {
     setLines((cur) =>
@@ -82,204 +97,201 @@ export function EditPurchaseForm({
   }
 
   return (
-    <form action={updatePurchaseAction} className="space-y-4">
+    <form action={updatePurchaseAction} className="space-y-5">
       <input type="hidden" name="id" value={purchase.id} />
       <input type="hidden" name="lineCount" value={lines.length} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <label className="block">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">Bolt</span>
-          <input
-            name="store"
-            defaultValue={purchase.store}
-            className={`${inputClass} mt-1`}
-          />
-        </label>
-        <label className="block">
-          <span className="text-sm text-zinc-700 dark:text-zinc-300">Dátum</span>
-          <input
-            name="purchasedAt"
-            type="date"
-            defaultValue={dateInput(purchase.purchasedAt)}
-            className={`${inputClass} mt-1`}
-          />
-        </label>
-      </div>
+      <Card>
+        <div className="p-4 space-y-3">
+          <div className="flex items-center justify-between">
+            <Badge tone={SOURCE_TONE[purchase.source] ?? "neutral"}>
+              {SOURCE_LABEL[purchase.source] ?? purchase.source}
+            </Badge>
+            <div className="text-right">
+              <div className="text-[10px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
+                Összesen
+              </div>
+              <div className="text-lg font-bold tabular-nums font-mono">{fmtFt(total)}</div>
+            </div>
+          </div>
 
-      <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-3">
-        <div className="flex items-center justify-between mb-3">
-          <label className="flex items-center gap-2 text-sm">
+          <div className="grid grid-cols-2 gap-3">
+            <Field label="Bolt">
+              <Input name="store" defaultValue={purchase.store} />
+            </Field>
+            <Field label="Dátum">
+              <Input name="purchasedAt" type="date" defaultValue={dateInput(purchase.purchasedAt)} />
+            </Field>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm pt-1">
             <input
               type="checkbox"
               checked={allChecked}
               onChange={(e) => toggleAll(e.target.checked)}
+              className="w-4 h-4 rounded border-[var(--color-input)] accent-[var(--color-primary)]"
             />
-            <span>Mind spájzba</span>
+            <Sprout className="w-3.5 h-3.5 text-[var(--color-success)]" />
+            <span className="text-[var(--color-foreground)]">Mind spájzba</span>
           </label>
-          <div className="text-sm font-semibold">Összesen: {fmtFt(total)}</div>
         </div>
+      </Card>
 
-        <div className="space-y-3">
-          {lines.map((l, i) => (
-            <div
-              key={i}
-              className="rounded-lg border border-zinc-200 dark:border-zinc-800 p-3 space-y-2"
+      <div className="space-y-3">
+        {lines.map((l, i) => (
+          <Card key={i} className="relative">
+            <button
+              type="button"
+              onClick={() => remove(i)}
+              aria-label="Sor törlése"
+              className="absolute top-2.5 right-2.5 w-8 h-8 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-red-500/10 hover:text-[var(--color-danger)] transition"
             >
-              <div className="flex items-center gap-2">
-                <input
+              <Trash2 className="w-4 h-4" />
+            </button>
+
+            <div className="p-4 space-y-3">
+              <Field label={`Tétel ${i + 1}`}>
+                <Input
                   name={`name-${i}`}
                   value={l.name}
                   onChange={(e) => patch(i, { name: e.target.value })}
-                  placeholder="Tétel"
-                  className={`${inputClass} flex-1`}
+                  placeholder="pl. Tej 2,8% 1l"
+                  className="pr-10"
                 />
-                <button
-                  type="button"
-                  onClick={() => remove(i)}
-                  className="text-xs text-red-600 hover:underline"
-                >
-                  Töröl
-                </button>
-              </div>
+              </Field>
 
-              <div className="grid grid-cols-4 gap-2">
-                <label className="block">
-                  <span className="text-[10px] uppercase text-zinc-500">Mennyiség</span>
-                  <input
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Mennyiség">
+                  <Input
                     name={`qty-${i}`}
                     type="number"
                     step="any"
                     value={l.qty}
-                    onChange={(e) =>
-                      patch(i, { qty: Number(e.target.value) })
-                    }
-                    className={inputClass}
+                    onChange={(e) => patch(i, { qty: Number(e.target.value) })}
                   />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] uppercase text-zinc-500">Egység</span>
-                  <select
+                </Field>
+                <Field label="Egység">
+                  <Select
                     name={`unit-${i}`}
                     value={l.unit}
                     onChange={(e) => patch(i, { unit: e.target.value as Unit })}
-                    className={inputClass}
                   >
                     {UNITS.map((u) => (
                       <option key={u} value={u}>
                         {u}
                       </option>
                     ))}
-                  </select>
-                </label>
-                <label className="block">
-                  <span className="text-[10px] uppercase text-zinc-500">Egységár</span>
-                  <input
+                  </Select>
+                </Field>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Egységár">
+                  <Input
                     name={`unitPrice-${i}`}
                     type="number"
                     step="1"
                     value={l.unitPrice}
-                    onChange={(e) =>
-                      patch(i, { unitPrice: Number(e.target.value) })
-                    }
-                    className={inputClass}
+                    onChange={(e) => patch(i, { unitPrice: Number(e.target.value) })}
+                    className="tabular-nums"
                   />
-                </label>
-                <label className="block">
-                  <span className="text-[10px] uppercase text-zinc-500">Összesen</span>
-                  <input
+                </Field>
+                <Field label="Összesen">
+                  <Input
                     name={`total-${i}`}
                     type="number"
                     step="1"
                     value={l.total}
-                    onChange={(e) =>
-                      patch(i, { total: Number(e.target.value) })
-                    }
-                    className={inputClass}
+                    onChange={(e) => patch(i, { total: Number(e.target.value) })}
+                    className="tabular-nums"
                   />
-                </label>
+                </Field>
               </div>
 
-              <div className="grid grid-cols-[auto_1fr_1fr] gap-2 items-end">
-                <label className="flex items-center gap-2 text-sm h-9">
-                  <input
-                    type="checkbox"
-                    name={`addToPantry-${i}`}
-                    checked={l.addToPantry}
-                    onChange={(e) =>
-                      patch(i, {
-                        addToPantry: e.target.checked,
-                        locationId: e.target.checked
-                          ? l.locationId ?? defaultLoc
-                          : l.locationId,
-                      })
-                    }
-                  />
-                  <span>Spájzba</span>
-                </label>
+              <label className="flex items-center gap-2 text-sm pt-1">
+                <input
+                  type="checkbox"
+                  name={`addToPantry-${i}`}
+                  checked={l.addToPantry}
+                  onChange={(e) =>
+                    patch(i, {
+                      addToPantry: e.target.checked,
+                      locationId: e.target.checked
+                        ? l.locationId ?? defaultLoc
+                        : l.locationId,
+                    })
+                  }
+                  className="w-4 h-4 rounded border-[var(--color-input)] accent-[var(--color-primary)]"
+                />
+                <Sprout className="w-3.5 h-3.5 text-[var(--color-success)]" />
+                <span>Spájzba kerül</span>
+              </label>
 
-                <label className="block">
-                  <span className="text-[10px] uppercase text-zinc-500">Hely</span>
-                  <select
-                    name={`locationId-${i}`}
-                    value={l.locationId ?? ""}
-                    onChange={(e) =>
-                      patch(i, { locationId: e.target.value || null })
-                    }
-                    disabled={!l.addToPantry}
-                    className={inputClass}
-                  >
-                    <option value="">—</option>
-                    {locations.map((loc) => (
-                      <option key={loc.id} value={loc.id}>
-                        {loc.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-
-                <label className="block">
-                  <span className="text-[10px] uppercase text-zinc-500">Lejár</span>
-                  <input
-                    type="date"
-                    name={`expiresAt-${i}`}
-                    value={dateInput(l.expiresAt)}
-                    onChange={(e) => {
-                      const t = new Date(e.target.value).getTime();
-                      patch(i, {
-                        expiresAt: isNaN(t) ? null : t,
-                      });
-                    }}
-                    className={inputClass}
-                  />
-                </label>
-              </div>
+              {l.addToPantry && (
+                <div className="grid grid-cols-2 gap-3">
+                  <Field label="Hely">
+                    <Select
+                      name={`locationId-${i}`}
+                      value={l.locationId ?? ""}
+                      onChange={(e) => patch(i, { locationId: e.target.value || null })}
+                    >
+                      <option value="">—</option>
+                      {locations.map((loc) => (
+                        <option key={loc.id} value={loc.id}>
+                          {loc.name}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                  <Field label="Lejár">
+                    <Input
+                      type="date"
+                      name={`expiresAt-${i}`}
+                      value={dateInput(l.expiresAt)}
+                      onChange={(e) => {
+                        const t = new Date(e.target.value).getTime();
+                        patch(i, { expiresAt: isNaN(t) ? null : t });
+                      }}
+                    />
+                  </Field>
+                </div>
+              )}
+              {!l.addToPantry && (
+                <>
+                  <input type="hidden" name={`locationId-${i}`} value={l.locationId ?? ""} />
+                  <input type="hidden" name={`expiresAt-${i}`} value={dateInput(l.expiresAt)} />
+                </>
+              )}
             </div>
-          ))}
-        </div>
-
-        <button
-          type="button"
-          onClick={add}
-          className="mt-3 w-full rounded-lg border border-dashed border-zinc-300 dark:border-zinc-700 py-2 text-sm text-zinc-600 dark:text-zinc-400 hover:border-zinc-500"
-        >
-          + Új tétel
-        </button>
+          </Card>
+        ))}
       </div>
 
+      <Button
+        type="button"
+        onClick={add}
+        variant="ghost"
+        fullWidth
+        leftIcon={<Plus className="w-4 h-4" />}
+        className="border border-dashed border-[var(--color-input)]"
+      >
+        Új sor
+      </Button>
+
       {purchase.raw && (
-        <details className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-          <summary className="cursor-pointer px-4 py-3 text-sm text-zinc-600 dark:text-zinc-400">
+        <details className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm">
+          <summary className="cursor-pointer px-5 py-3 text-sm text-[var(--color-muted-foreground)]">
             Nyers szöveg (hivatkozáshoz)
           </summary>
-          <pre className="px-4 pb-4 text-xs font-mono whitespace-pre-wrap text-zinc-700 dark:text-zinc-300">
+          <pre className="px-5 pb-4 text-xs font-mono whitespace-pre-wrap text-[var(--color-foreground)]/80">
             {purchase.raw}
           </pre>
         </details>
       )}
 
-      <button className="w-full rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 py-3 font-medium">
+      <Button type="submit" size="lg" fullWidth leftIcon={<Save className="w-4 h-4" />}>
         Mentés
-      </button>
+      </Button>
     </form>
   );
 }

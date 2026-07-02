@@ -1,9 +1,13 @@
 import { requireUser } from "@/lib/auth";
 import { getShoppingList } from "@/lib/data";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
+import { Button } from "@/components/ui/Button";
+import { Input, Select, Field } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
+import { Section } from "@/components/ui/Section";
 import { UNITS, fmt } from "@/lib/units";
 import { notFound } from "next/navigation";
-import Link from "next/link";
+import { Check, X, Plus, Receipt, Trash2 } from "lucide-react";
 import {
   toggleItemAction,
   deleteShoppingListAction,
@@ -31,137 +35,158 @@ export default async function ShoppingListPage({
   toBuyRaw.sort((a, b) => a.it.name.localeCompare(b.it.name, "hu"));
   haveRaw.sort((a, b) => a.it.name.localeCompare(b.it.name, "hu"));
 
-  return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50 pb-24">
-      <PageHeader title={list.name} back="/bevasarlas" />
+  const remaining = toBuyRaw.filter(({ it }) => !it.checked).length;
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Link
+  return (
+    <main className="min-h-dvh px-5 pb-8 max-w-md mx-auto">
+      <PageHeader
+        title={list.name}
+        subtitle={
+          remaining > 0
+            ? `${remaining} venni való`
+            : list.items.length === 0
+              ? "Üres lista"
+              : "Minden megvan"
+        }
+        back="/bevasarlas"
+        action={
+          <Button
+            href={`/bevasarlas/${list.id}/szamla`}
+            variant="soft"
+            size="sm"
+            leftIcon={<Receipt className="w-4 h-4" />}
+          >
+            Számla
+          </Button>
+        }
+      />
+
+      <div className="mt-5 space-y-6 animate-fade-up">
+        {toBuyRaw.length > 0 && (
+          <Section title="Venni kell">
+            <ul className="space-y-2">
+              {toBuyRaw.map(({ it, i }) => (
+                <ItemRow
+                  key={i}
+                  item={it}
+                  index={i}
+                  listId={list.id}
+                />
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {haveRaw.length > 0 && (
+          <Section title="Van itthon">
+            <ul className="space-y-2">
+              {haveRaw.map(({ it, i }) => (
+                <li key={i}>
+                  <Card className="p-3.5 opacity-70">
+                    <div className="flex items-center gap-3">
+                      <div className="w-8 h-8 rounded-lg bg-emerald-500/12 text-emerald-700 dark:text-emerald-400 flex items-center justify-center shrink-0">
+                        <Check className="w-4 h-4" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[15px] font-medium truncate line-through text-[var(--color-muted-foreground)]">
+                          {it.name}
+                        </p>
+                        <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
+                          kell {fmt(it.qty, it.unit)} · itthon{" "}
+                          {fmt(it.have, it.unit)}
+                        </p>
+                      </div>
+                      <form action={removeItemAction}>
+                        <input type="hidden" name="listId" value={list.id} />
+                        <input type="hidden" name="itemIndex" value={i} />
+                        <button
+                          type="submit"
+                          aria-label="Törlés"
+                          className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-danger)] transition"
+                        >
+                          <X className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
+                  </Card>
+                </li>
+              ))}
+            </ul>
+          </Section>
+        )}
+
+        {list.items.length === 0 && (
+          <Card className="p-6 text-center">
+            <p className="text-sm text-[var(--color-muted-foreground)]">
+              Ez a lista üres. Adj hozzá tételeket kézzel, vagy fűzz hozzá
+              számlát.
+            </p>
+          </Card>
+        )}
+
+        <Section title="Kézi tétel hozzáadása">
+          <Card className="p-4">
+            <form action={addItemAction} className="space-y-3">
+              <input type="hidden" name="listId" value={list.id} />
+              <Field label="Név">
+                <Input name="name" required placeholder="pl. kenyér" />
+              </Field>
+              <div className="grid grid-cols-12 gap-3">
+                <div className="col-span-6">
+                  <Field label="Mennyiség">
+                    <Input
+                      type="number"
+                      name="qty"
+                      step="any"
+                      min="0"
+                      defaultValue={1}
+                      required
+                    />
+                  </Field>
+                </div>
+                <div className="col-span-6">
+                  <Field label="Egység">
+                    <Select name="unit" defaultValue="db">
+                      {UNITS.map((u) => (
+                        <option key={u} value={u}>
+                          {u}
+                        </option>
+                      ))}
+                    </Select>
+                  </Field>
+                </div>
+              </div>
+              <Button
+                type="submit"
+                fullWidth
+                leftIcon={<Plus className="w-4 h-4" />}
+              >
+                Hozzáad
+              </Button>
+            </form>
+          </Card>
+        </Section>
+
+        <Button
           href={`/bevasarlas/${list.id}/szamla`}
-          className="rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 px-3 py-2 text-sm font-medium"
+          variant="soft"
+          fullWidth
+          leftIcon={<Receipt className="w-4 h-4" />}
         >
           Számla hozzáfűzése
-        </Link>
-      </div>
+        </Button>
 
-      {list.items.length === 0 && (
-        <p className="mt-8 text-center text-sm text-zinc-500">
-          Ez a lista üres.
-        </p>
-      )}
-
-      {toBuyRaw.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
-            Venni kell
-          </h2>
-          <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            {toBuyRaw.map(({ it, i }) => (
-              <ItemRow key={i} item={it} index={i} listId={list.id} />
-            ))}
-          </ul>
-        </section>
-      )}
-
-      {haveRaw.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
-            Van itthon
-          </h2>
-          <ul className="mt-2 divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-            {haveRaw.map(({ it, i }) => (
-              <li
-                key={i}
-                className="px-4 py-3 flex items-center justify-between text-sm gap-3"
-              >
-                <div className="flex-1 min-w-0">
-                  <div className="font-medium text-zinc-500 line-through truncate">
-                    {it.name}
-                  </div>
-                  <div className="text-xs text-zinc-500 mt-0.5">
-                    kell {fmt(it.qty, it.unit)} · itthon {fmt(it.have, it.unit)}
-                  </div>
-                </div>
-                <span className="text-xs text-emerald-600">megvan</span>
-                <form action={removeItemAction}>
-                  <input type="hidden" name="listId" value={list.id} />
-                  <input type="hidden" name="itemIndex" value={i} />
-                  <button
-                    type="submit"
-                    aria-label="Törlés"
-                    className="text-zinc-400 hover:text-red-600 px-2 py-1"
-                  >
-                    ×
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
-
-      <section className="mt-8">
-        <h2 className="text-sm font-semibold text-zinc-500 uppercase tracking-wide">
-          Kézi tétel hozzáadása
-        </h2>
-        <form
-          action={addItemAction}
-          className="mt-2 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 p-4 space-y-3"
-        >
-          <input type="hidden" name="listId" value={list.id} />
-          <div>
-            <label className="text-sm text-zinc-500">Név</label>
-            <input
-              type="text"
-              name="name"
-              required
-              placeholder="pl. kenyér"
-              className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-sm"
-            />
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="text-sm text-zinc-500">Mennyiség</label>
-              <input
-                type="number"
-                name="qty"
-                step="any"
-                min="0"
-                defaultValue={1}
-                required
-                className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-sm"
-              />
-            </div>
-            <div>
-              <label className="text-sm text-zinc-500">Egység</label>
-              <select
-                name="unit"
-                defaultValue="db"
-                className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-950 px-3 py-2 text-sm"
-              >
-                {UNITS.map((u) => (
-                  <option key={u} value={u}>
-                    {u}
-                  </option>
-                ))}
-              </select>
-            </div>
-          </div>
+        <form action={deleteShoppingListAction} className="pt-4">
+          <input type="hidden" name="id" value={list.id} />
           <button
             type="submit"
-            className="rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 px-4 py-2 text-sm font-medium"
+            className="mx-auto flex items-center gap-1.5 text-xs text-[var(--color-muted-foreground)] hover:text-[var(--color-danger)] transition"
           >
-            Hozzáadás
+            <Trash2 className="w-3.5 h-3.5" />
+            Lista törlése
           </button>
         </form>
-      </section>
-
-      <form action={deleteShoppingListAction} className="mt-8">
-        <input type="hidden" name="id" value={list.id} />
-        <button className="text-sm text-red-600 hover:underline">
-          Lista törlése
-        </button>
-      </form>
+      </div>
     </main>
   );
 }
@@ -176,55 +201,64 @@ function ItemRow({
   listId: string;
 }) {
   return (
-    <li className="flex items-stretch">
-      <form action={toggleItemAction} className="flex-1">
-        <input type="hidden" name="listId" value={listId} />
-        <input type="hidden" name="itemIndex" value={index} />
-        <button
-          type="submit"
-          className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
-        >
-          <span
-            className={`h-5 w-5 rounded border flex-shrink-0 flex items-center justify-center text-xs ${
-              item.checked
-                ? "bg-zinc-900 dark:bg-zinc-50 border-zinc-900 dark:border-zinc-50 text-zinc-50 dark:text-zinc-900"
-                : "border-zinc-400 dark:border-zinc-600"
-            }`}
-          >
-            {item.checked ? "✓" : ""}
-          </span>
-          <div className="flex-1 min-w-0">
-            <div
-              className={`font-medium truncate ${
-                item.checked ? "line-through text-zinc-400" : ""
-              }`}
+    <li>
+      <Card className={item.checked ? "opacity-60" : ""}>
+        <div className="flex items-stretch">
+          <form action={toggleItemAction} className="flex-1">
+            <input type="hidden" name="listId" value={listId} />
+            <input type="hidden" name="itemIndex" value={index} />
+            <button
+              type="submit"
+              className="w-full flex items-center gap-3 p-3.5 text-left rounded-2xl hover:bg-[var(--color-muted)]/40 transition"
             >
-              {item.name}
-            </div>
-            <div className="text-xs text-zinc-500 mt-0.5">
-              <span>{fmt(item.need, item.unit)}</span>
-              {item.have > 0 && (
-                <span>
-                  {" "}
-                  · itthon {fmt(item.have, item.unit)} (kell összesen{" "}
-                  {fmt(item.qty, item.unit)})
-                </span>
-              )}
-            </div>
-          </div>
-        </button>
-      </form>
-      <form action={removeItemAction} className="flex items-center pr-2">
-        <input type="hidden" name="listId" value={listId} />
-        <input type="hidden" name="itemIndex" value={index} />
-        <button
-          type="submit"
-          aria-label="Törlés"
-          className="text-zinc-400 hover:text-red-600 px-2 py-1"
-        >
-          ×
-        </button>
-      </form>
+              <span
+                className={
+                  "w-9 h-9 rounded-xl flex items-center justify-center shrink-0 transition " +
+                  (item.checked
+                    ? "bg-[var(--color-primary)] text-[var(--color-primary-foreground)] shadow-sm shadow-orange-500/25"
+                    : "border-2 border-[var(--color-input)] bg-[var(--color-card)] text-transparent")
+                }
+              >
+                <Check className="w-4.5 h-4.5" strokeWidth={2.5} />
+              </span>
+              <div className="flex-1 min-w-0">
+                <p
+                  className={
+                    "font-medium text-[15px] truncate " +
+                    (item.checked
+                      ? "line-through text-[var(--color-muted-foreground)]"
+                      : "")
+                  }
+                >
+                  {item.name}
+                </p>
+                <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5 truncate">
+                  {fmt(item.need, item.unit)}
+                  {item.have > 0 && (
+                    <span className="ml-1 opacity-80">
+                      · itthon {fmt(item.have, item.unit)}
+                    </span>
+                  )}
+                </p>
+              </div>
+            </button>
+          </form>
+          <form
+            action={removeItemAction}
+            className="flex items-center pr-2"
+          >
+            <input type="hidden" name="listId" value={listId} />
+            <input type="hidden" name="itemIndex" value={index} />
+            <button
+              type="submit"
+              aria-label="Törlés"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-danger)] transition"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </form>
+        </div>
+      </Card>
     </li>
   );
 }

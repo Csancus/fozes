@@ -1,14 +1,14 @@
 import { requireUser } from "@/lib/auth";
-import { PageHeader } from "@/components/PageHeader";
+import { PageHeader } from "@/components/ui/PageHeader";
 import { NewPurchaseForm } from "./NewPurchaseForm";
 
 export default async function UjVasarlasPage() {
   await requireUser();
 
   return (
-    <main className="min-h-dvh px-5 py-6 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md mx-auto">
       <PageHeader title="Új vásárlás" back="/vasarlas" />
-      <div className="mt-6">
+      <div className="mt-5 animate-fade-up">
         <NewPurchaseForm />
       </div>
     </main>
