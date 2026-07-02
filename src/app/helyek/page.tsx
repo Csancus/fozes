@@ -38,7 +38,7 @@ export default async function HelyekPage() {
   const locations = await listLocations(me.householdId);
 
   return (
-    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md mx-auto">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
       <PageHeader
         title="Tárolási helyek"
         subtitle="Ahova a spájz tételeket teszed"

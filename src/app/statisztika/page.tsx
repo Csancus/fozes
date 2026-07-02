@@ -86,7 +86,7 @@ export default async function StatisztikaPage() {
   const recent = purchases.slice(0, 5);
 
   return (
-    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md mx-auto">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
       <PageHeader title="Statisztika" back="/" />
 
       {purchases.length === 0 ? (

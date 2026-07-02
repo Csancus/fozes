@@ -25,7 +25,7 @@ export default async function CsaladPage() {
   const invitePath = `/belepes?mode=reg&hh=${me.householdId}`;
 
   return (
-    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md mx-auto">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader title="Család" back="/" />
 
       <div className="mt-5 space-y-8 animate-fade-up">

@@ -5,6 +5,11 @@ import Link from "next/link";
 import type { Recipe } from "@/lib/types";
 import { buildMatrix } from "@/lib/matrix";
 import { createShoppingListAction } from "../actions";
+import { Button } from "@/components/ui/Button";
+import { Input, Field } from "@/components/ui/Input";
+import { Card } from "@/components/ui/Card";
+import { Section } from "@/components/ui/Section";
+import { BookOpen, ChefHat, Plus, ChevronRight, Table2 } from "lucide-react";
 
 export function RecipeMatrix({ recipes }: { recipes: Recipe[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -33,134 +38,161 @@ export function RecipeMatrix({ recipes }: { recipes: Recipe[] }) {
         <input key={id} type="hidden" name="recipeIds" value={id} />
       ))}
 
-      <div>
-        <label className="text-sm text-zinc-500">Név</label>
-        <input
+      <Field label="Lista neve" hint="Üresen hagyva ma dátumos név lesz">
+        <Input
           value={name}
           onChange={(e) => setName(e.target.value)}
-          placeholder="Bevásárlás (dátum)"
-          className="mt-1 w-full rounded-lg border border-zinc-300 dark:border-zinc-700 bg-white dark:bg-zinc-900 px-3 py-2 text-sm"
+          placeholder="pl. Heti nagybevásárlás"
         />
-      </div>
+      </Field>
 
       {recipes.length === 0 ? (
-        <div className="rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900 px-4 py-4 text-sm text-zinc-500">
-          Nincsen recept.{" "}
-          <Link
-            href="/receptek/uj"
-            className="underline text-zinc-700 dark:text-zinc-300"
-          >
-            Hozz létre egyet.
-          </Link>
-        </div>
-      ) : (
-        <>
-          <div>
-            <div className="text-sm text-zinc-500 mb-2">
-              Válassz recepteket ({selected.size} / {recipes.length})
+        <Card className="p-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+              <BookOpen className="w-5 h-5" />
             </div>
-            <ul className="divide-y divide-zinc-200 dark:divide-zinc-800 rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-              {recipes.map((r) => (
-                <li key={r.id}>
-                  <label className="flex items-center gap-3 px-4 py-3 cursor-pointer hover:bg-zinc-50 dark:hover:bg-zinc-800/50">
-                    <input
-                      type="checkbox"
-                      checked={selected.has(r.id)}
-                      onChange={() => toggle(r.id)}
-                      className="h-5 w-5 accent-zinc-900 dark:accent-zinc-50"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <div className="font-medium truncate">{r.name}</div>
-                      <div className="text-xs text-zinc-500 mt-0.5">
-                        {r.servings} adag · {r.ingredients.length} hozzávaló
-                      </div>
-                    </div>
-                  </label>
-                </li>
-              ))}
-            </ul>
-          </div>
-
-          {matrix.rows.length > 0 && (
-            <div>
-              <div className="text-sm text-zinc-500 mb-2">
-                Alapanyag mátrix — {matrix.rows.length} tétel
-              </div>
-              <div className="overflow-x-auto rounded-xl border border-zinc-200 dark:border-zinc-800 bg-white dark:bg-zinc-900">
-                <table className="text-xs w-full">
-                  <thead className="bg-zinc-50 dark:bg-zinc-800/50 text-zinc-500">
-                    <tr>
-                      <th className="text-left px-2 py-2 sticky left-0 z-10 bg-zinc-50 dark:bg-zinc-800/50 font-medium">
-                        Alapanyag
-                      </th>
-                      <th className="text-right px-2 py-2 font-medium whitespace-nowrap">
-                        Össz
-                      </th>
-                      <th className="text-left px-2 py-2 font-medium">
-                        Egys.
-                      </th>
-                      {matrix.recipes.map((r) => (
-                        <th
-                          key={r.id}
-                          className="text-right px-2 py-2 font-medium max-w-[6rem]"
-                          title={r.name}
-                        >
-                          <div className="truncate">{r.name}</div>
-                        </th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-zinc-200 dark:divide-zinc-800">
-                    {matrix.rows.map((row) => (
-                      <tr key={row.key}>
-                        <td className="px-2 py-1.5 sticky left-0 z-10 bg-white dark:bg-zinc-900 font-medium whitespace-nowrap">
-                          {row.name}
-                        </td>
-                        <td className="px-2 py-1.5 text-right font-semibold whitespace-nowrap">
-                          {row.totalQty}
-                        </td>
-                        <td className="px-2 py-1.5 text-zinc-500">
-                          {row.unit}
-                        </td>
-                        {matrix.recipes.map((r) => {
-                          const cell = row.perRecipe.get(r.id);
-                          return (
-                            <td
-                              key={r.id}
-                              className="px-2 py-1.5 text-right text-zinc-600 dark:text-zinc-400 whitespace-nowrap"
-                            >
-                              {cell ? cell.qty : ""}
-                            </td>
-                          );
-                        })}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-              <p className="text-[11px] text-zinc-500 mt-1.5">
-                Vízszintesen görgethető. Kompatibilis egységek (g/kg, ml/l)
-                automatikusan összevonva.
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-medium">Még nincs recepted</p>
+              <p className="text-xs text-[var(--color-muted-foreground)] mt-1">
+                Létrehozhatsz üres listát, vagy előbb{" "}
+                <Link
+                  href="/receptek/uj"
+                  className="text-[var(--color-primary)] font-medium hover:underline"
+                >
+                  hozz létre egy receptet
+                </Link>
+                .
               </p>
             </div>
+          </div>
+        </Card>
+      ) : (
+        <>
+          <Section
+            title={`Receptek (${selected.size} / ${recipes.length})`}
+          >
+            <ul className="space-y-2 md:grid md:grid-cols-2 md:gap-2 md:space-y-0">
+              {recipes.map((r) => {
+                const isSel = selected.has(r.id);
+                return (
+                  <li key={r.id}>
+                    <label
+                      className={
+                        "flex items-center gap-3 rounded-2xl border shadow-sm p-4 cursor-pointer transition " +
+                        (isSel
+                          ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)]/40"
+                          : "border-[var(--color-border)] bg-[var(--color-card)] hover:border-[var(--color-primary)]/40")
+                      }
+                    >
+                      <input
+                        type="checkbox"
+                        checked={isSel}
+                        onChange={() => toggle(r.id)}
+                        className="h-5 w-5 rounded accent-[var(--color-primary)]"
+                      />
+                      <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+                        <ChefHat className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-[15px] truncate">{r.name}</p>
+                        <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5 truncate">
+                          {r.servings} adag · {r.ingredients.length} hozzávaló
+                        </p>
+                      </div>
+                      <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+                    </label>
+                  </li>
+                );
+              })}
+            </ul>
+          </Section>
+
+          {matrix.rows.length > 0 && (
+            <Section
+              title={`Alapanyag mátrix (${matrix.rows.length} tétel)`}
+              action={
+                <Table2
+                  className="w-4 h-4 text-[var(--color-muted-foreground)]"
+                  strokeWidth={1.75}
+                />
+              }
+            >
+              <Card className="overflow-hidden">
+                <div className="overflow-x-auto">
+                  <table className="text-xs w-full">
+                    <thead className="bg-[var(--color-muted)] text-[var(--color-muted-foreground)]">
+                      <tr>
+                        <th className="text-left px-3 py-2.5 sticky left-0 z-10 bg-[var(--color-muted)] font-semibold uppercase tracking-wider text-[10px]">
+                          Alapanyag
+                        </th>
+                        <th className="text-right px-3 py-2.5 font-semibold uppercase tracking-wider text-[10px] whitespace-nowrap">
+                          Össz
+                        </th>
+                        <th className="text-left px-3 py-2.5 font-semibold uppercase tracking-wider text-[10px]">
+                          Egys.
+                        </th>
+                        {matrix.recipes.map((r) => (
+                          <th
+                            key={r.id}
+                            className="text-right px-3 py-2.5 font-semibold uppercase tracking-wider text-[10px] max-w-[6rem]"
+                            title={r.name}
+                          >
+                            <div className="truncate">{r.name}</div>
+                          </th>
+                        ))}
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-[var(--color-border)]">
+                      {matrix.rows.map((row) => (
+                        <tr key={row.key}>
+                          <td className="px-3 py-2 sticky left-0 z-10 bg-[var(--color-card)] font-medium whitespace-nowrap">
+                            {row.name}
+                          </td>
+                          <td className="px-3 py-2 text-right font-semibold tabular-nums whitespace-nowrap">
+                            {row.totalQty}
+                          </td>
+                          <td className="px-3 py-2 text-[var(--color-muted-foreground)]">
+                            {row.unit}
+                          </td>
+                          {matrix.recipes.map((r) => {
+                            const cell = row.perRecipe.get(r.id);
+                            return (
+                              <td
+                                key={r.id}
+                                className="px-3 py-2 text-right text-[var(--color-muted-foreground)] tabular-nums whitespace-nowrap"
+                              >
+                                {cell ? cell.qty : ""}
+                              </td>
+                            );
+                          })}
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </Card>
+              <p className="text-[11px] text-[var(--color-muted-foreground)] mt-2 px-1">
+                Vízszintesen görgethető. Kompatibilis egységek (g/kg, ml/l) automatikusan összevonva.
+              </p>
+            </Section>
           )}
         </>
       )}
 
       <div className="flex gap-2">
-        <button
+        <Button
           type="submit"
-          className="rounded-lg bg-zinc-900 dark:bg-zinc-50 text-zinc-50 dark:text-zinc-900 px-4 py-2 text-sm font-medium disabled:opacity-50"
+          size="lg"
+          leftIcon={<Plus className="w-4 h-4" />}
           disabled={selected.size === 0 && !name.trim()}
+          className="flex-1"
         >
-          Bevásárlólista létrehozás
-        </button>
-        <Link
-          href="/bevasarlas"
-          className="rounded-lg border border-zinc-300 dark:border-zinc-700 px-4 py-2 text-sm"
-        >
+          Létrehozás
+        </Button>
+        <Button href="/bevasarlas" variant="secondary" size="lg">
           Mégse
-        </Link>
+        </Button>
       </div>
     </form>
   );

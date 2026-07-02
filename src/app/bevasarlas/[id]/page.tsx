@@ -38,7 +38,7 @@ export default async function ShoppingListPage({
   const remaining = toBuyRaw.filter(({ it }) => !it.checked).length;
 
   return (
-    <main className="min-h-dvh px-5 pb-8 max-w-md mx-auto">
+    <main className="min-h-dvh px-5 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader
         title={list.name}
         subtitle={

@@ -17,7 +17,7 @@ export default async function EditReceptPage({
   if (!recipe) notFound();
 
   return (
-    <main className="min-h-dvh px-5 pb-8 max-w-md mx-auto">
+    <main className="min-h-dvh px-5 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader title={recipe.name} back="/receptek" />
       <div className="mt-5 animate-fade-up">
         <RecipeForm action={saveRecipeAction} initial={recipe} />

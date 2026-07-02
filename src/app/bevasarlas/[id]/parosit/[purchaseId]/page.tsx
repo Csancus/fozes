@@ -46,7 +46,7 @@ export default async function MatchPurchasePage({
   });
 
   return (
-    <main className="min-h-dvh px-5 pb-8 max-w-md mx-auto">
+    <main className="min-h-dvh px-5 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader
         title="Számla párosítása"
         subtitle={`${purchase.lines.length} tétel · ${list.name}`}
