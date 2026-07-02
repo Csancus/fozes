@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { getPantryItem, listLocations } from "@/lib/data";
+import { getPantryItem, listLocations, listCatalog } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { notFound } from "next/navigation";
@@ -14,9 +14,10 @@ export default async function EditPantryPage({
 }) {
   const me = await requireUser();
   const { id } = await params;
-  const [item, locations] = await Promise.all([
+  const [item, locations, catalog] = await Promise.all([
     getPantryItem(me.householdId, id),
     listLocations(me.householdId),
+    listCatalog(me.householdId),
   ]);
   if (!item) notFound();
 
@@ -27,6 +28,7 @@ export default async function EditPantryPage({
         <PantryForm
           action={savePantryAction}
           locations={locations}
+          catalog={catalog}
           initial={item}
         />
         <form action={deletePantryAction} className="mt-4">

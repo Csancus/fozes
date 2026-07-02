@@ -6,6 +6,7 @@ import type {
   ShoppingList,
   Purchase,
   CookedMeal,
+  CatalogItem,
 } from "./types";
 
 // ============ LOCATIONS ============
@@ -267,4 +268,73 @@ export async function listCookedMealsForRecipe(
   return items
     .filter((m): m is CookedMeal => !!m)
     .sort((a, b) => b.cookedAt - a.cookedAt);
+}
+
+// ============ CATALOG ============
+
+export async function listCatalog(hh: string): Promise<CatalogItem[]> {
+  const ids = await redis.smembers(key.catalog(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<CatalogItem>(key.catalogItem(hh, id)))
+  );
+  return items
+    .filter((c): c is CatalogItem => !!c)
+    .sort((a, b) => a.name.localeCompare(b.name, "hu"));
+}
+
+export async function getCatalogItem(hh: string, id: string) {
+  return redis.get<CatalogItem>(key.catalogItem(hh, id));
+}
+
+export async function getCatalogItemByBarcode(hh: string, barcode: string) {
+  const id = await redis.get<string>(key.catalogBarcode(hh, barcode));
+  if (!id) return null;
+  return getCatalogItem(hh, id);
+}
+
+export async function saveCatalogItem(
+  hh: string,
+  input: Omit<CatalogItem, "id" | "createdAt" | "updatedAt"> & { id?: string }
+): Promise<CatalogItem> {
+  const now = Date.now();
+  const id = input.id ?? newId();
+  const existing = input.id ? await getCatalogItem(hh, input.id) : null;
+
+  if (existing?.barcode && existing.barcode !== input.barcode) {
+    await redis.del(key.catalogBarcode(hh, existing.barcode));
+  }
+
+  const item: CatalogItem = {
+    id,
+    name: input.name.trim(),
+    category: input.category,
+    defaultUnit: input.defaultUnit,
+    defaultQty: input.defaultQty ?? null,
+    barcode: input.barcode?.trim() || null,
+    brand: input.brand?.trim() || null,
+    kcal100: input.kcal100 ?? null,
+    protein100: input.protein100 ?? null,
+    fat100: input.fat100 ?? null,
+    carbs100: input.carbs100 ?? null,
+    imageUrl: input.imageUrl ?? null,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+
+  await redis.set(key.catalogItem(hh, id), item);
+  await redis.sadd(key.catalog(hh), id);
+  if (item.barcode) {
+    await redis.set(key.catalogBarcode(hh, item.barcode), id);
+  }
+  return item;
+}
+
+export async function deleteCatalogItem(hh: string, id: string) {
+  const item = await getCatalogItem(hh, id);
+  await redis.del(key.catalogItem(hh, id));
+  await redis.srem(key.catalog(hh), id);
+  if (item?.barcode) {
+    await redis.del(key.catalogBarcode(hh, item.barcode));
+  }
 }

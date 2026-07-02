@@ -39,6 +39,11 @@ export const key = {
   events: (hh: string) => `hh:${hh}:events`,
   event: (hh: string, id: string) => `hh:${hh}:event:${id}`,
 
+  catalog: (hh: string) => `hh:${hh}:catalog`,
+  catalogItem: (hh: string, id: string) => `hh:${hh}:catalog:${id}`,
+  catalogBarcode: (hh: string, barcode: string) =>
+    `hh:${hh}:catalog-barcode:${barcode}`,
+
   priceHistory: (hh: string, itemNameSlug: string) =>
     `hh:${hh}:price:${itemNameSlug}`,
 

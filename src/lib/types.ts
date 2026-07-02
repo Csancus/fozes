@@ -131,6 +131,85 @@ export type Purchase = {
   createdAt: number;
 };
 
+export type CatalogCategory =
+  | "zoldseg"
+  | "gyumolcs"
+  | "hus"
+  | "hal"
+  | "tejtermek"
+  | "tojas"
+  | "pekaru"
+  | "teszta"
+  | "huvelyes"
+  | "gabona"
+  | "olaj"
+  | "fuszer"
+  | "konzerv"
+  | "melyhutott"
+  | "ital"
+  | "edesseg"
+  | "kave_tea"
+  | "egyeb";
+
+export const CATALOG_CATEGORIES: CatalogCategory[] = [
+  "zoldseg",
+  "gyumolcs",
+  "hus",
+  "hal",
+  "tejtermek",
+  "tojas",
+  "pekaru",
+  "teszta",
+  "huvelyes",
+  "gabona",
+  "olaj",
+  "fuszer",
+  "konzerv",
+  "melyhutott",
+  "ital",
+  "edesseg",
+  "kave_tea",
+  "egyeb",
+];
+
+export const CATALOG_CATEGORY_LABEL: Record<CatalogCategory, string> = {
+  zoldseg: "Zöldség",
+  gyumolcs: "Gyümölcs",
+  hus: "Hús",
+  hal: "Hal",
+  tejtermek: "Tejtermék",
+  tojas: "Tojás",
+  pekaru: "Pékáru",
+  teszta: "Tésztaféle",
+  huvelyes: "Hüvelyes",
+  gabona: "Gabona / Liszt",
+  olaj: "Olaj / Zsír",
+  fuszer: "Fűszer",
+  konzerv: "Konzerv",
+  melyhutott: "Mélyhűtött",
+  ital: "Ital",
+  edesseg: "Édesség",
+  kave_tea: "Kávé / Tea",
+  egyeb: "Egyéb",
+};
+
+export type CatalogItem = {
+  id: string;
+  name: string;
+  category: CatalogCategory;
+  defaultUnit: Unit;
+  defaultQty?: number | null;
+  barcode?: string | null;
+  brand?: string | null;
+  kcal100?: number | null;
+  protein100?: number | null;
+  fat100?: number | null;
+  carbs100?: number | null;
+  imageUrl?: string | null;
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type CookedMeal = {
   id: string;
   recipeId: string | null;

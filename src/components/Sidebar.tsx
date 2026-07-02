@@ -12,6 +12,7 @@ import {
   Users,
   ChefHat,
   Utensils,
+  Package,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
@@ -29,6 +30,7 @@ const primary: NavItem[] = [
 
 const secondary: NavItem[] = [
   { href: "/etelek", label: "Elkészült", icon: Utensils },
+  { href: "/katalogus", label: "Katalógus", icon: Package },
   { href: "/statisztika", label: "Statisztika", icon: BarChart3 },
   { href: "/csalad", label: "Család", icon: Users },
 ];
