@@ -1,14 +1,25 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { logout } from "./belepes/actions";
+import { seedExampleDataAction } from "./actions";
 import { redis, key } from "@/lib/redis";
+import { listRecipes, listPantry, listPurchases } from "@/lib/data";
 import type { Household } from "@/lib/types";
 
 export default async function Home() {
   const me = await currentUser();
   if (!me) redirect("/belepes");
 
-  const hh = await redis.get<Household>(key.household(me.householdId));
+  const [hh, recipes, pantryItems, purchases] = await Promise.all([
+    redis.get<Household>(key.household(me.householdId)),
+    listRecipes(me.householdId),
+    listPantry(me.householdId),
+    listPurchases(me.householdId),
+  ]);
+  const isEmpty =
+    recipes.length === 0 &&
+    pantryItems.length === 0 &&
+    purchases.length === 0;
 
   return (
     <main className="min-h-dvh flex flex-col px-5 py-8 bg-zinc-50 dark:bg-zinc-950 text-zinc-900 dark:text-zinc-50">
@@ -37,6 +48,25 @@ export default async function Home() {
           />
         </div>
       </section>
+
+      {isEmpty && (
+        <section className="mt-6">
+          <form action={seedExampleDataAction}>
+            <button
+              type="submit"
+              className="w-full rounded-xl border border-orange-300 dark:border-orange-600 bg-orange-50 dark:bg-orange-950/40 p-4 text-left hover:bg-orange-100 dark:hover:bg-orange-950/60 transition"
+            >
+              <div className="font-semibold text-orange-800 dark:text-orange-200">
+                Példa adatok betöltése
+              </div>
+              <div className="text-xs text-orange-700/80 dark:text-orange-300/80 mt-1">
+                2 recept (babgulyás + almás pite), 5 spájz tétel, 1 vásárlási
+                blokk (7 sor) és 1 bevásárlólista. Minden törölhető később.
+              </div>
+            </button>
+          </form>
+        </section>
+      )}
 
       <section className="mt-6">
         <a
