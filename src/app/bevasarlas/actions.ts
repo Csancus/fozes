@@ -9,7 +9,8 @@ import {
   deleteShoppingList,
 } from "@/lib/data";
 import { newId } from "@/lib/redis";
-import type { ShoppingList } from "@/lib/types";
+import type { ShoppingList, ShoppingListItem, Unit } from "@/lib/types";
+import { UNITS } from "@/lib/units";
 import { aggregateIngredients } from "./aggregate";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -79,4 +80,61 @@ export async function deleteShoppingListAction(fd: FormData) {
   await deleteShoppingList(me.householdId, id);
   revalidatePath("/bevasarlas");
   redirect("/bevasarlas");
+}
+
+export async function addItemAction(fd: FormData) {
+  const me = await requireUser();
+  const listId = String(fd.get("listId") ?? "").trim();
+  const name = String(fd.get("name") ?? "").trim();
+  const qty = Number(fd.get("qty") ?? 0);
+  const rawUnit = String(fd.get("unit") ?? "db");
+  const unit: Unit = (UNITS as string[]).includes(rawUnit)
+    ? (rawUnit as Unit)
+    : "db";
+
+  if (!listId || !name || !Number.isFinite(qty) || qty <= 0) return;
+
+  const list = await getShoppingList(me.householdId, listId);
+  if (!list) return;
+
+  const newItem: ShoppingListItem = {
+    name,
+    qty,
+    unit,
+    have: 0,
+    need: qty,
+    checked: false,
+  };
+
+  const next: ShoppingList = {
+    ...list,
+    items: [...list.items, newItem],
+    completedAt: null,
+  };
+  await saveShoppingList(me.householdId, next);
+  revalidatePath(`/bevasarlas/${listId}`);
+  revalidatePath("/bevasarlas");
+}
+
+export async function removeItemAction(fd: FormData) {
+  const me = await requireUser();
+  const listId = String(fd.get("listId") ?? "").trim();
+  const itemIndex = Number(fd.get("itemIndex") ?? -1);
+  if (!listId || !Number.isFinite(itemIndex) || itemIndex < 0) return;
+
+  const list = await getShoppingList(me.householdId, listId);
+  if (!list) return;
+  if (itemIndex >= list.items.length) return;
+
+  const items = list.items.filter((_, i) => i !== itemIndex);
+  const allChecked =
+    items.length > 0 && items.every((it) => it.checked || it.need === 0);
+  const next: ShoppingList = {
+    ...list,
+    items,
+    completedAt: allChecked ? (list.completedAt ?? Date.now()) : null,
+  };
+  await saveShoppingList(me.householdId, next);
+  revalidatePath(`/bevasarlas/${listId}`);
+  revalidatePath("/bevasarlas");
 }

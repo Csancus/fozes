@@ -18,6 +18,7 @@ function fmtFt(n: number): string {
 const SOURCE_LABEL: Record<string, string> = {
   text: "Szöveg",
   pdf: "PDF",
+  photo: "Fotó",
   manual: "Kézi",
 };
 

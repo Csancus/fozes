@@ -99,7 +99,7 @@ export type Purchase = {
   store: string;
   purchasedAt: number;
   total: number;
-  source: "text" | "pdf" | "manual";
+  source: "text" | "pdf" | "photo" | "manual";
   raw: string;
   lines: PurchaseLine[];
   createdAt: number;
