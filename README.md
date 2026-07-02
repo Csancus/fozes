@@ -9,12 +9,18 @@ Receptek, spájz-nyilvántartás, bevásárlólista, vásárlás-import és árt
 - Iron-session (auth cookie)
 - Vercel (deploy)
 
-## Vercel deploy
+## Adatbázis + deploy
 
-1. Importáld a repót Vercelben: https://vercel.com/new
-2. **Storage** fülön: Upstash Redis (Marketplace) integráció → automatikusan bekerül a két `UPSTASH_REDIS_REST_*` env var.
-3. Add hozzá manuálisan: `SESSION_PASSWORD` (min. 32 karakteres random string, pl. `openssl rand -base64 32`).
-4. Deploy.
+Az adatbázis külön van a Vercel-től, **Upstash közvetlen ingyenes fiókban** (nem a Vercel Marketplace integráció, mert az fizetős).
+
+1. **Upstash regisztráció**: https://console.upstash.com/ → **Google OAuth**-al belépés → Create Database → Redis → Free tier (10 000 command/nap, 256 MB, kártya nélkül).
+2. Másold ki az adatbázis oldaláról:
+   - `UPSTASH_REDIS_REST_URL`
+   - `UPSTASH_REDIS_REST_TOKEN`
+3. **Vercel deploy**:
+   - Importáld a repót: https://vercel.com/new
+   - Project Settings → Environment Variables → add hozzá **manuálisan** a két Upstash értéket + `SESSION_PASSWORD`-öt (min. 32 karakteres random string, pl. `openssl rand -base64 32`)
+   - Deploy.
 
 ## Lokál fejlesztés
 
