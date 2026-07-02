@@ -29,6 +29,13 @@ export default async function Home() {
         <Card title="Spájz" desc="Mi van itthon" href="/spajz" />
         <Card title="Bevásárlás" desc="Mit kell venni" href="/bevasarlas" />
         <Card title="Vásárlás" desc="Blokk + árak" href="/vasarlas" />
+        <div className="col-span-2">
+          <Card
+            title="Statisztika"
+            desc="Költések + ártörténet"
+            href="/statisztika"
+          />
+        </div>
       </section>
 
       <section className="mt-6">
