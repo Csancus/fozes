@@ -41,6 +41,11 @@ export const key = {
 
   priceHistory: (hh: string, itemNameSlug: string) =>
     `hh:${hh}:price:${itemNameSlug}`,
+
+  meals: (hh: string) => `hh:${hh}:meals`,
+  meal: (hh: string, id: string) => `hh:${hh}:meal:${id}`,
+  recipeMeals: (hh: string, recipeId: string) =>
+    `hh:${hh}:recipe:${recipeId}:meals`,
 };
 
 export function newId(): string {

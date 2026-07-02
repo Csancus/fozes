@@ -130,3 +130,15 @@ export type Purchase = {
   lines: PurchaseLine[];
   createdAt: number;
 };
+
+export type CookedMeal = {
+  id: string;
+  recipeId: string | null;
+  recipeName: string;
+  photo: string | null;          // base64 data URL (client-compressed)
+  cookedAt: number;              // ms since epoch
+  rating: number;                // 1..5
+  notes: string;
+  ingredientCost: number | null; // Ft, or null if unknown
+  createdAt: number;
+};

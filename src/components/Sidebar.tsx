@@ -11,6 +11,7 @@ import {
   BarChart3,
   Users,
   ChefHat,
+  Utensils,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
@@ -27,6 +28,7 @@ const primary: NavItem[] = [
 ];
 
 const secondary: NavItem[] = [
+  { href: "/etelek", label: "Elkészült", icon: Utensils },
   { href: "/statisztika", label: "Statisztika", icon: BarChart3 },
   { href: "/csalad", label: "Család", icon: Users },
 ];

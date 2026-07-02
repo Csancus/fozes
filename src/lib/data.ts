@@ -5,6 +5,7 @@ import type {
   PantryItem,
   ShoppingList,
   Purchase,
+  CookedMeal,
 } from "./types";
 
 // ============ LOCATIONS ============
@@ -217,4 +218,53 @@ export async function savePurchase(hh: string, p: Purchase) {
 export async function deletePurchase(hh: string, id: string) {
   await redis.del(key.purchase(hh, id));
   await redis.srem(key.purchases(hh), id);
+}
+
+// ============ COOKED MEALS ============
+
+export async function listCookedMeals(hh: string): Promise<CookedMeal[]> {
+  const ids = await redis.smembers(key.meals(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<CookedMeal>(key.meal(hh, id)))
+  );
+  return items
+    .filter((m): m is CookedMeal => !!m)
+    .sort((a, b) => b.cookedAt - a.cookedAt);
+}
+
+export async function getCookedMeal(hh: string, id: string) {
+  return redis.get<CookedMeal>(key.meal(hh, id));
+}
+
+export async function saveCookedMeal(hh: string, meal: CookedMeal) {
+  await redis.set(key.meal(hh, meal.id), meal);
+  await redis.sadd(key.meals(hh), meal.id);
+  if (meal.recipeId) {
+    await redis.sadd(key.recipeMeals(hh, meal.recipeId), meal.id);
+  }
+  return meal;
+}
+
+export async function deleteCookedMeal(hh: string, id: string) {
+  const meal = await getCookedMeal(hh, id);
+  await redis.del(key.meal(hh, id));
+  await redis.srem(key.meals(hh), id);
+  if (meal?.recipeId) {
+    await redis.srem(key.recipeMeals(hh, meal.recipeId), id);
+  }
+}
+
+export async function listCookedMealsForRecipe(
+  hh: string,
+  recipeId: string
+): Promise<CookedMeal[]> {
+  const ids = await redis.smembers(key.recipeMeals(hh, recipeId));
+  if (!ids.length) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<CookedMeal>(key.meal(hh, id)))
+  );
+  return items
+    .filter((m): m is CookedMeal => !!m)
+    .sort((a, b) => b.cookedAt - a.cookedAt);
 }
