@@ -12,10 +12,8 @@ import { Card, LinkCard } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { notFound } from "next/navigation";
-import { RecipeForm } from "../RecipeForm";
 import { RecipeViewer } from "./RecipeViewer";
 import {
-  saveRecipeAction,
   deleteRecipeAction,
   duplicateRecipeAction,
   archiveRecipeAction,
@@ -24,7 +22,6 @@ import {
 import {
   Trash2,
   CheckCircle2,
-  Coins,
   Utensils,
   Star,
   ImageOff,
@@ -32,6 +29,7 @@ import {
   Copy,
   Archive,
   ArchiveRestore,
+  Pencil,
 } from "lucide-react";
 
 function formatDate(ts: number): string {
@@ -42,7 +40,14 @@ function formatDate(ts: number): string {
   });
 }
 
-export default async function EditReceptPage({
+function parseSteps(instructions: string): string[] {
+  return instructions
+    .split(/\r?\n+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+}
+
+export default async function RecipeDetailPage({
   params,
 }: {
   params: Promise<{ id: string }>;
@@ -58,10 +63,24 @@ export default async function EditReceptPage({
 
   const { total: costTotal } = estimateRecipeCost(recipe.ingredients, pantry);
   const isArchived = (recipe.archivedAt ?? null) != null;
+  const steps = parseSteps(recipe.instructions);
 
   return (
     <main className="min-h-dvh px-5 pb-8 max-w-md md:max-w-2xl mx-auto">
-      <PageHeader title={recipe.name} back="/receptek" />
+      <PageHeader
+        title={recipe.name}
+        back="/receptek"
+        action={
+          <Button
+            href={`/receptek/${recipe.id}/szerkesztes`}
+            variant="ghost"
+            size="sm"
+            leftIcon={<Pencil className="w-4 h-4" />}
+          >
+            Szerkesztés
+          </Button>
+        }
+      />
 
       <div className="mt-5 animate-fade-up space-y-5">
         {isArchived && (
@@ -70,12 +89,65 @@ export default async function EditReceptPage({
           </div>
         )}
 
+        {recipe.imageUrl && (
+          <div className="rounded-2xl overflow-hidden border border-[var(--color-border)] aspect-video bg-[var(--color-muted)]">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img
+              src={recipe.imageUrl}
+              alt={recipe.name}
+              className="w-full h-full object-cover"
+            />
+          </div>
+        )}
+
         <RecipeViewer recipe={recipe} />
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+        {steps.length > 0 && (
+          <Card className="p-4">
+            <h2 className="text-[11px] uppercase tracking-wider font-semibold text-[var(--color-muted-foreground)] mb-3">
+              Elkészítés
+            </h2>
+            <ol className="space-y-2.5">
+              {steps.map((s, i) => (
+                <li key={i} className="flex items-start gap-3 text-[15px]">
+                  <span className="w-6 h-6 rounded-full bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center text-xs font-semibold shrink-0 mt-0.5 tabular-nums">
+                    {i + 1}
+                  </span>
+                  <span>{s}</span>
+                </li>
+              ))}
+            </ol>
+          </Card>
+        )}
+
+        {(recipe.caloriesPerServing != null ||
+          recipe.proteinPerServing != null ||
+          costTotal != null) && (
+          <Card className="p-4">
+            <dl className="grid grid-cols-3 gap-3 text-center">
+              {recipe.caloriesPerServing != null && (
+                <StatCell label="kcal/adag" value={recipe.caloriesPerServing} />
+              )}
+              {recipe.proteinPerServing != null && (
+                <StatCell
+                  label="g fehérje"
+                  value={recipe.proteinPerServing}
+                />
+              )}
+              {costTotal != null && (
+                <StatCell
+                  label="alapanyag"
+                  value={`${costTotal.toLocaleString("hu-HU")} Ft`}
+                />
+              )}
+            </dl>
+          </Card>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
           <Button
             href={`/etelek/uj?recipeId=${recipe.id}`}
-            size="lg"
+            size="md"
             fullWidth
             variant="secondary"
             leftIcon={<CheckCircle2 className="w-4 h-4" />}
@@ -87,34 +159,33 @@ export default async function EditReceptPage({
             <Button
               type="submit"
               variant="secondary"
-              size="lg"
+              size="md"
               fullWidth
               leftIcon={<Copy className="w-4 h-4" />}
             >
               Duplikálás
             </Button>
           </form>
-        </div>
-
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {isArchived ? (
-            <form action={unarchiveRecipeAction}>
+            <form action={unarchiveRecipeAction} className="md:col-span-2">
               <input type="hidden" name="id" value={recipe.id} />
               <Button
                 type="submit"
                 variant="secondary"
+                size="md"
                 fullWidth
                 leftIcon={<ArchiveRestore className="w-4 h-4" />}
               >
-                Visszaállítás
+                Visszaállítás az aktívok közé
               </Button>
             </form>
           ) : (
-            <form action={archiveRecipeAction}>
+            <form action={archiveRecipeAction} className="md:col-span-2">
               <input type="hidden" name="id" value={recipe.id} />
               <Button
                 type="submit"
                 variant="secondary"
+                size="md"
                 fullWidth
                 leftIcon={<Archive className="w-4 h-4" />}
               >
@@ -124,36 +195,12 @@ export default async function EditReceptPage({
           )}
         </div>
 
-        <Card className="p-3.5">
-          <div className="flex items-start gap-3">
-            <div className="w-9 h-9 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
-              <Coins className="w-4.5 h-4.5" />
-            </div>
-            <div className="flex-1 min-w-0">
-              <p className="text-xs text-[var(--color-muted-foreground)]">
-                Becsült alapanyag-költség
-              </p>
-              <p className="mt-0.5 text-lg font-semibold tabular-nums">
-                {costTotal != null ? (
-                  <>{costTotal.toLocaleString("hu-HU")} Ft</>
-                ) : (
-                  <span className="text-sm font-medium text-[var(--color-muted-foreground)]">
-                    nem áll rendelkezésre
-                  </span>
-                )}
-              </p>
-            </div>
-          </div>
-        </Card>
-
-        <RecipeForm action={saveRecipeAction} initial={recipe} />
-
         <Section title="Elkészítések">
           {meals.length === 0 ? (
             <EmptyState
               icon={Utensils}
               title="Még nincs elkészítés"
-              description={'Nyomd meg fent az "Elkészítettem" gombot, ha megfőzted.'}
+              description={'Nyomd meg az "Elkészítettem" gombot, ha megfőzted.'}
             />
           ) : (
             <ul className="space-y-2">
@@ -220,5 +267,22 @@ export default async function EditReceptPage({
         </form>
       </footer>
     </main>
+  );
+}
+
+function StatCell({
+  label,
+  value,
+}: {
+  label: string;
+  value: number | string;
+}) {
+  return (
+    <div>
+      <p className="text-base font-semibold tabular-nums">{value}</p>
+      <p className="text-[10px] uppercase tracking-wider text-[var(--color-muted-foreground)] mt-0.5">
+        {label}
+      </p>
+    </div>
   );
 }
