@@ -87,7 +87,7 @@ export default async function StatisztikaPage() {
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
-      <PageHeader title="Statisztika" back="/" />
+      <PageHeader title="Statisztika" back="/fozes" />
 
       {purchases.length === 0 ? (
         <EmptyState

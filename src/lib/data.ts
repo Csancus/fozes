@@ -1,4 +1,4 @@
-import { redis, key, newId } from "./redis";
+import { redis, key, newId, slug } from "./redis";
 import type {
   Location,
   Recipe,
@@ -7,7 +7,11 @@ import type {
   Purchase,
   CookedMeal,
   CatalogItem,
+  Expense,
+  ExpenseCategory,
+  SavedItem,
 } from "./types";
+import { DEFAULT_EXPENSE_CATEGORIES } from "./types";
 
 // ============ LOCATIONS ============
 
@@ -367,4 +371,190 @@ export async function deleteCatalogItem(hh: string, id: string) {
   if (item?.barcode) {
     await redis.del(key.catalogBarcode(hh, item.barcode));
   }
+}
+
+// ============ EXPENSE CATEGORIES ============
+
+export async function listExpenseCategories(
+  hh: string
+): Promise<ExpenseCategory[]> {
+  const ids = await redis.smembers(key.expenseCategories(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<ExpenseCategory>(key.expenseCategory(hh, id)))
+  );
+  return items
+    .filter((c): c is ExpenseCategory => !!c)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getExpenseCategory(hh: string, id: string) {
+  return redis.get<ExpenseCategory>(key.expenseCategory(hh, id));
+}
+
+export async function createExpenseCategory(
+  hh: string,
+  input: Pick<ExpenseCategory, "name" | "color" | "icon">
+): Promise<ExpenseCategory> {
+  const cat: ExpenseCategory = {
+    id: newId(),
+    name: input.name.trim(),
+    color: input.color,
+    icon: input.icon,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.expenseCategory(hh, cat.id), cat);
+  await redis.sadd(key.expenseCategories(hh), cat.id);
+  return cat;
+}
+
+export async function updateExpenseCategory(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<ExpenseCategory, "name" | "color" | "icon">>
+) {
+  const cur = await getExpenseCategory(hh, id);
+  if (!cur) return null;
+  const next = { ...cur, ...patch };
+  await redis.set(key.expenseCategory(hh, id), next);
+  return next;
+}
+
+export async function deleteExpenseCategory(hh: string, id: string) {
+  await redis.del(key.expenseCategory(hh, id));
+  await redis.srem(key.expenseCategories(hh), id);
+}
+
+export async function ensureDefaultExpenseCategories(
+  hh: string
+): Promise<ExpenseCategory[]> {
+  const existing = await listExpenseCategories(hh);
+  if (existing.length > 0) return existing;
+  for (const c of DEFAULT_EXPENSE_CATEGORIES) {
+    await createExpenseCategory(hh, c);
+  }
+  return listExpenseCategories(hh);
+}
+
+// ============ MERCHANT → CATEGORY MEMORY ============
+
+export async function getMerchantMap(
+  hh: string
+): Promise<Record<string, string>> {
+  const map = await redis.hgetall<Record<string, string>>(
+    key.expenseMerchants(hh)
+  );
+  return map ?? {};
+}
+
+export async function rememberMerchantCategory(
+  hh: string,
+  merchant: string,
+  categoryId: string
+) {
+  const s = slug(merchant);
+  if (!s) return;
+  await redis.hset(key.expenseMerchants(hh), { [s]: categoryId });
+}
+
+// ============ EXPENSES ============
+
+export async function listExpenses(hh: string): Promise<Expense[]> {
+  const ids = await redis.smembers(key.expenses(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<Expense>(key.expense(hh, id)))
+  );
+  return items
+    .filter((e): e is Expense => !!e)
+    .sort((a, b) => b.spentAt - a.spentAt || b.createdAt - a.createdAt);
+}
+
+export async function getExpense(hh: string, id: string) {
+  return redis.get<Expense>(key.expense(hh, id));
+}
+
+export async function saveExpense(
+  hh: string,
+  input: Omit<Expense, "id" | "createdAt"> & { id?: string }
+): Promise<Expense> {
+  const id = input.id ?? newId();
+  const existing = input.id ? await getExpense(hh, input.id) : null;
+  const e: Expense = {
+    id,
+    amount: input.amount,
+    merchant: input.merchant.trim(),
+    categoryId: input.categoryId,
+    note: input.note.trim(),
+    spentAt: input.spentAt,
+    createdAt: existing?.createdAt ?? Date.now(),
+  };
+  await redis.set(key.expense(hh, id), e);
+  await redis.sadd(key.expenses(hh), id);
+  // Tanulás: jegyezzük meg a bolt → kategória párosítást.
+  if (e.merchant && e.categoryId) {
+    await rememberMerchantCategory(hh, e.merchant, e.categoryId);
+  }
+  return e;
+}
+
+export async function deleteExpense(hh: string, id: string) {
+  await redis.del(key.expense(hh, id));
+  await redis.srem(key.expenses(hh), id);
+}
+
+// ============ SAVED ITEMS (Bakancslista) ============
+
+export async function listSavedItems(hh: string): Promise<SavedItem[]> {
+  const ids = await redis.smembers(key.savedItems(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<SavedItem>(key.savedItem(hh, id)))
+  );
+  return items
+    .filter((s): s is SavedItem => !!s)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function getSavedItem(hh: string, id: string) {
+  return redis.get<SavedItem>(key.savedItem(hh, id));
+}
+
+export async function saveSavedItem(hh: string, item: SavedItem) {
+  await redis.set(key.savedItem(hh, item.id), item);
+  await redis.sadd(key.savedItems(hh), item.id);
+  return item;
+}
+
+export async function deleteSavedItem(hh: string, id: string) {
+  const item = await getSavedItem(hh, id);
+  if (item) {
+    await Promise.all(
+      item.files.map((f) => redis.del(key.savedFile(hh, id, f.id)))
+    );
+  }
+  await redis.del(key.savedItem(hh, id));
+  await redis.srem(key.savedItems(hh), id);
+}
+
+// Bakancslista fájl-blobok (PDF / hang / kép) külön kulcson, hogy a lista könnyű maradjon.
+export async function getSavedFile(hh: string, itemId: string, fileId: string) {
+  return redis.get<string>(key.savedFile(hh, itemId, fileId));
+}
+
+export async function setSavedFile(
+  hh: string,
+  itemId: string,
+  fileId: string,
+  dataUrl: string
+) {
+  await redis.set(key.savedFile(hh, itemId, fileId), dataUrl);
+}
+
+export async function deleteSavedFile(
+  hh: string,
+  itemId: string,
+  fileId: string
+) {
+  await redis.del(key.savedFile(hh, itemId, fileId));
 }

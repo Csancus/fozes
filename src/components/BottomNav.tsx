@@ -2,15 +2,47 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Home, BookOpen, Refrigerator, ShoppingCart, Receipt } from "lucide-react";
+import { Home, ChefHat, Wallet, Bookmark, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
+
+const COOKING_PREFIXES = [
+  "/fozes",
+  "/receptek",
+  "/spajz",
+  "/helyek",
+  "/bevasarlas",
+  "/vasarlas",
+  "/katalogus",
+  "/etelek",
+  "/statisztika",
+];
 
 const items = [
   { href: "/", label: "Kezdő", icon: Home, match: (p: string) => p === "/" },
-  { href: "/receptek", label: "Receptek", icon: BookOpen, match: (p: string) => p.startsWith("/receptek") },
-  { href: "/spajz", label: "Spájz", icon: Refrigerator, match: (p: string) => p.startsWith("/spajz") || p.startsWith("/helyek") },
-  { href: "/bevasarlas", label: "Bevásárlás", icon: ShoppingCart, match: (p: string) => p.startsWith("/bevasarlas") },
-  { href: "/vasarlas", label: "Vásárlás", icon: Receipt, match: (p: string) => p.startsWith("/vasarlas") || p.startsWith("/statisztika") },
+  {
+    href: "/fozes",
+    label: "Főzés",
+    icon: ChefHat,
+    match: (p: string) => COOKING_PREFIXES.some((x) => p === x || p.startsWith(x + "/")),
+  },
+  {
+    href: "/koltsegek",
+    label: "Költségek",
+    icon: Wallet,
+    match: (p: string) => p.startsWith("/koltsegek"),
+  },
+  {
+    href: "/bakancslista",
+    label: "Listák",
+    icon: Bookmark,
+    match: (p: string) => p.startsWith("/bakancslista"),
+  },
+  {
+    href: "/csalad",
+    label: "Család",
+    icon: Users,
+    match: (p: string) => p.startsWith("/csalad"),
+  },
 ];
 
 export function BottomNav() {

@@ -1,32 +1,27 @@
 import { currentUser } from "@/lib/auth";
 import { redirect } from "next/navigation";
 import { logout } from "./belepes/actions";
-import { seedExampleDataAction } from "./actions";
 import { redis, key } from "@/lib/redis";
 import type { Household } from "@/lib/types";
 import {
   listPantry,
   listRecipes,
-  listShoppingLists,
-  listPurchases,
-  ensureDefaultLocations,
+  listExpenses,
+  listSavedItems,
 } from "@/lib/data";
 import Link from "next/link";
 import {
-  BookOpen,
-  Refrigerator,
-  ShoppingCart,
-  Receipt,
-  BarChart3,
+  ChefHat,
+  Wallet,
+  Bookmark,
   Users,
   LogOut,
   AlertTriangle,
   ChevronRight,
   Plus,
-  Sparkles,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
-import { Button } from "@/components/ui/Button";
 
 const DAY_MS = 24 * 60 * 60 * 1000;
 
@@ -38,32 +33,28 @@ export default async function Home() {
   const me = await currentUser();
   if (!me) redirect("/belepes");
 
-  const [hh, pantry, recipes, lists, purchases] = await Promise.all([
+  const [hh, pantry, recipes, expenses, saved] = await Promise.all([
     redis.get<Household>(key.household(me.householdId)),
     listPantry(me.householdId),
     listRecipes(me.householdId),
-    listShoppingLists(me.householdId),
-    listPurchases(me.householdId),
+    listExpenses(me.householdId),
+    listSavedItems(me.householdId),
   ]);
-  await ensureDefaultLocations(me.householdId);
-
-  const isEmpty =
-    recipes.length === 0 && pantry.length === 0 && purchases.length === 0;
 
   const now = Date.now();
-  const expiringSoon = pantry
-    .filter((p) => p.expiresAt != null && p.expiresAt - now <= 3 * DAY_MS)
-    .sort((a, b) => (a.expiresAt ?? 0) - (b.expiresAt ?? 0));
-
-  const activeLists = lists.filter((l) => !l.completedAt);
-  const doneLists = lists.length - activeLists.length;
-  const openItemsCount = activeLists.reduce(
-    (sum, l) => sum + l.items.filter((it) => !it.checked && it.need > 0).length,
-    0
+  const expiringSoon = pantry.filter(
+    (p) => p.expiresAt != null && p.expiresAt - now <= 3 * DAY_MS
   );
-  const spent30d = purchases
-    .filter((p) => now - p.purchasedAt < 30 * DAY_MS)
-    .reduce((s, p) => s + p.total, 0);
+
+  const monthStart = (() => {
+    const d = new Date();
+    return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
+  })();
+  const spentThisMonth = expenses
+    .filter((e) => e.spentAt >= monthStart)
+    .reduce((s, e) => s + e.amount, 0);
+
+  const savedTodo = saved.filter((s) => !s.done);
 
   const initials = me.name
     .split(" ")
@@ -100,10 +91,17 @@ export default async function Home() {
         </p>
       )}
 
+      <div className="mt-5">
+        <h1 className="text-2xl font-bold tracking-tight">Élet Portál</h1>
+        <p className="text-sm text-[var(--color-muted-foreground)] mt-0.5">
+          Kövesd egy helyen a dolgaid.
+        </p>
+      </div>
+
       {expiringSoon.length > 0 && (
         <Link
           href="/spajz"
-          className="mt-5 block rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 hover:bg-amber-500/15 transition animate-fade-up"
+          className="mt-5 block rounded-2xl border border-amber-500/30 bg-amber-500/10 p-4 hover:bg-amber-500/15 transition"
         >
           <div className="flex items-start gap-3">
             <div className="w-9 h-9 rounded-xl bg-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center justify-center shrink-0">
@@ -111,7 +109,7 @@ export default async function Home() {
             </div>
             <div className="flex-1 min-w-0">
               <p className="text-sm font-semibold text-amber-900 dark:text-amber-200">
-                {expiringSoon.length} tétel hamarosan lejár
+                {expiringSoon.length} spájz tétel hamarosan lejár
               </p>
               <p className="text-xs text-amber-800/80 dark:text-amber-300/80 mt-0.5 truncate">
                 {expiringSoon
@@ -126,101 +124,43 @@ export default async function Home() {
         </Link>
       )}
 
-      <section className="mt-6 grid grid-cols-4 gap-3">
-        <Stat label="Recept" value={recipes.length} href="/receptek" />
-        <Stat label="Spájz" value={pantry.length} href="/spajz" />
-        <Stat
-          label="Venni való"
-          value={openItemsCount}
-          highlight={openItemsCount > 0}
-          href="/bevasarlas"
-        />
-        <Stat label="Vásárlás" value={purchases.length} href="/vasarlas" />
-      </section>
-
-      <section className="mt-8 grid gap-3 md:grid-cols-2">
-        <ModuleTile
-          href="/receptek"
-          icon={BookOpen}
-          title="Receptek"
-          desc="Kedvenceid, hozzávalókkal"
-          badge={recipes.length ? String(recipes.length) : undefined}
-        />
-        <ModuleTile
-          href="/spajz"
-          icon={Refrigerator}
-          title="Spájz"
-          desc={
-            expiringSoon.length
-              ? `${expiringSoon.length} tétel lejár 3 napon belül`
-              : "Mi van itthon, meddig áll el"
-          }
-          badge={pantry.length ? String(pantry.length) : undefined}
-          badgeTone={expiringSoon.length ? "warning" : "neutral"}
-        />
-        <ModuleTile
-          href="/bevasarlas"
-          icon={ShoppingCart}
-          title="Bevásárlás"
-          desc={
-            activeLists.length
-              ? `${activeLists.length} folyamatban · ${doneLists} lezárt`
-              : `${doneLists} lezárt lista`
-          }
+      <section className="mt-6 grid gap-3 md:grid-cols-3">
+        <AreaTile
+          href="/fozes"
+          icon={ChefHat}
+          title="Főzés"
+          desc="Receptek, spájz, bevásárlás, vásárlás"
+          stat={recipes.length ? `${recipes.length} recept` : "Konyha asszisztens"}
           badge={
-            activeLists.length
-              ? `${activeLists.length} lista`
-              : undefined
+            expiringSoon.length ? `${expiringSoon.length} lejár` : undefined
           }
-          badgeTone={activeLists.length ? "primary" : "neutral"}
+          badgeTone="warning"
         />
-        <ModuleTile
-          href="/vasarlas"
-          icon={Receipt}
-          title="Vásárlás"
-          desc={
-            spent30d > 0
-              ? `30 nap: ${fmtFt(spent30d)}`
-              : "Blokk import + ártörténet"
-          }
-          badge={
-            purchases.length ? String(purchases.length) : undefined
+        <AreaTile
+          href="/koltsegek"
+          icon={Wallet}
+          title="Költségek"
+          desc="Kiadások tételenként, kategóriákkal"
+          stat={
+            spentThisMonth > 0
+              ? ` E hó: ${fmtFt(spentThisMonth)}`
+              : "Kezdd el követni"
           }
         />
-        <ModuleTile
-          href="/statisztika"
-          icon={BarChart3}
-          title="Statisztika"
-          desc="Költések, top termékek, árak"
-          className="md:col-span-2"
+        <AreaTile
+          href="/bakancslista"
+          icon={Bookmark}
+          title="Bakancslista"
+          desc="Éttermek, utak, könyvek, cikkek, videók"
+          stat={
+            saved.length
+              ? `${savedTodo.length} felfedezni való`
+              : "Mentsd el, ne vessz el"
+          }
+          badge={savedTodo.length ? String(savedTodo.length) : undefined}
+          badgeTone="primary"
         />
       </section>
-
-      {isEmpty && (
-        <section className="mt-6">
-          <form action={seedExampleDataAction}>
-            <button
-              type="submit"
-              className="w-full rounded-2xl border border-[var(--color-primary)]/30 bg-[var(--color-primary-soft)] p-4 text-left hover:brightness-95 transition active:scale-[0.99]"
-            >
-              <div className="flex items-start gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)]/15 text-[var(--color-primary)] flex items-center justify-center shrink-0">
-                  <Sparkles className="w-4.5 h-4.5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold text-[var(--color-primary)]">
-                    Példa adatok betöltése
-                  </p>
-                  <p className="text-xs text-[var(--color-primary)]/80 mt-0.5">
-                    2 recept, 5 spájz tétel, 1 blokk (7 sor) és 1
-                    bevásárlólista. Bármikor törölhető.
-                  </p>
-                </div>
-              </div>
-            </button>
-          </form>
-        </section>
-      )}
 
       <section className="mt-8">
         <Link
@@ -242,102 +182,66 @@ export default async function Home() {
         </Link>
       </section>
 
-      <div className="mt-6 flex justify-center">
-        <Button
-          href="/receptek/uj"
-          variant="soft"
-          size="sm"
-          leftIcon={<Plus className="w-4 h-4" />}
-        >
-          Új recept
-        </Button>
+      <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <QuickAdd href="/koltsegek/uj" label="Új kiadás" />
+        <QuickAdd href="/bakancslista/uj" label="Új mentés" />
       </div>
     </main>
   );
 }
 
-function Stat({
-  label,
-  value,
-  highlight,
-  href,
-}: {
-  label: string;
-  value: number;
-  highlight?: boolean;
-  href?: string;
-}) {
-  const inner = (
-    <>
-      <p
-        className={
-          "text-xl font-bold tabular-nums " +
-          (highlight ? "text-[var(--color-primary)]" : "")
-        }
-      >
-        {value}
-      </p>
-      <p className="text-[10px] font-medium text-[var(--color-muted-foreground)] uppercase tracking-wider mt-0.5">
-        {label}
-      </p>
-    </>
-  );
-  const cls =
-    "block rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 text-center transition hover:border-[var(--color-primary)]/40 hover:shadow-sm active:scale-[0.98]";
-  if (href) return <Link href={href} className={cls}>{inner}</Link>;
-  return <div className={cls}>{inner}</div>;
-}
-
-function ModuleTile({
+function AreaTile({
   href,
   icon: Icon,
   title,
   desc,
+  stat,
   badge,
   badgeTone = "neutral",
-  className,
 }: {
   href: string;
-  icon: typeof BookOpen;
+  icon: LucideIcon;
   title: string;
   desc: string;
+  stat: string;
   badge?: string;
   badgeTone?: "neutral" | "warning" | "primary";
-  className?: string;
 }) {
   return (
     <Link
       href={href}
-      className={
-        "group flex items-center gap-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm transition hover:border-[var(--color-primary)]/40 hover:shadow-md active:scale-[0.99] " +
-        (className ?? "")
-      }
+      className="group flex flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-sm transition hover:border-[var(--color-primary)]/40 hover:shadow-md active:scale-[0.99]"
     >
-      <div className="w-11 h-11 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
-        <Icon className="w-5 h-5" strokeWidth={2} />
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <p className="font-semibold text-[15px]">{title}</p>
-          {badge && (
-            <Badge
-              tone={
-                badgeTone === "warning"
-                  ? "warning"
-                  : badgeTone === "primary"
-                  ? "primary"
-                  : "muted"
-              }
-            >
-              {badge}
-            </Badge>
-          )}
+      <div className="flex items-center justify-between">
+        <div className="w-12 h-12 rounded-2xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+          <Icon className="w-6 h-6" strokeWidth={2} />
         </div>
-        <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5 truncate">
-          {desc}
-        </p>
+        {badge && (
+          <Badge tone={badgeTone === "warning" ? "warning" : "primary"}>
+            {badge}
+          </Badge>
+        )}
       </div>
-      <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] group-hover:text-[var(--color-primary)] transition" />
+      <p className="mt-4 font-semibold text-[17px]">{title}</p>
+      <p className="text-xs text-[var(--color-muted-foreground)] mt-0.5">
+        {desc}
+      </p>
+      <p className="mt-3 text-sm font-medium text-[var(--color-primary)] flex items-center gap-1">
+        {stat}
+        <ChevronRight className="w-4 h-4 opacity-0 group-hover:opacity-100 transition" />
+      </p>
+    </Link>
+  );
+}
+
+function QuickAdd({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-2 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] px-4 h-10 text-sm font-medium hover:brightness-95 transition"
+    >
+      <Plus className="w-4 h-4" />
+      {label}
     </Link>
   );
 }

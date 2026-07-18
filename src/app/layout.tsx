@@ -16,8 +16,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Főzés",
-  description: "Receptek, spájz és bevásárlólista egy helyen.",
+  title: "Élet Portál",
+  description: "Főzés, költségek és bakancslista egy helyen.",
 };
 
 export const viewport = {

@@ -27,6 +27,7 @@ export default async function ReceptekPage({
     <main className="min-h-dvh px-5 pb-8 max-w-md md:max-w-4xl mx-auto">
       <PageHeader
         title={archiveMode ? "Archívum" : "Receptek"}
+        back="/fozes"
         action={
           archiveMode ? (
             <Button

@@ -20,6 +20,7 @@ export default async function SpajzPage() {
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
       <PageHeader
         title="Spájz"
+        back="/fozes"
         action={
           <Button
             href="/spajz/uj"

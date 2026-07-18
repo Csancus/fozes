@@ -25,6 +25,7 @@ export default async function KatalogusPage() {
     <main className="min-h-dvh px-5 pb-8 max-w-md md:max-w-4xl mx-auto">
       <PageHeader
         title="Katalógus"
+        back="/fozes"
         action={
           <Button
             href="/katalogus/uj"

@@ -227,3 +227,96 @@ export type CookedMeal = {
   ingredientCost: number | null; // Ft, or null if unknown
   createdAt: number;
 };
+
+// ============ KÖLTSÉGEK (Expenses) ============
+
+export type ExpenseCategory = {
+  id: string;
+  name: string;
+  color: string; // token: emerald|orange|sky|indigo|rose|violet|pink|cyan|amber|zinc
+  icon: string;  // icon key mapped in the UI
+  createdAt: number;
+};
+
+export const DEFAULT_EXPENSE_CATEGORIES: Omit<
+  ExpenseCategory,
+  "id" | "createdAt"
+>[] = [
+  { name: "Élelmiszer", color: "emerald", icon: "basket" },
+  { name: "Étterem / Kávé", color: "orange", icon: "utensils" },
+  { name: "Közlekedés", color: "sky", icon: "car" },
+  { name: "Lakhatás / Rezsi", color: "indigo", icon: "home" },
+  { name: "Egészség", color: "rose", icon: "heart" },
+  { name: "Szórakozás", color: "violet", icon: "ticket" },
+  { name: "Ruházat", color: "pink", icon: "shirt" },
+  { name: "Előfizetés", color: "cyan", icon: "repeat" },
+  { name: "Egyéb", color: "zinc", icon: "tag" },
+];
+
+export type Expense = {
+  id: string;
+  amount: number;            // Ft
+  merchant: string;          // "Lidl", payee / store
+  categoryId: string | null; // ExpenseCategory.id
+  note: string;
+  spentAt: number;           // ms since epoch (day granularity)
+  createdAt: number;
+};
+
+// ============ BAKANCSLISTA (Saved items) ============
+
+export type SavedKind =
+  | "etterem"
+  | "utazas"
+  | "helyszin"
+  | "konyv"
+  | "cikk"
+  | "video"
+  | "film"
+  | "egyeb";
+
+export const SAVED_KINDS: SavedKind[] = [
+  "etterem",
+  "utazas",
+  "helyszin",
+  "konyv",
+  "cikk",
+  "video",
+  "film",
+  "egyeb",
+];
+
+export const SAVED_KIND_LABEL: Record<SavedKind, string> = {
+  etterem: "Étterem",
+  utazas: "Utazás",
+  helyszin: "Helyszín",
+  konyv: "Könyv",
+  cikk: "Cikk",
+  video: "Videó",
+  film: "Film / sorozat",
+  egyeb: "Egyéb",
+};
+
+export type SavedLink = { url: string; label: string };
+export type SavedFileMeta = {
+  id: string;
+  name: string;
+  mime: string;
+  size: number; // bytes (approx, of the base64-decoded payload)
+};
+
+export type SavedItem = {
+  id: string;
+  title: string;
+  kind: SavedKind;
+  note: string;
+  location: string;         // place / address / "hol" text
+  imageUrl: string | null;  // small inline cover (client-compressed)
+  links: SavedLink[];       // video / maps / article / any URL
+  files: SavedFileMeta[];   // PDF / audio / any — blobs stored in separate keys
+  tags: string[];
+  done: boolean;            // visited / read / watched
+  doneAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+};

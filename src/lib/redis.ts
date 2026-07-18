@@ -51,6 +51,19 @@ export const key = {
   meal: (hh: string, id: string) => `hh:${hh}:meal:${id}`,
   recipeMeals: (hh: string, recipeId: string) =>
     `hh:${hh}:recipe:${recipeId}:meals`,
+
+  // Költségek
+  expenses: (hh: string) => `hh:${hh}:expenses`,
+  expense: (hh: string, id: string) => `hh:${hh}:expense:${id}`,
+  expenseCategories: (hh: string) => `hh:${hh}:exp-cats`,
+  expenseCategory: (hh: string, id: string) => `hh:${hh}:exp-cat:${id}`,
+  expenseMerchants: (hh: string) => `hh:${hh}:exp-merchants`, // hash: slug -> categoryId
+
+  // Bakancslista
+  savedItems: (hh: string) => `hh:${hh}:saved`,
+  savedItem: (hh: string, id: string) => `hh:${hh}:saved:${id}`,
+  savedFile: (hh: string, itemId: string, fileId: string) =>
+    `hh:${hh}:saved:${itemId}:file:${fileId}`,
 };
 
 export function newId(): string {

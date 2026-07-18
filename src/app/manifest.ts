@@ -2,9 +2,9 @@ import type { MetadataRoute } from "next";
 
 export default function manifest(): MetadataRoute.Manifest {
   return {
-    name: "Főzés",
-    short_name: "Főzés",
-    description: "Receptek, spájz és bevásárlólista",
+    name: "Élet Portál",
+    short_name: "Portál",
+    description: "Főzés, költségek és bakancslista egy helyen",
     start_url: "/",
     display: "standalone",
     background_color: "#18181b",

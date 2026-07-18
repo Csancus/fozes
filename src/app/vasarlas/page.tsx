@@ -41,6 +41,7 @@ export default async function VasarlasPage() {
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
       <PageHeader
         title="Vásárlás"
+        back="/fozes"
         action={
           <Button href="/vasarlas/uj" variant="primary" size="sm" leftIcon={<Plus className="w-4 h-4" />}>
             Új
