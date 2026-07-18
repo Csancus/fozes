@@ -16,6 +16,9 @@ import {
   Package,
   Utensils,
   BarChart3,
+  LayoutDashboard,
+  Table2,
+  SlidersHorizontal,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
@@ -53,6 +56,12 @@ const cooking: NavItem[] = [
   { href: "/statisztika", label: "Statisztika", icon: BarChart3 },
 ];
 
+const costs: NavItem[] = [
+  { href: "/koltsegek", label: "Áttekintés", icon: LayoutDashboard },
+  { href: "/koltsegek/gyors", label: "Gyors rögzítés", icon: Table2 },
+  { href: "/koltsegek/beallitasok", label: "Beállítások", icon: SlidersHorizontal },
+];
+
 function isActive(pathname: string, href: string) {
   if (href === "/") return pathname === "/";
   if (href === "/fozes") return COOKING_PREFIXES.some((p) => pathname === p || pathname.startsWith(p + "/"));
@@ -78,8 +87,18 @@ function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
   );
 }
 
-function SubLink({ item, pathname }: { item: NavItem; pathname: string }) {
-  const active = pathname === item.href || pathname.startsWith(item.href + "/");
+function SubLink({
+  item,
+  pathname,
+  exact,
+}: {
+  item: NavItem;
+  pathname: string;
+  exact?: boolean;
+}) {
+  const active = exact
+    ? pathname === item.href
+    : pathname === item.href || pathname.startsWith(item.href + "/");
   const Icon = item.icon;
   return (
     <Link
@@ -104,6 +123,7 @@ export function Sidebar() {
   const inCooking = COOKING_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
+  const inCosts = pathname === "/koltsegek" || pathname.startsWith("/koltsegek/");
 
   return (
     <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-64 border-r border-[var(--color-border)] bg-[var(--color-card)] z-40">
@@ -127,6 +147,18 @@ export function Sidebar() {
               <div className="mt-1 mb-1 space-y-0.5 border-l border-[var(--color-border)] ml-4">
                 {cooking.map((sub) => (
                   <SubLink key={sub.href} item={sub} pathname={pathname} />
+                ))}
+              </div>
+            )}
+            {it.href === "/koltsegek" && inCosts && (
+              <div className="mt-1 mb-1 space-y-0.5 border-l border-[var(--color-border)] ml-4">
+                {costs.map((sub) => (
+                  <SubLink
+                    key={sub.href}
+                    item={sub}
+                    pathname={pathname}
+                    exact={sub.href === "/koltsegek"}
+                  />
                 ))}
               </div>
             )}

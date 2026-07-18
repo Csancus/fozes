@@ -56,6 +56,17 @@ export default async function KoltsegekPage() {
         </Button>
       </div>
 
+      <Link
+        href="/koltsegek/beallitasok"
+        className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-[var(--color-border)] px-4 h-11 text-sm font-medium text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-foreground)] transition"
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4" />
+          Kategóriák · kártyák · személyek
+        </span>
+        <span className="text-[var(--color-primary)]">Beállítások</span>
+      </Link>
+
       {expenses.length === 0 ? (
         <div className="mt-6">
           <EmptyState

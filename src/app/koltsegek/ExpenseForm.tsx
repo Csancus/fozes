@@ -1,11 +1,12 @@
 "use client";
 
 import { useMemo, useRef, useState } from "react";
+import Link from "next/link";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { Check, Sparkles } from "lucide-react";
+import { Check, Sparkles, Plus } from "lucide-react";
 import type {
   Expense,
   ExpenseCategory,
@@ -157,71 +158,70 @@ export function ExpenseForm({
         </div>
       </div>
 
-      {paymentMethods.length > 0 && (
-        <div>
-          <span className="block text-sm font-medium mb-2">Miből fizetted</span>
-          <div className="flex flex-wrap gap-2">
-            {paymentMethods.map((pm) => {
-              const col = catColor(pm.color);
-              const Icon = payIcon(pm.kind);
-              const active = paymentMethodId === pm.id;
-              return (
-                <button
-                  type="button"
-                  key={pm.id}
-                  onClick={() =>
-                    setPaymentMethodId((cur) => (cur === pm.id ? null : pm.id))
-                  }
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
-                    active
-                      ? cn(col.soft, col.text, "border-transparent ring-2", col.ring)
-                      : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
-                  )}
-                >
-                  <Icon className={cn("w-4 h-4", active ? col.text : "text-[var(--color-muted-foreground)]")} />
-                  {pm.name}
-                  {pm.last4 && (
-                    <span className="opacity-60 tabular-nums">··{pm.last4}</span>
-                  )}
-                  {active && <Check className="w-3.5 h-3.5" />}
-                </button>
-              );
-            })}
-          </div>
+      <div>
+        <span className="block text-sm font-medium mb-2">Miből fizetted</span>
+        <div className="flex flex-wrap gap-2">
+          {paymentMethods.map((pm) => {
+            const col = catColor(pm.color);
+            const Icon = payIcon(pm.kind);
+            const active = paymentMethodId === pm.id;
+            return (
+              <button
+                type="button"
+                key={pm.id}
+                onClick={() =>
+                  setPaymentMethodId((cur) => (cur === pm.id ? null : pm.id))
+                }
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
+                  active
+                    ? cn(col.soft, col.text, "border-transparent ring-2", col.ring)
+                    : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                <Icon className={cn("w-4 h-4", active ? col.text : "text-[var(--color-muted-foreground)]")} />
+                {pm.name}
+                {pm.last4 && (
+                  <span className="opacity-60 tabular-nums">··{pm.last4}</span>
+                )}
+                {active && <Check className="w-3.5 h-3.5" />}
+              </button>
+            );
+          })}
+          <AddLink href="/koltsegek/beallitasok" label="Kártya" />
         </div>
-      )}
+      </div>
 
-      {persons.length > 0 && (
-        <div>
-          <span className="block text-sm font-medium mb-2">Ki költötte</span>
-          <div className="flex flex-wrap gap-2">
-            {persons.map((p) => {
-              const col = catColor(p.color);
-              const active = personId === p.id;
-              return (
-                <button
-                  type="button"
-                  key={p.id}
-                  onClick={() =>
-                    setPersonId((cur) => (cur === p.id ? null : p.id))
-                  }
-                  className={cn(
-                    "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
-                    active
-                      ? cn(col.soft, col.text, "border-transparent ring-2", col.ring)
-                      : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
-                  )}
-                >
-                  <span className={cn("w-2.5 h-2.5 rounded-full", col.dot)} />
-                  {p.name}
-                  {active && <Check className="w-3.5 h-3.5" />}
-                </button>
-              );
-            })}
-          </div>
+      <div>
+        <span className="block text-sm font-medium mb-2">Ki költötte</span>
+        <div className="flex flex-wrap gap-2">
+          {persons.map((p) => {
+            const col = catColor(p.color);
+            const active = personId === p.id;
+            return (
+              <button
+                type="button"
+                key={p.id}
+                onClick={() => setPersonId((cur) => (cur === p.id ? null : p.id))}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
+                  active
+                    ? cn(col.soft, col.text, "border-transparent ring-2", col.ring)
+                    : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                <span className={cn("w-2.5 h-2.5 rounded-full", col.dot)} />
+                {p.name}
+                {active && <Check className="w-3.5 h-3.5" />}
+              </button>
+            );
+          })}
+          <AddLink
+            href="/koltsegek/beallitasok"
+            label={persons.length ? "Személy" : "Add hozzá (Anikó, Csanád…)"}
+          />
         </div>
-      )}
+      </div>
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Dátum">
@@ -242,5 +242,17 @@ export function ExpenseForm({
         {initial ? "Mentés" : "Kiadás rögzítése"}
       </Button>
     </form>
+  );
+}
+
+function AddLink({ href, label }: { href: string; label: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex items-center gap-1 rounded-full pl-2 pr-3 h-9 text-[13px] font-medium border border-dashed border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)] transition"
+    >
+      <Plus className="w-4 h-4" />
+      {label}
+    </Link>
   );
 }
