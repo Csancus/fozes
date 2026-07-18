@@ -3,10 +3,15 @@
 import { useMemo, useRef, useState } from "react";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
-import { catColor, catIcon } from "@/lib/expense-visuals";
+import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
 import { Check, Sparkles } from "lucide-react";
-import type { Expense, ExpenseCategory } from "@/lib/types";
+import type {
+  Expense,
+  ExpenseCategory,
+  PaymentMethod,
+  Person,
+} from "@/lib/types";
 
 function slugify(s: string): string {
   return s
@@ -27,12 +32,16 @@ function todayStr(): string {
 export function ExpenseForm({
   action,
   categories,
+  paymentMethods,
+  persons,
   merchantMap,
   knownMerchants,
   initial,
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
+  paymentMethods: PaymentMethod[];
+  persons: Person[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
   initial?: Expense | null;
@@ -40,6 +49,12 @@ export function ExpenseForm({
   const [merchant, setMerchant] = useState(initial?.merchant ?? "");
   const [categoryId, setCategoryId] = useState<string | null>(
     initial?.categoryId ?? null
+  );
+  const [paymentMethodId, setPaymentMethodId] = useState<string | null>(
+    initial?.paymentMethodId ?? null
+  );
+  const [personId, setPersonId] = useState<string | null>(
+    initial?.personId ?? null
   );
   const [autoApplied, setAutoApplied] = useState(false);
   const manual = useRef(!!initial?.categoryId);
@@ -76,6 +91,8 @@ export function ExpenseForm({
     <form action={action} className="space-y-5">
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="categoryId" value={categoryId ?? ""} />
+      <input type="hidden" name="paymentMethodId" value={paymentMethodId ?? ""} />
+      <input type="hidden" name="personId" value={personId ?? ""} />
 
       <Field label="Összeg (Ft)" required>
         <Input
@@ -139,6 +156,72 @@ export function ExpenseForm({
           })}
         </div>
       </div>
+
+      {paymentMethods.length > 0 && (
+        <div>
+          <span className="block text-sm font-medium mb-2">Miből fizetted</span>
+          <div className="flex flex-wrap gap-2">
+            {paymentMethods.map((pm) => {
+              const col = catColor(pm.color);
+              const Icon = payIcon(pm.kind);
+              const active = paymentMethodId === pm.id;
+              return (
+                <button
+                  type="button"
+                  key={pm.id}
+                  onClick={() =>
+                    setPaymentMethodId((cur) => (cur === pm.id ? null : pm.id))
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
+                    active
+                      ? cn(col.soft, col.text, "border-transparent ring-2", col.ring)
+                      : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+                  )}
+                >
+                  <Icon className={cn("w-4 h-4", active ? col.text : "text-[var(--color-muted-foreground)]")} />
+                  {pm.name}
+                  {pm.last4 && (
+                    <span className="opacity-60 tabular-nums">··{pm.last4}</span>
+                  )}
+                  {active && <Check className="w-3.5 h-3.5" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      {persons.length > 0 && (
+        <div>
+          <span className="block text-sm font-medium mb-2">Ki költötte</span>
+          <div className="flex flex-wrap gap-2">
+            {persons.map((p) => {
+              const col = catColor(p.color);
+              const active = personId === p.id;
+              return (
+                <button
+                  type="button"
+                  key={p.id}
+                  onClick={() =>
+                    setPersonId((cur) => (cur === p.id ? null : p.id))
+                  }
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
+                    active
+                      ? cn(col.soft, col.text, "border-transparent ring-2", col.ring)
+                      : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+                  )}
+                >
+                  <span className={cn("w-2.5 h-2.5 rounded-full", col.dot)} />
+                  {p.name}
+                  {active && <Check className="w-3.5 h-3.5" />}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Dátum">

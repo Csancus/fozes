@@ -19,8 +19,12 @@ import {
   Wrench,
   PiggyBank,
   Coffee,
+  CreditCard,
+  ArrowLeftRight,
+  Coins,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
+import type { PaymentKind } from "./types";
 
 // Tailwind osztályok statikusan (dinamikus interpoláció nem működne a JIT-tel).
 export const CAT_COLORS: Record<
@@ -122,4 +126,14 @@ export function catColor(color: string) {
 
 export function catIcon(icon: string): LucideIcon {
   return CAT_ICONS[icon] ?? Tag;
+}
+
+export const PAY_ICONS: Record<PaymentKind, LucideIcon> = {
+  card: CreditCard,
+  transfer: ArrowLeftRight,
+  cash: Coins,
+};
+
+export function payIcon(kind: PaymentKind): LucideIcon {
+  return PAY_ICONS[kind] ?? CreditCard;
 }

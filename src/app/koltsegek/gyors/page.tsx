@@ -8,11 +8,10 @@ import {
   getMerchantMap,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Card } from "@/components/ui/Card";
-import { ExpenseForm } from "../ExpenseForm";
-import { saveExpenseAction } from "../actions";
+import { BatchEntry } from "./BatchEntry";
+import { saveExpensesBatchAction } from "../actions";
 
-export default async function NewExpensePage() {
+export default async function BatchPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   const [categories, paymentMethods, persons, merchantMap, expenses] =
@@ -29,18 +28,20 @@ export default async function NewExpensePage() {
     .sort((a, b) => a.localeCompare(b, "hu"));
 
   return (
-    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
-      <PageHeader title="Új kiadás" back="/koltsegek" />
-      <Card className="mt-6 p-5">
-        <ExpenseForm
-          action={saveExpenseAction}
-          categories={categories}
-          paymentMethods={paymentMethods}
-          persons={persons}
-          merchantMap={merchantMap}
-          knownMerchants={knownMerchants}
-        />
-      </Card>
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
+      <PageHeader
+        title="Gyors rögzítés"
+        subtitle="Több tétel egyszerre, táblázatban"
+        back="/koltsegek"
+      />
+      <BatchEntry
+        action={saveExpensesBatchAction}
+        categories={categories}
+        paymentMethods={paymentMethods}
+        persons={persons}
+        merchantMap={merchantMap}
+        knownMerchants={knownMerchants}
+      />
     </main>
   );
 }

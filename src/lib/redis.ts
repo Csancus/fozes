@@ -58,6 +58,10 @@ export const key = {
   expenseCategories: (hh: string) => `hh:${hh}:exp-cats`,
   expenseCategory: (hh: string, id: string) => `hh:${hh}:exp-cat:${id}`,
   expenseMerchants: (hh: string) => `hh:${hh}:exp-merchants`, // hash: slug -> categoryId
+  paymentMethods: (hh: string) => `hh:${hh}:pay-methods`,
+  paymentMethod: (hh: string, id: string) => `hh:${hh}:pay-method:${id}`,
+  persons: (hh: string) => `hh:${hh}:persons`,
+  person: (hh: string, id: string) => `hh:${hh}:person:${id}`,
 
   // Bakancslista
   savedItems: (hh: string) => `hh:${hh}:saved`,

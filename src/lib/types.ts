@@ -253,13 +253,48 @@ export const DEFAULT_EXPENSE_CATEGORIES: Omit<
   { name: "Egyéb", color: "zinc", icon: "tag" },
 ];
 
+export type PaymentKind = "card" | "transfer" | "cash";
+
+export const PAYMENT_KIND_LABEL: Record<PaymentKind, string> = {
+  card: "Bankkártya",
+  transfer: "Utalás",
+  cash: "Készpénz",
+};
+
+export type PaymentMethod = {
+  id: string;
+  name: string;
+  kind: PaymentKind;
+  color: string;          // szín token (expense-visuals)
+  last4: string | null;   // kártya utolsó 4 számjegye (opcionális)
+  createdAt: number;
+};
+
+export const DEFAULT_PAYMENT_METHODS: Omit<
+  PaymentMethod,
+  "id" | "createdAt"
+>[] = [
+  { name: "Utalás", kind: "transfer", color: "sky", last4: null },
+  { name: "Készpénz", kind: "cash", color: "emerald", last4: null },
+];
+
+// Ki költötte (pl. Anikó, Csanád)
+export type Person = {
+  id: string;
+  name: string;
+  color: string; // szín token (expense-visuals)
+  createdAt: number;
+};
+
 export type Expense = {
   id: string;
-  amount: number;            // Ft
-  merchant: string;          // "Lidl", payee / store
-  categoryId: string | null; // ExpenseCategory.id
+  amount: number;                 // Ft
+  merchant: string;               // "Lidl", payee / store
+  categoryId: string | null;      // ExpenseCategory.id
+  paymentMethodId: string | null; // PaymentMethod.id
+  personId: string | null;        // Person.id — ki költötte
   note: string;
-  spentAt: number;           // ms since epoch (day granularity)
+  spentAt: number;                // ms since epoch (day granularity)
   createdAt: number;
 };
 

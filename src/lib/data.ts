@@ -9,9 +9,11 @@ import type {
   CatalogItem,
   Expense,
   ExpenseCategory,
+  PaymentMethod,
+  Person,
   SavedItem,
 } from "./types";
-import { DEFAULT_EXPENSE_CATEGORIES } from "./types";
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_PAYMENT_METHODS } from "./types";
 
 // ============ LOCATIONS ============
 
@@ -457,6 +459,107 @@ export async function rememberMerchantCategory(
   await redis.hset(key.expenseMerchants(hh), { [s]: categoryId });
 }
 
+// ============ PAYMENT METHODS ============
+
+export async function listPaymentMethods(
+  hh: string
+): Promise<PaymentMethod[]> {
+  const ids = await redis.smembers(key.paymentMethods(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<PaymentMethod>(key.paymentMethod(hh, id)))
+  );
+  return items
+    .filter((p): p is PaymentMethod => !!p)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getPaymentMethod(hh: string, id: string) {
+  return redis.get<PaymentMethod>(key.paymentMethod(hh, id));
+}
+
+export async function createPaymentMethod(
+  hh: string,
+  input: Pick<PaymentMethod, "name" | "kind" | "color" | "last4">
+): Promise<PaymentMethod> {
+  const pm: PaymentMethod = {
+    id: newId(),
+    name: input.name.trim(),
+    kind: input.kind,
+    color: input.color,
+    last4: input.last4?.trim() || null,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.paymentMethod(hh, pm.id), pm);
+  await redis.sadd(key.paymentMethods(hh), pm.id);
+  return pm;
+}
+
+export async function updatePaymentMethod(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<PaymentMethod, "name" | "kind" | "color" | "last4">>
+) {
+  const cur = await getPaymentMethod(hh, id);
+  if (!cur) return null;
+  const next = { ...cur, ...patch };
+  await redis.set(key.paymentMethod(hh, id), next);
+  return next;
+}
+
+export async function deletePaymentMethod(hh: string, id: string) {
+  await redis.del(key.paymentMethod(hh, id));
+  await redis.srem(key.paymentMethods(hh), id);
+}
+
+export async function ensureDefaultPaymentMethods(
+  hh: string
+): Promise<PaymentMethod[]> {
+  const existing = await listPaymentMethods(hh);
+  if (existing.length > 0) return existing;
+  for (const p of DEFAULT_PAYMENT_METHODS) {
+    await createPaymentMethod(hh, p);
+  }
+  return listPaymentMethods(hh);
+}
+
+// ============ PERSONS (ki költötte) ============
+
+export async function listPersons(hh: string): Promise<Person[]> {
+  const ids = await redis.smembers(key.persons(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<Person>(key.person(hh, id)))
+  );
+  return items
+    .filter((p): p is Person => !!p)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getPerson(hh: string, id: string) {
+  return redis.get<Person>(key.person(hh, id));
+}
+
+export async function createPerson(
+  hh: string,
+  input: Pick<Person, "name" | "color">
+): Promise<Person> {
+  const p: Person = {
+    id: newId(),
+    name: input.name.trim(),
+    color: input.color,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.person(hh, p.id), p);
+  await redis.sadd(key.persons(hh), p.id);
+  return p;
+}
+
+export async function deletePerson(hh: string, id: string) {
+  await redis.del(key.person(hh, id));
+  await redis.srem(key.persons(hh), id);
+}
+
 // ============ EXPENSES ============
 
 export async function listExpenses(hh: string): Promise<Expense[]> {
@@ -485,6 +588,8 @@ export async function saveExpense(
     amount: input.amount,
     merchant: input.merchant.trim(),
     categoryId: input.categoryId,
+    paymentMethodId: input.paymentMethodId ?? null,
+    personId: input.personId ?? null,
     note: input.note.trim(),
     spentAt: input.spentAt,
     createdAt: existing?.createdAt ?? Date.now(),

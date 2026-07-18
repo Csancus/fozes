@@ -4,6 +4,8 @@ import {
   listExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
+  ensureDefaultPaymentMethods,
+  listPersons,
   getMerchantMap,
 } from "@/lib/data";
 import { notFound } from "next/navigation";
@@ -23,12 +25,15 @@ export default async function EditExpensePage({
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
 
-  const [expense, categories, merchantMap, expenses] = await Promise.all([
-    getExpense(me.householdId, id),
-    listExpenseCategories(me.householdId),
-    getMerchantMap(me.householdId),
-    listExpenses(me.householdId),
-  ]);
+  const [expense, categories, paymentMethods, persons, merchantMap, expenses] =
+    await Promise.all([
+      getExpense(me.householdId, id),
+      listExpenseCategories(me.householdId),
+      ensureDefaultPaymentMethods(me.householdId),
+      listPersons(me.householdId),
+      getMerchantMap(me.householdId),
+      listExpenses(me.householdId),
+    ]);
   if (!expense) notFound();
 
   const knownMerchants = [...new Set(expenses.map((e) => e.merchant))]
@@ -42,6 +47,8 @@ export default async function EditExpensePage({
         <ExpenseForm
           action={saveExpenseAction}
           categories={categories}
+          paymentMethods={paymentMethods}
+          persons={persons}
           merchantMap={merchantMap}
           knownMerchants={knownMerchants}
           initial={expense}
