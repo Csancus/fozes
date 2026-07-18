@@ -2,7 +2,6 @@
 
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
-import { Input, Field } from "@/components/ui/Input";
 import { cn } from "@/lib/cn";
 import { Plus, X } from "lucide-react";
 import type { ExpenseCategory, PaymentMethod, Person } from "@/lib/types";
@@ -27,6 +26,10 @@ function fmtFt(n: number): string {
   return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
 }
 
+function toNum(v: string): number {
+  return Number(v.replace(/\s/g, "").replace(",", "."));
+}
+
 type Row = {
   key: string;
   amount: string;
@@ -34,6 +37,7 @@ type Row = {
   categoryId: string;
   paymentMethodId: string;
   personId: string;
+  spentAt: string;
 };
 
 let counter = 0;
@@ -46,6 +50,7 @@ function emptyRow(): Row {
     categoryId: "",
     paymentMethodId: "",
     personId: "",
+    spentAt: todayStr(),
   };
 }
 
@@ -74,7 +79,6 @@ export function BatchEntry({
     emptyRow(),
     emptyRow(),
   ]);
-  const [spentAt, setSpentAt] = useState(todayStr());
 
   function update(key: string, patch: Partial<Row>) {
     setRows((cur) =>
@@ -101,14 +105,25 @@ export function BatchEntry({
     setRows((cur) => [...cur, emptyRow()]);
   }
 
+  // "Előző sorból másol" — az utolsó kitöltött sor dátuma/kártya/ki mezőit örökli az új sor
+  function addRowLikeLast() {
+    setRows((cur) => {
+      const last = cur[cur.length - 1];
+      const r = emptyRow();
+      if (last) {
+        r.spentAt = last.spentAt;
+        r.paymentMethodId = last.paymentMethodId;
+        r.personId = last.personId;
+      }
+      return [...cur, r];
+    });
+  }
+
   const valid = useMemo(
-    () => rows.filter((r) => Number(r.amount.replace(/\s/g, "").replace(",", ".")) > 0 && r.merchant.trim()),
+    () => rows.filter((r) => toNum(r.amount) > 0 && r.merchant.trim()),
     [rows]
   );
-  const total = valid.reduce(
-    (s, r) => s + Number(r.amount.replace(/\s/g, "").replace(",", ".")),
-    0
-  );
+  const total = valid.reduce((s, r) => s + toNum(r.amount), 0);
 
   const payload = JSON.stringify(
     valid.map((r) => ({
@@ -117,23 +132,15 @@ export function BatchEntry({
       categoryId: r.categoryId,
       paymentMethodId: r.paymentMethodId,
       personId: r.personId,
-      spentAt,
+      spentAt: r.spentAt,
     }))
   );
+
+  const showPerson = persons.length > 0;
 
   return (
     <form action={action} className="mt-6">
       <input type="hidden" name="rows" value={payload} />
-
-      <div className="max-w-xs">
-        <Field label="Dátum (minden sorra)">
-          <Input
-            type="date"
-            value={spentAt}
-            onChange={(e) => setSpentAt(e.target.value)}
-          />
-        </Field>
-      </div>
 
       <datalist id="batch-merchants">
         {knownMerchants.map((m) => (
@@ -141,15 +148,21 @@ export function BatchEntry({
         ))}
       </datalist>
 
-      <div className="mt-4 overflow-x-auto -mx-5 px-5">
-        <table className="w-full border-separate border-spacing-y-1.5 min-w-[640px]">
+      <div className="overflow-x-auto -mx-5 px-5">
+        <table
+          className={cn(
+            "w-full border-separate border-spacing-y-1.5",
+            showPerson ? "min-w-[860px]" : "min-w-[720px]"
+          )}
+        >
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
               <th className="font-semibold px-1 w-28">Összeg</th>
               <th className="font-semibold px-1">Bolt / kinek</th>
               <th className="font-semibold px-1 w-40">Kategória</th>
               <th className="font-semibold px-1 w-36">Fizetés</th>
-              {persons.length > 0 && <th className="font-semibold px-1 w-32">Ki</th>}
+              {showPerson && <th className="font-semibold px-1 w-32">Ki</th>}
+              <th className="font-semibold px-1 w-40">Dátum</th>
               <th className="w-8" />
             </tr>
           </thead>
@@ -202,7 +215,7 @@ export function BatchEntry({
                     ))}
                   </select>
                 </td>
-                {persons.length > 0 && (
+                {showPerson && (
                   <td className="px-1 align-top">
                     <select
                       value={r.personId}
@@ -219,6 +232,14 @@ export function BatchEntry({
                   </td>
                 )}
                 <td className="px-1 align-top">
+                  <input
+                    type="date"
+                    value={r.spentAt}
+                    onChange={(e) => update(r.key, { spentAt: e.target.value })}
+                    className={cn(inputCls, "w-40")}
+                  />
+                </td>
+                <td className="px-1 align-top">
                   <button
                     type="button"
                     onClick={() => removeRow(r.key)}
@@ -234,16 +255,26 @@ export function BatchEntry({
         </table>
       </div>
 
-      <button
-        type="button"
-        onClick={addRow}
-        className="mt-2 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
-      >
-        <Plus className="w-4 h-4" /> Új sor
-      </button>
+      <div className="mt-2 flex flex-wrap gap-4">
+        <button
+          type="button"
+          onClick={addRow}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
+        >
+          <Plus className="w-4 h-4" /> Új sor
+        </button>
+        <button
+          type="button"
+          onClick={addRowLikeLast}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+          title="Új sor az előző sor dátumával, kártyájával és személyével"
+        >
+          <Plus className="w-4 h-4" /> Sor az előző adataival
+        </button>
+      </div>
 
       <div className="mt-6 sticky bottom-0 -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
-        <div className="flex items-center justify-between gap-3 max-w-md md:max-w-2xl mx-auto">
+        <div className="flex items-center justify-between gap-3 max-w-md md:max-w-4xl mx-auto">
           <div className="text-sm">
             <span className="font-semibold tabular-nums">{fmtFt(total)}</span>
             <span className="text-[var(--color-muted-foreground)]"> · {valid.length} tétel</span>
