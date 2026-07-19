@@ -9,10 +9,13 @@ import {
   updateExpenseCategory,
   deleteExpenseCategory,
   createPaymentMethod,
+  updatePaymentMethod,
   deletePaymentMethod,
   createPerson,
+  updatePerson,
   deletePerson,
   createProject,
+  updateProject,
   deleteProject,
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
@@ -135,6 +138,27 @@ export async function createPaymentMethodAction(fd: FormData) {
   revalidatePath("/koltsegek");
 }
 
+export async function updatePaymentMethodAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  const name = String(fd.get("name") ?? "").trim();
+  const kindRaw = String(fd.get("kind") ?? "card") as PaymentKind;
+  const kind = PAY_KINDS.includes(kindRaw) ? kindRaw : "card";
+  const color = String(fd.get("color") ?? "zinc").trim();
+  const last4 = String(fd.get("last4") ?? "")
+    .replace(/\D/g, "")
+    .slice(0, 4);
+  if (!id || !name) return;
+  await updatePaymentMethod(me.householdId, id, {
+    name,
+    kind,
+    color,
+    last4: last4 || null,
+  });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
 export async function deletePaymentMethodAction(fd: FormData) {
   const me = await requireUser();
   const id = String(fd.get("id") ?? "");
@@ -156,6 +180,17 @@ export async function createPersonAction(fd: FormData) {
   revalidatePath("/koltsegek");
 }
 
+export async function updatePersonAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "zinc").trim();
+  if (!id || !name) return;
+  await updatePerson(me.householdId, id, { name, color });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
 export async function deletePersonAction(fd: FormData) {
   const me = await requireUser();
   const id = String(fd.get("id") ?? "");
@@ -173,6 +208,17 @@ export async function createProjectAction(fd: FormData) {
   const color = String(fd.get("color") ?? "zinc").trim();
   if (!name) return;
   await createProject(me.householdId, { name, color });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
+export async function updateProjectAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "zinc").trim();
+  if (!id || !name) return;
+  await updateProject(me.householdId, id, { name, color });
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
 }

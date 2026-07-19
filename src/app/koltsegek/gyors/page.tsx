@@ -32,7 +32,7 @@ export default async function BatchPage() {
     .sort((a, b) => a.localeCompare(b, "hu"));
 
   return (
-    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-6xl mx-auto">
       <PageHeader
         title="Gyors rögzítés"
         subtitle="Több tétel egyszerre, táblázatban"

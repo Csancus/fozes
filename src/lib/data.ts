@@ -556,6 +556,18 @@ export async function createPerson(
   return p;
 }
 
+export async function updatePerson(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<Person, "name" | "color">>
+) {
+  const cur = await getPerson(hh, id);
+  if (!cur) return null;
+  const next = { ...cur, ...patch };
+  await redis.set(key.person(hh, id), next);
+  return next;
+}
+
 export async function deletePerson(hh: string, id: string) {
   await redis.del(key.person(hh, id));
   await redis.srem(key.persons(hh), id);
@@ -591,6 +603,18 @@ export async function createProject(
   await redis.set(key.project(hh, p.id), p);
   await redis.sadd(key.projects(hh), p.id);
   return p;
+}
+
+export async function updateProject(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<Project, "name" | "color">>
+) {
+  const cur = await getProject(hh, id);
+  if (!cur) return null;
+  const next = { ...cur, ...patch };
+  await redis.set(key.project(hh, id), next);
+  return next;
 }
 
 export async function deleteProject(hh: string, id: string) {
