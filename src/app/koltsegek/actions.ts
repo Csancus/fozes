@@ -12,6 +12,8 @@ import {
   deletePaymentMethod,
   createPerson,
   deletePerson,
+  createProject,
+  deleteProject,
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
 import type { PaymentKind } from "@/lib/types";
@@ -37,6 +39,7 @@ export async function saveExpenseAction(fd: FormData) {
   let categoryId = String(fd.get("categoryId") ?? "").trim() || null;
   const paymentMethodId = String(fd.get("paymentMethodId") ?? "").trim() || null;
   const personId = String(fd.get("personId") ?? "").trim() || null;
+  const projectId = String(fd.get("projectId") ?? "").trim() || null;
   const note = String(fd.get("note") ?? "").trim();
   const spentAt = parseDate(String(fd.get("spentAt") ?? ""));
 
@@ -55,6 +58,7 @@ export async function saveExpenseAction(fd: FormData) {
     categoryId,
     paymentMethodId,
     personId,
+    projectId,
     note,
     spentAt,
   });
@@ -161,6 +165,27 @@ export async function deletePersonAction(fd: FormData) {
   revalidatePath("/koltsegek");
 }
 
+// ============ PROJEKTEK ============
+
+export async function createProjectAction(fd: FormData) {
+  const me = await requireUser();
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "zinc").trim();
+  if (!name) return;
+  await createProject(me.householdId, { name, color });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
+export async function deleteProjectAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await deleteProject(me.householdId, id);
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
 // ============ TÖMEGES RÖGZÍTÉS (táblázat) ============
 
 type BatchRow = {
@@ -169,6 +194,7 @@ type BatchRow = {
   categoryId: unknown;
   paymentMethodId: unknown;
   personId: unknown;
+  projectId: unknown;
   spentAt: unknown;
 };
 
@@ -194,6 +220,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
     if (!categoryId) categoryId = map[slug(merchant)] ?? null;
     const paymentMethodId = String(r.paymentMethodId ?? "").trim() || null;
     const personId = String(r.personId ?? "").trim() || null;
+    const projectId = String(r.projectId ?? "").trim() || null;
     const spentAt = parseDate(String(r.spentAt ?? ""));
 
     await saveExpense(me.householdId, {
@@ -202,6 +229,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
       categoryId,
       paymentMethodId,
       personId,
+      projectId,
       note: "",
       spentAt,
     });

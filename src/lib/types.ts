@@ -286,6 +286,14 @@ export type Person = {
   createdAt: number;
 };
 
+// Projekt / cél, amihez költségeket rendelünk (pl. Autóvásárlás, Olaszország-út)
+export type Project = {
+  id: string;
+  name: string;
+  color: string; // szín token (expense-visuals)
+  createdAt: number;
+};
+
 export type Expense = {
   id: string;
   amount: number;                 // Ft
@@ -293,6 +301,7 @@ export type Expense = {
   categoryId: string | null;      // ExpenseCategory.id
   paymentMethodId: string | null; // PaymentMethod.id
   personId: string | null;        // Person.id — ki költötte
+  projectId: string | null;       // Project.id — melyik projekthez
   note: string;
   spentAt: number;                // ms since epoch (day granularity)
   createdAt: number;

@@ -12,6 +12,7 @@ import type {
   ExpenseCategory,
   PaymentMethod,
   Person,
+  Project,
 } from "@/lib/types";
 
 function slugify(s: string): string {
@@ -35,6 +36,7 @@ export function ExpenseForm({
   categories,
   paymentMethods,
   persons,
+  projects,
   merchantMap,
   knownMerchants,
   initial,
@@ -43,6 +45,7 @@ export function ExpenseForm({
   categories: ExpenseCategory[];
   paymentMethods: PaymentMethod[];
   persons: Person[];
+  projects: Project[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
   initial?: Expense | null;
@@ -56,6 +59,9 @@ export function ExpenseForm({
   );
   const [personId, setPersonId] = useState<string | null>(
     initial?.personId ?? null
+  );
+  const [projectId, setProjectId] = useState<string | null>(
+    initial?.projectId ?? null
   );
   const [autoApplied, setAutoApplied] = useState(false);
   const manual = useRef(!!initial?.categoryId);
@@ -94,6 +100,7 @@ export function ExpenseForm({
       <input type="hidden" name="categoryId" value={categoryId ?? ""} />
       <input type="hidden" name="paymentMethodId" value={paymentMethodId ?? ""} />
       <input type="hidden" name="personId" value={personId ?? ""} />
+      <input type="hidden" name="projectId" value={projectId ?? ""} />
 
       <Field label="Összeg (Ft)" required>
         <Input
@@ -219,6 +226,37 @@ export function ExpenseForm({
           <AddLink
             href="/koltsegek/beallitasok"
             label={persons.length ? "Személy" : "Add hozzá (Anikó, Csanád…)"}
+          />
+        </div>
+      </div>
+
+      <div>
+        <span className="block text-sm font-medium mb-2">Projekt</span>
+        <div className="flex flex-wrap gap-2">
+          {projects.map((pr) => {
+            const col = catColor(pr.color);
+            const active = projectId === pr.id;
+            return (
+              <button
+                type="button"
+                key={pr.id}
+                onClick={() => setProjectId((cur) => (cur === pr.id ? null : pr.id))}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
+                  active
+                    ? cn(col.soft, col.text, "border-transparent ring-2", col.ring)
+                    : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                <span className={cn("w-2.5 h-2.5 rounded-full", col.dot)} />
+                {pr.name}
+                {active && <Check className="w-3.5 h-3.5" />}
+              </button>
+            );
+          })}
+          <AddLink
+            href="/koltsegek/beallitasok"
+            label={projects.length ? "Projekt" : "Add hozzá (pl. Autóvásárlás)"}
           />
         </div>
       </div>

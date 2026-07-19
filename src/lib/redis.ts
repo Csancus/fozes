@@ -62,6 +62,8 @@ export const key = {
   paymentMethod: (hh: string, id: string) => `hh:${hh}:pay-method:${id}`,
   persons: (hh: string) => `hh:${hh}:persons`,
   person: (hh: string, id: string) => `hh:${hh}:person:${id}`,
+  projects: (hh: string) => `hh:${hh}:projects`,
+  project: (hh: string, id: string) => `hh:${hh}:project:${id}`,
 
   // Bakancslista
   savedItems: (hh: string) => `hh:${hh}:saved`,

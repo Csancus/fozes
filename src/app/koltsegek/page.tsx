@@ -6,6 +6,7 @@ import {
   listPaymentMethods,
   ensureDefaultPaymentMethods,
   listPersons,
+  listProjects,
 } from "@/lib/data";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -18,12 +19,14 @@ export default async function KoltsegekPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
-  const [expenses, categories, paymentMethods, persons] = await Promise.all([
-    listExpenses(me.householdId),
-    listExpenseCategories(me.householdId),
-    listPaymentMethods(me.householdId),
-    listPersons(me.householdId),
-  ]);
+  const [expenses, categories, paymentMethods, persons, projects] =
+    await Promise.all([
+      listExpenses(me.householdId),
+      listExpenseCategories(me.householdId),
+      listPaymentMethods(me.householdId),
+      listPersons(me.householdId),
+      listProjects(me.householdId),
+    ]);
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-3xl mx-auto">
@@ -81,6 +84,7 @@ export default async function KoltsegekPage() {
           categories={categories}
           paymentMethods={paymentMethods}
           persons={persons}
+          projects={projects}
         />
       )}
     </main>

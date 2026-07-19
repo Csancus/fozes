@@ -10,6 +10,7 @@ import type {
   ExpenseCategory,
   PaymentMethod,
   Person,
+  Project,
 } from "@/lib/types";
 
 function fmtFt(n: number): string {
@@ -47,11 +48,13 @@ export function ExpensesDashboard({
   categories,
   paymentMethods,
   persons,
+  projects,
 }: {
   expenses: Expense[];
   categories: ExpenseCategory[];
   paymentMethods: PaymentMethod[];
   persons: Person[];
+  projects: Project[];
 }) {
   const catById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
@@ -65,11 +68,16 @@ export function ExpensesDashboard({
     () => new Map(persons.map((p) => [p.id, p])),
     [persons]
   );
+  const projectById = useMemo(
+    () => new Map(projects.map((p) => [p.id, p])),
+    [projects]
+  );
 
   const [month, setMonth] = useState<string>("all");
   const [cats, setCats] = useState<Set<string>>(new Set());
   const [pays, setPays] = useState<Set<string>>(new Set());
   const [people, setPeople] = useState<Set<string>>(new Set());
+  const [projs, setProjs] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
   const [showFilters, setShowFilters] = useState(false);
 
@@ -87,10 +95,11 @@ export function ExpensesDashboard({
       if (pays.size && !(e.paymentMethodId && pays.has(e.paymentMethodId)))
         return false;
       if (people.size && !(e.personId && people.has(e.personId))) return false;
+      if (projs.size && !(e.projectId && projs.has(e.projectId))) return false;
       if (q && !e.merchant.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [expenses, cats, pays, people, search]);
+  }, [expenses, cats, pays, people, projs, search]);
 
   const monthly = useMemo(() => {
     const m = new Map<string, number>();
@@ -160,9 +169,21 @@ export function ExpensesDashboard({
       ),
     [scoped, personById]
   );
+  const byProject = useMemo(
+    () =>
+      group(
+        (e) => e.projectId,
+        (id) => {
+          const p = projectById.get(id);
+          return p ? { id, label: p.name, color: p.color } : null;
+        }
+      ),
+    [scoped, projectById]
+  );
 
   const maxMonthly = Math.max(1, ...monthly.map((m) => m.total));
-  const activeFilters = cats.size + pays.size + people.size + (search ? 1 : 0);
+  const activeFilters =
+    cats.size + pays.size + people.size + projs.size + (search ? 1 : 0);
 
   function toggle(set: Set<string>, setter: (s: Set<string>) => void, id: string) {
     const next = new Set(set);
@@ -264,6 +285,21 @@ export function ExpensesDashboard({
             </FilterGroup>
           )}
 
+          {projects.length > 0 && (
+            <FilterGroup label="Projekt">
+              {projects.map((p) => (
+                <MiniChip
+                  key={p.id}
+                  color={p.color}
+                  active={projs.has(p.id)}
+                  onClick={() => toggle(projs, setProjs, p.id)}
+                >
+                  {p.name}
+                </MiniChip>
+              ))}
+            </FilterGroup>
+          )}
+
           {activeFilters > 0 && (
             <button
               type="button"
@@ -271,6 +307,7 @@ export function ExpensesDashboard({
                 setCats(new Set());
                 setPays(new Set());
                 setPeople(new Set());
+                setProjs(new Set());
                 setSearch("");
               }}
               className="text-sm text-[var(--color-primary)] font-medium"
@@ -366,6 +403,9 @@ export function ExpensesDashboard({
         {byPerson.some((b) => b.item) && (
           <MiniBreakdown title="Ki költötte" rows={byPerson} total={total} noneLabel="Nincs megadva" />
         )}
+        {byProject.some((b) => b.item) && (
+          <MiniBreakdown title="Projektek" rows={byProject} total={total} noneLabel="Projekt nélkül" />
+        )}
       </div>
 
       {/* Lista */}
@@ -384,6 +424,7 @@ export function ExpensesDashboard({
               const cat = e.categoryId ? catById.get(e.categoryId) : null;
               const pay = e.paymentMethodId ? payById.get(e.paymentMethodId) : null;
               const person = e.personId ? personById.get(e.personId) : null;
+              const project = e.projectId ? projectById.get(e.projectId) : null;
               const col = catColor(cat?.color ?? "zinc");
               const Icon = catIcon(cat?.icon ?? "tag");
               const PayIcon = pay ? payIcon(pay.kind) : null;
@@ -397,7 +438,15 @@ export function ExpensesDashboard({
                       <Icon className="w-5 h-5" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-[15px] truncate">{e.merchant}</p>
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-[15px] truncate">{e.merchant}</p>
+                        {project && (
+                          <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0", catColor(project.color).soft, catColor(project.color).text)}>
+                            <span className={cn("w-1.5 h-1.5 rounded-full", catColor(project.color).dot)} />
+                            {project.name}
+                          </span>
+                        )}
+                      </div>
                       <p className="text-xs text-[var(--color-muted-foreground)] truncate flex items-center gap-1.5">
                         <span>{cat?.name ?? "Nincs kategória"}</span>
                         <span>· {dayFmt.format(new Date(e.spentAt))}</span>

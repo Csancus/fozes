@@ -5,6 +5,7 @@ import {
   listPaymentMethods,
   ensureDefaultPaymentMethods,
   listPersons,
+  listProjects,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
@@ -13,10 +14,11 @@ import { Button } from "@/components/ui/Button";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { PAYMENT_KIND_LABEL } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { X, Users } from "lucide-react";
+import { X, Users, FolderKanban } from "lucide-react";
 import { CategoryForm } from "./CategoryForm";
 import { PaymentMethodForm } from "./PaymentMethodForm";
 import { PersonForm } from "./PersonForm";
+import { ProjectForm } from "./ProjectForm";
 import {
   createCategoryAction,
   deleteCategoryAction,
@@ -24,16 +26,19 @@ import {
   deletePaymentMethodAction,
   createPersonAction,
   deletePersonAction,
+  createProjectAction,
+  deleteProjectAction,
 } from "../actions";
 
 export default async function BeallitasokPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
-  const [categories, paymentMethods, persons] = await Promise.all([
+  const [categories, paymentMethods, persons, projects] = await Promise.all([
     listExpenseCategories(me.householdId),
     listPaymentMethods(me.householdId),
     listPersons(me.householdId),
+    listProjects(me.householdId),
   ]);
 
   return (
@@ -149,6 +154,42 @@ export default async function BeallitasokPage() {
         )}
         <Card className="mt-3 p-5">
           <PersonForm action={createPersonAction} />
+        </Card>
+      </Section>
+
+      {/* Projektek */}
+      <Section title="Projektek" className="mt-10">
+        {projects.length === 0 ? (
+          <p className="text-sm text-[var(--color-muted-foreground)] flex items-center gap-2 px-1 mb-3">
+            <FolderKanban className="w-4 h-4" /> Még nincs projekt — pl. Autóvásárlás, egy utazás.
+          </p>
+        ) : (
+          <ul className="space-y-2">
+            {projects.map((p) => {
+              const col = catColor(p.color);
+              return (
+                <li key={p.id}>
+                  <Card className="p-3">
+                    <div className="flex items-center gap-3">
+                      <span className={cn("w-9 h-9 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
+                        <FolderKanban className="w-4.5 h-4.5" />
+                      </span>
+                      <p className="flex-1 min-w-0 font-medium truncate">{p.name}</p>
+                      <form action={deleteProjectAction}>
+                        <input type="hidden" name="id" value={p.id} />
+                        <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700" aria-label="Törlés">
+                          <X className="w-4 h-4" />
+                        </Button>
+                      </form>
+                    </div>
+                  </Card>
+                </li>
+              );
+            })}
+          </ul>
+        )}
+        <Card className="mt-3 p-5">
+          <ProjectForm action={createProjectAction} />
         </Card>
       </Section>
     </main>

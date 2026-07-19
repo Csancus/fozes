@@ -5,6 +5,7 @@ import {
   ensureDefaultExpenseCategories,
   ensureDefaultPaymentMethods,
   listPersons,
+  listProjects,
   getMerchantMap,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -15,11 +16,12 @@ import { saveExpenseAction } from "../actions";
 export default async function NewExpensePage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
-  const [categories, paymentMethods, persons, merchantMap, expenses] =
+  const [categories, paymentMethods, persons, projects, merchantMap, expenses] =
     await Promise.all([
       listExpenseCategories(me.householdId),
       ensureDefaultPaymentMethods(me.householdId),
       listPersons(me.householdId),
+      listProjects(me.householdId),
       getMerchantMap(me.householdId),
       listExpenses(me.householdId),
     ]);
@@ -37,6 +39,7 @@ export default async function NewExpensePage() {
           categories={categories}
           paymentMethods={paymentMethods}
           persons={persons}
+          projects={projects}
           merchantMap={merchantMap}
           knownMerchants={knownMerchants}
         />

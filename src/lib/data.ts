@@ -11,6 +11,7 @@ import type {
   ExpenseCategory,
   PaymentMethod,
   Person,
+  Project,
   SavedItem,
 } from "./types";
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_PAYMENT_METHODS } from "./types";
@@ -560,6 +561,43 @@ export async function deletePerson(hh: string, id: string) {
   await redis.srem(key.persons(hh), id);
 }
 
+// ============ PROJECTS (kiadás-projektek) ============
+
+export async function listProjects(hh: string): Promise<Project[]> {
+  const ids = await redis.smembers(key.projects(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<Project>(key.project(hh, id)))
+  );
+  return items
+    .filter((p): p is Project => !!p)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getProject(hh: string, id: string) {
+  return redis.get<Project>(key.project(hh, id));
+}
+
+export async function createProject(
+  hh: string,
+  input: Pick<Project, "name" | "color">
+): Promise<Project> {
+  const p: Project = {
+    id: newId(),
+    name: input.name.trim(),
+    color: input.color,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.project(hh, p.id), p);
+  await redis.sadd(key.projects(hh), p.id);
+  return p;
+}
+
+export async function deleteProject(hh: string, id: string) {
+  await redis.del(key.project(hh, id));
+  await redis.srem(key.projects(hh), id);
+}
+
 // ============ EXPENSES ============
 
 export async function listExpenses(hh: string): Promise<Expense[]> {
@@ -590,6 +628,7 @@ export async function saveExpense(
     categoryId: input.categoryId,
     paymentMethodId: input.paymentMethodId ?? null,
     personId: input.personId ?? null,
+    projectId: input.projectId ?? null,
     note: input.note.trim(),
     spentAt: input.spentAt,
     createdAt: existing?.createdAt ?? Date.now(),

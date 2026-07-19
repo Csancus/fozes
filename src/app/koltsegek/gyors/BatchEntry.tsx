@@ -3,8 +3,13 @@
 import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
-import { Plus, X } from "lucide-react";
-import type { ExpenseCategory, PaymentMethod, Person } from "@/lib/types";
+import { Plus, X, CopyPlus } from "lucide-react";
+import type {
+  ExpenseCategory,
+  PaymentMethod,
+  Person,
+  Project,
+} from "@/lib/types";
 
 function slugify(s: string): string {
   return s
@@ -37,6 +42,7 @@ type Row = {
   categoryId: string;
   paymentMethodId: string;
   personId: string;
+  projectId: string;
   spentAt: string;
 };
 
@@ -50,18 +56,20 @@ function emptyRow(): Row {
     categoryId: "",
     paymentMethodId: "",
     personId: "",
+    projectId: "",
     spentAt: todayStr(),
   };
 }
 
-const inputCls =
-  "h-10 rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)]";
+const ctrl =
+  "h-10 w-full rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)]";
 
 export function BatchEntry({
   action,
   categories,
   paymentMethods,
   persons,
+  projects,
   merchantMap,
   knownMerchants,
 }: {
@@ -69,12 +77,11 @@ export function BatchEntry({
   categories: ExpenseCategory[];
   paymentMethods: PaymentMethod[];
   persons: Person[];
+  projects: Project[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
 }) {
   const [rows, setRows] = useState<Row[]>(() => [
-    emptyRow(),
-    emptyRow(),
     emptyRow(),
     emptyRow(),
     emptyRow(),
@@ -85,7 +92,6 @@ export function BatchEntry({
       cur.map((r) => {
         if (r.key !== key) return r;
         const next = { ...r, ...patch };
-        // Bolt→kategória automatikus kitöltés, ha még üres a kategória
         if (patch.merchant !== undefined && !next.categoryId) {
           const mapped = merchantMap[slugify(patch.merchant)];
           if (mapped && categories.some((c) => c.id === mapped)) {
@@ -105,7 +111,7 @@ export function BatchEntry({
     setRows((cur) => [...cur, emptyRow()]);
   }
 
-  // "Előző sorból másol" — az utolsó kitöltött sor dátuma/kártya/ki mezőit örökli az új sor
+  // Új sor az előző sor dátumával / kártyájával / személyével / projektjével
   function addRowLikeLast() {
     setRows((cur) => {
       const last = cur[cur.length - 1];
@@ -114,6 +120,7 @@ export function BatchEntry({
         r.spentAt = last.spentAt;
         r.paymentMethodId = last.paymentMethodId;
         r.personId = last.personId;
+        r.projectId = last.projectId;
       }
       return [...cur, r];
     });
@@ -132,14 +139,16 @@ export function BatchEntry({
       categoryId: r.categoryId,
       paymentMethodId: r.paymentMethodId,
       personId: r.personId,
+      projectId: r.projectId,
       spentAt: r.spentAt,
     }))
   );
 
   const showPerson = persons.length > 0;
+  const showProject = projects.length > 0;
 
   return (
-    <form action={action} className="mt-6">
+    <form action={action} className="mt-5">
       <input type="hidden" name="rows" value={payload} />
 
       <datalist id="batch-merchants">
@@ -148,114 +157,114 @@ export function BatchEntry({
         ))}
       </datalist>
 
-      <div className="overflow-x-auto -mx-5 px-5">
-        <table
-          className={cn(
-            "w-full border-separate border-spacing-y-1.5",
-            showPerson ? "min-w-[860px]" : "min-w-[720px]"
-          )}
-        >
-          <thead>
-            <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
-              <th className="font-semibold px-1 w-28">Összeg</th>
-              <th className="font-semibold px-1">Bolt / kinek</th>
-              <th className="font-semibold px-1 w-40">Kategória</th>
-              <th className="font-semibold px-1 w-36">Fizetés</th>
-              {showPerson && <th className="font-semibold px-1 w-32">Ki</th>}
-              <th className="font-semibold px-1 w-40">Dátum</th>
-              <th className="w-8" />
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r) => (
-              <tr key={r.key}>
-                <td className="px-1 align-top">
-                  <input
-                    inputMode="numeric"
-                    value={r.amount}
-                    onChange={(e) => update(r.key, { amount: e.target.value })}
-                    placeholder="0"
-                    className={cn(inputCls, "w-28 tabular-nums font-medium")}
-                  />
-                </td>
-                <td className="px-1 align-top">
-                  <input
-                    value={r.merchant}
-                    onChange={(e) => update(r.key, { merchant: e.target.value })}
-                    list="batch-merchants"
-                    placeholder="pl. Lidl"
-                    className={cn(inputCls, "w-full min-w-[120px]")}
-                  />
-                </td>
-                <td className="px-1 align-top">
-                  <select
-                    value={r.categoryId}
-                    onChange={(e) => update(r.key, { categoryId: e.target.value })}
-                    className={cn(inputCls, "w-40 appearance-none")}
-                  >
-                    <option value="">—</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                <td className="px-1 align-top">
-                  <select
-                    value={r.paymentMethodId}
-                    onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
-                    className={cn(inputCls, "w-36 appearance-none")}
-                  >
-                    <option value="">—</option>
-                    {paymentMethods.map((pm) => (
-                      <option key={pm.id} value={pm.id}>
-                        {pm.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
-                {showPerson && (
-                  <td className="px-1 align-top">
-                    <select
-                      value={r.personId}
-                      onChange={(e) => update(r.key, { personId: e.target.value })}
-                      className={cn(inputCls, "w-32 appearance-none")}
-                    >
-                      <option value="">—</option>
-                      {persons.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                )}
-                <td className="px-1 align-top">
-                  <input
-                    type="date"
-                    value={r.spentAt}
-                    onChange={(e) => update(r.key, { spentAt: e.target.value })}
-                    className={cn(inputCls, "w-40")}
-                  />
-                </td>
-                <td className="px-1 align-top">
-                  <button
-                    type="button"
-                    onClick={() => removeRow(r.key)}
-                    className="h-10 w-8 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600"
-                    aria-label="Sor törlése"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <ul className="space-y-3">
+        {rows.map((r, i) => (
+          <li
+            key={r.key}
+            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-sm"
+          >
+            <div className="flex items-center gap-2">
+              <span className="w-6 text-xs text-[var(--color-muted-foreground)] tabular-nums shrink-0">
+                {i + 1}.
+              </span>
+              <input
+                inputMode="numeric"
+                value={r.amount}
+                onChange={(e) => update(r.key, { amount: e.target.value })}
+                placeholder="Összeg"
+                className={cn(ctrl, "w-28 tabular-nums font-medium shrink-0")}
+              />
+              <input
+                value={r.merchant}
+                onChange={(e) => update(r.key, { merchant: e.target.value })}
+                list="batch-merchants"
+                placeholder="Bolt / kinek"
+                className={cn(ctrl, "flex-1 min-w-0")}
+              />
+              <button
+                type="button"
+                onClick={() => removeRow(r.key)}
+                className="h-10 w-8 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600 shrink-0"
+                aria-label="Sor törlése"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
 
-      <div className="mt-2 flex flex-wrap gap-4">
+            <div
+              className={cn(
+                "mt-2 grid gap-2 pl-8",
+                "grid-cols-2 sm:grid-cols-3"
+              )}
+            >
+              <select
+                value={r.categoryId}
+                onChange={(e) => update(r.key, { categoryId: e.target.value })}
+                className={cn(ctrl, "appearance-none")}
+              >
+                <option value="">Kategória…</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+
+              <select
+                value={r.paymentMethodId}
+                onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
+                className={cn(ctrl, "appearance-none")}
+              >
+                <option value="">Fizetés…</option>
+                {paymentMethods.map((pm) => (
+                  <option key={pm.id} value={pm.id}>
+                    {pm.name}
+                  </option>
+                ))}
+              </select>
+
+              {showPerson && (
+                <select
+                  value={r.personId}
+                  onChange={(e) => update(r.key, { personId: e.target.value })}
+                  className={cn(ctrl, "appearance-none")}
+                >
+                  <option value="">Ki…</option>
+                  {persons.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              {showProject && (
+                <select
+                  value={r.projectId}
+                  onChange={(e) => update(r.key, { projectId: e.target.value })}
+                  className={cn(ctrl, "appearance-none")}
+                >
+                  <option value="">Projekt…</option>
+                  {projects.map((p) => (
+                    <option key={p.id} value={p.id}>
+                      {p.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+
+              <input
+                type="date"
+                value={r.spentAt}
+                onChange={(e) => update(r.key, { spentAt: e.target.value })}
+                className={ctrl}
+              />
+            </div>
+          </li>
+        ))}
+      </ul>
+
+      <div className="mt-3 flex flex-wrap gap-4">
         <button
           type="button"
           onClick={addRow}
@@ -267,9 +276,9 @@ export function BatchEntry({
           type="button"
           onClick={addRowLikeLast}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
-          title="Új sor az előző sor dátumával, kártyájával és személyével"
+          title="Új sor az előző sor dátumával, kártyájával, személyével és projektjével"
         >
-          <Plus className="w-4 h-4" /> Sor az előző adataival
+          <CopyPlus className="w-4 h-4" /> Sor az előző adataival
         </button>
       </div>
 

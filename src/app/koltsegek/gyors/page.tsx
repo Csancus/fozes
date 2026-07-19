@@ -5,6 +5,7 @@ import {
   ensureDefaultExpenseCategories,
   ensureDefaultPaymentMethods,
   listPersons,
+  listProjects,
   getMerchantMap,
 } from "@/lib/data";
 import Link from "next/link";
@@ -16,11 +17,12 @@ import { saveExpensesBatchAction } from "../actions";
 export default async function BatchPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
-  const [categories, paymentMethods, persons, merchantMap, expenses] =
+  const [categories, paymentMethods, persons, projects, merchantMap, expenses] =
     await Promise.all([
       listExpenseCategories(me.householdId),
       ensureDefaultPaymentMethods(me.householdId),
       listPersons(me.householdId),
+      listProjects(me.householdId),
       getMerchantMap(me.householdId),
       listExpenses(me.householdId),
     ]);
@@ -57,6 +59,7 @@ export default async function BatchPage() {
         categories={categories}
         paymentMethods={paymentMethods}
         persons={persons}
+        projects={projects}
         merchantMap={merchantMap}
         knownMerchants={knownMerchants}
       />
