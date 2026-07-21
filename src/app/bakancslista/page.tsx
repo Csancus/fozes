@@ -3,7 +3,7 @@ import { listSavedItems } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Bookmark, Plus, Table2 } from "lucide-react";
+import { Bookmark, Plus, Table2, ScanText } from "lucide-react";
 import Link from "next/link";
 import { SavedListClient } from "./SavedListClient";
 
@@ -19,6 +19,13 @@ export default async function BakancslistaPage() {
         back="/"
         action={
           <div className="flex items-center gap-2">
+            <Link
+              href="/bakancslista/kep"
+              aria-label="Kép a listára"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+            >
+              <ScanText className="w-5 h-5" />
+            </Link>
             <Link
               href="/bakancslista/gyors"
               aria-label="Táblázatos felvitel"
@@ -50,12 +57,18 @@ export default async function BakancslistaPage() {
             }
           />
           <p className="mt-4 text-center text-sm text-[var(--color-muted-foreground)]">
-            vagy{" "}
             <Link
               href="/bakancslista/gyors"
               className="text-[var(--color-primary)] font-medium"
             >
-              vigyél fel többet egyszerre táblázatban
+              táblázatos felvitel
+            </Link>{" "}
+            ·{" "}
+            <Link
+              href="/bakancslista/kep"
+              className="text-[var(--color-primary)] font-medium"
+            >
+              kép alapján
             </Link>
           </p>
         </div>
