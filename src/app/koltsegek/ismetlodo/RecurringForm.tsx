@@ -99,30 +99,7 @@ export function RecurringForm({
       <input type="hidden" name="personId" value={personId ?? ""} />
       <input type="hidden" name="projectId" value={projectId ?? ""} />
 
-      <div className="grid grid-cols-2 gap-3">
-        <Field label="Összeg (Ft)" required>
-          <Input
-            name="amount"
-            inputMode="numeric"
-            required
-            defaultValue={initial?.amount ? String(initial.amount) : ""}
-            placeholder="pl. 4990"
-            className="text-xl font-bold h-12 tabular-nums"
-          />
-        </Field>
-        <Field label="A hónap napja" required hint="1–31">
-          <Input
-            name="dayOfMonth"
-            inputMode="numeric"
-            required
-            defaultValue={String(initial?.dayOfMonth ?? 1)}
-            placeholder="pl. 5"
-            className="text-xl font-bold h-12 tabular-nums"
-          />
-        </Field>
-      </div>
-
-      <Field label="Hol / kinek" required hint="pl. Spotify, albérlet">
+      <Field label="Megnevezés" required hint="pl. Spotify, albérlet">
         <Input
           name="merchant"
           required
@@ -137,6 +114,37 @@ export function RecurringForm({
           ))}
         </datalist>
       </Field>
+
+      <div className="grid grid-cols-2 gap-3">
+        <Field label="Összeg (Ft)" required>
+          <Input
+            name="amount"
+            inputMode="decimal"
+            required
+            defaultValue={initial?.amount ? String(initial.amount) : ""}
+            placeholder="pl. 4990"
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/[^\d.,\s]/g, "");
+              if (cleaned !== e.target.value) e.target.value = cleaned;
+            }}
+            className="text-xl font-bold h-12 tabular-nums"
+          />
+        </Field>
+        <Field label="A hónap napja" required hint="1–31">
+          <Input
+            name="dayOfMonth"
+            inputMode="numeric"
+            required
+            defaultValue={String(initial?.dayOfMonth ?? 1)}
+            placeholder="pl. 5"
+            onChange={(e) => {
+              const cleaned = e.target.value.replace(/[^\d]/g, "");
+              if (cleaned !== e.target.value) e.target.value = cleaned;
+            }}
+            className="text-xl font-bold h-12 tabular-nums"
+          />
+        </Field>
+      </div>
 
       <div>
         <div className="flex items-center justify-between mb-2">

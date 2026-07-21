@@ -149,13 +149,13 @@ export function ExpenseTable({
     const cols: ColumnDef[] = [
       { key: "kind", label: "Típus", alwaysOn: true },
       { key: "date", label: "Dátum" },
-      { key: "amount", label: "Összeg", alwaysOn: true },
       { key: "merchant", label: "Megnevezés", alwaysOn: true },
+      { key: "amount", label: "Összeg", alwaysOn: true },
       { key: "category", label: "Kategória" },
       { key: "nature", label: "Jelleg" },
       { key: "payment", label: "Fizetés" },
     ];
-    if (persons.length) cols.push({ key: "person", label: "Ki / Kinek" });
+    if (persons.length) cols.push({ key: "person", label: "Ki" });
     if (projects.length) cols.push({ key: "project", label: "Projekt" });
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
@@ -311,8 +311,8 @@ export function ExpenseTable({
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
               <th className="font-semibold px-1 w-28">Típus</th>
               {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
-              <th className="font-semibold px-1 w-28">Összeg</th>
               <th className="font-semibold px-1">Megnevezés</th>
+              <th className="font-semibold px-1 w-28">Összeg</th>
               {isVisible("category") && <th className="font-semibold px-1 w-40">Kategória</th>}
               {isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
               {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
@@ -366,20 +366,24 @@ export function ExpenseTable({
                   )}
                   <td>
                     <input
-                      inputMode="numeric"
-                      value={r.amount}
-                      disabled={isDeleted}
-                      onChange={(e) => update(r.id, { amount: e.target.value })}
-                      className={cn(ctrl, "tabular-nums font-medium")}
-                    />
-                  </td>
-                  <td>
-                    <input
                       value={r.merchant}
                       disabled={isDeleted}
                       onChange={(e) => update(r.id, { merchant: e.target.value })}
                       list="table-merchants"
                       className={ctrl}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      inputMode="decimal"
+                      value={r.amount}
+                      disabled={isDeleted}
+                      onChange={(e) =>
+                        update(r.id, {
+                          amount: e.target.value.replace(/[^\d.,\s]/g, ""),
+                        })
+                      }
+                      className={cn(ctrl, "tabular-nums font-medium")}
                     />
                   </td>
                   {isVisible("category") && (

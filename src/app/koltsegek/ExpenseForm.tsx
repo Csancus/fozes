@@ -215,23 +215,8 @@ export function ExpenseForm({
         </button>
       </div>
 
-      <Field label="Összeg (Ft)" required>
-        <Input
-          name="amount"
-          inputMode="numeric"
-          required
-          defaultValue={initial?.amount ? String(initial.amount) : ""}
-          placeholder="pl. 4990"
-          className={cn(
-            "text-2xl font-bold h-14 tabular-nums",
-            income && "text-emerald-600 dark:text-emerald-400"
-          )}
-          autoFocus={!initial}
-        />
-      </Field>
-
       <Field
-        label={income ? "Forrás" : "Hol / kinek"}
+        label={income ? "Forrás" : "Megnevezés"}
         required
         hint={income ? "pl. Munkahely, Ügyfél" : "pl. Lidl, Shell, Spotify"}
       >
@@ -242,12 +227,31 @@ export function ExpenseForm({
           onChange={(e) => onMerchantChange(e.target.value)}
           list="known-merchants"
           placeholder={income ? "Honnan jött a bevétel" : "Bolt vagy szolgáltató neve"}
+          autoFocus={!initial}
         />
         <datalist id="known-merchants">
           {knownMerchants.map((m) => (
             <option key={m} value={m} />
           ))}
         </datalist>
+      </Field>
+
+      <Field label="Összeg (Ft)" required>
+        <Input
+          name="amount"
+          inputMode="decimal"
+          required
+          defaultValue={initial?.amount ? String(initial.amount) : ""}
+          placeholder="pl. 4990"
+          onChange={(e) => {
+            const cleaned = e.target.value.replace(/[^\d.,\s]/g, "");
+            if (cleaned !== e.target.value) e.target.value = cleaned;
+          }}
+          className={cn(
+            "text-2xl font-bold h-14 tabular-nums",
+            income && "text-emerald-600 dark:text-emerald-400"
+          )}
+        />
       </Field>
 
       <div>

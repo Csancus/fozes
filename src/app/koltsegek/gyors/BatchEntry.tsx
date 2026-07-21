@@ -139,13 +139,13 @@ export function BatchEntry({
   const allColumns: ColumnDef[] = useMemo(() => {
     const cols: ColumnDef[] = [
       { key: "kind", label: "Típus", alwaysOn: true },
-      { key: "amount", label: "Összeg", alwaysOn: true },
       { key: "merchant", label: "Megnevezés", alwaysOn: true },
+      { key: "amount", label: "Összeg", alwaysOn: true },
       { key: "category", label: "Kategória" },
       { key: "nature", label: "Jelleg" },
       { key: "payment", label: "Fizetés" },
     ];
-    if (persons.length) cols.push({ key: "person", label: "Ki / Kinek" });
+    if (persons.length) cols.push({ key: "person", label: "Ki" });
     if (projects.length) cols.push({ key: "project", label: "Projekt" });
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
@@ -267,12 +267,12 @@ export function BatchEntry({
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
               <th className="font-semibold w-7" />
               <th className="font-semibold px-1 w-28">Típus</th>
-              <th className="font-semibold px-1 w-28">Összeg</th>
               <th className="font-semibold px-1">Megnevezés</th>
+              <th className="font-semibold px-1 w-28">Összeg</th>
               {isVisible("category") && <th className="font-semibold px-1 w-40">Kategória</th>}
               {isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
               {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
-              {showPerson && <th className="font-semibold px-1 w-28">Ki / Kinek</th>}
+              {showPerson && <th className="font-semibold px-1 w-28">Ki</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
               {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
@@ -307,20 +307,24 @@ export function BatchEntry({
                   </td>
                   <td>
                     <input
-                      inputMode="numeric"
-                      value={r.amount}
-                      onChange={(e) => update(r.key, { amount: e.target.value })}
-                      placeholder="0"
-                      className={cn(ctrl, "tabular-nums font-medium")}
-                    />
-                  </td>
-                  <td>
-                    <input
                       value={r.merchant}
                       onChange={(e) => update(r.key, { merchant: e.target.value })}
                       list="batch-merchants"
                       placeholder={inc ? "pl. Munkahely" : "pl. Lidl"}
                       className={ctrl}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      inputMode="decimal"
+                      value={r.amount}
+                      onChange={(e) =>
+                        update(r.key, {
+                          amount: e.target.value.replace(/[^\d.,\s]/g, ""),
+                        })
+                      }
+                      placeholder="0"
+                      className={cn(ctrl, "tabular-nums font-medium")}
                     />
                   </td>
                   {isVisible("category") && (
