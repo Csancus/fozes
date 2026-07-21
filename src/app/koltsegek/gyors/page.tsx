@@ -12,6 +12,7 @@ import {
   listMerchants,
   ensureMerchantsFromHistory,
   getMerchantMap,
+  projectSuggestionsFrom,
 } from "@/lib/data";
 import Link from "next/link";
 import { SlidersHorizontal, ImagePlus } from "lucide-react";
@@ -53,6 +54,7 @@ export default async function BatchPage() {
   const knownMerchants = [...new Set([...merchants.map((m) => m.name), ...incomeSources])]
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b, "hu"));
+  const projectSuggest = projectSuggestionsFrom(expenses);
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-none mx-auto">
@@ -97,6 +99,7 @@ export default async function BatchPage() {
         groups={groups}
         merchantMap={merchantMap}
         knownMerchants={knownMerchants}
+        projectSuggest={projectSuggest}
       />
     </main>
   );

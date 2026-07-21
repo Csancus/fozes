@@ -12,6 +12,7 @@ import {
   listMerchants,
   ensureMerchantsFromHistory,
   getMerchantMap,
+  projectSuggestionsFrom,
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
 import Link from "next/link";
@@ -64,6 +65,7 @@ export default async function NewEntryPage({
   ]);
 
   const knownMerchants = merchants.map((m) => m.name);
+  const projectSuggest = projectSuggestionsFrom(expenses);
   const existing = expenses
     .filter((e) => (e.kind ?? "expense") !== "income")
     .map((e) => ({
@@ -101,6 +103,7 @@ export default async function NewEntryPage({
           groups={groups}
           merchantMap={merchantMap}
           knownMerchants={knownMerchants}
+          projectSuggest={projectSuggest}
           existing={existing}
         />
       </Card>

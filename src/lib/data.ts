@@ -629,6 +629,51 @@ export async function getMerchantMap(
   return map;
 }
 
+// Projekt-javaslat tanulás a korábbi kiadásokból: ha egy kategóriához (ill.
+// megnevezéshez) ugyanaz a projekt legalább PROJECT_SUGGEST_MIN-szer volt
+// rendelve, azt ajánljuk fel következő felvitelkor.
+const PROJECT_SUGGEST_MIN = 3;
+
+export function projectSuggestionsFrom(expenses: Expense[]): {
+  byCategory: Record<string, string>;
+  byMerchant: Record<string, string>;
+} {
+  const catCount: Record<string, Record<string, number>> = {};
+  const merCount: Record<string, Record<string, number>> = {};
+  for (const e of expenses) {
+    if (e.kind === "income" || !e.projectId) continue;
+    if (e.categoryId) {
+      (catCount[e.categoryId] ??= {})[e.projectId] =
+        (catCount[e.categoryId][e.projectId] ?? 0) + 1;
+    }
+    if (e.merchant) {
+      const s = slug(e.merchant);
+      (merCount[s] ??= {})[e.projectId] =
+        (merCount[s][e.projectId] ?? 0) + 1;
+    }
+  }
+  const pickTop = (counts: Record<string, Record<string, number>>) => {
+    const out: Record<string, string> = {};
+    for (const key of Object.keys(counts)) {
+      let bestProj = "";
+      let bestN = 0;
+      for (const [proj, n] of Object.entries(counts[key])) {
+        if (n > bestN) {
+          bestN = n;
+          bestProj = proj;
+        }
+      }
+      if (bestN >= PROJECT_SUGGEST_MIN) out[key] = bestProj;
+    }
+    return out;
+  };
+  return { byCategory: pickTop(catCount), byMerchant: pickTop(merCount) };
+}
+
+export async function getProjectSuggestionMaps(hh: string) {
+  return projectSuggestionsFrom(await listExpenses(hh));
+}
+
 // ============ PAYMENT METHODS ============
 
 export async function listPaymentMethods(

@@ -110,6 +110,7 @@ export function BatchEntry({
   groups = [],
   merchantMap,
   knownMerchants,
+  projectSuggest = { byCategory: {}, byMerchant: {} },
   initialRows,
 }: {
   action: (fd: FormData) => void | Promise<void>;
@@ -121,6 +122,10 @@ export function BatchEntry({
   groups?: ExpenseGroup[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
+  projectSuggest?: {
+    byCategory: Record<string, string>;
+    byMerchant: Record<string, string>;
+  };
   initialRows?: Array<Partial<Omit<Row, "key">>>;
 }) {
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
@@ -174,6 +179,19 @@ export function BatchEntry({
           if (mapped && catList.some((c) => c.id === mapped)) {
             next.categoryId = mapped;
           }
+        }
+        // Projekt automatikus felajánlása (megnevezés/kategória → projekt, ≥3x).
+        if (
+          next.kind === "expense" &&
+          !next.projectId &&
+          (patch.merchant !== undefined || patch.categoryId !== undefined)
+        ) {
+          const sug =
+            projectSuggest.byMerchant[slugify(next.merchant)] ??
+            (next.categoryId
+              ? projectSuggest.byCategory[next.categoryId]
+              : undefined);
+          if (sug && projects.some((p) => p.id === sug)) next.projectId = sug;
         }
         // Típusváltáskor a kategória ürül (más a készlet).
         if (patch.kind !== undefined && patch.kind !== r.kind) {

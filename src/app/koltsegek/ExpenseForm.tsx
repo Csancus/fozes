@@ -46,6 +46,7 @@ export function ExpenseForm({
   groups = [],
   merchantMap,
   knownMerchants,
+  projectSuggest = { byCategory: {}, byMerchant: {} },
   initial,
   existing = [],
   incomeCategories = [],
@@ -59,6 +60,10 @@ export function ExpenseForm({
   groups?: ExpenseGroup[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
+  projectSuggest?: {
+    byCategory: Record<string, string>;
+    byMerchant: Record<string, string>;
+  };
   initial?: Expense | null;
   existing?: { slug: string; amount: number; day: string }[];
   incomeCategories?: ExpenseCategory[];
@@ -157,22 +162,38 @@ export function ExpenseForm({
     return todayStr();
   }, [initial?.spentAt]);
 
+  // Projekt automatikus felajánlása a tanult gyakoriságból (kategória/megnevezés
+  // → projekt, ha ≥3-szor volt így). Csak üres projektet tölt ki, kiadásnál.
+  function applyProjectSuggest(catId: string | null, merchantVal: string) {
+    if (kind !== "expense" || projectId) return;
+    const sug =
+      projectSuggest.byMerchant[slugify(merchantVal)] ??
+      (catId ? projectSuggest.byCategory[catId] : undefined);
+    if (sug && projects.some((p) => p.id === sug)) setProjectId(sug);
+  }
+
   function onMerchantChange(v: string) {
     setMerchant(v);
-    if (manual.current) return;
-    const mapped = merchantMap[slugify(v)];
-    if (mapped && currentCats.some((c) => c.id === mapped)) {
-      setCategoryId(mapped);
-      setAutoApplied(true);
-    } else if (autoApplied) {
-      setAutoApplied(false);
+    let effectiveCat = categoryId;
+    if (!manual.current) {
+      const mapped = merchantMap[slugify(v)];
+      if (mapped && currentCats.some((c) => c.id === mapped)) {
+        setCategoryId(mapped);
+        setAutoApplied(true);
+        effectiveCat = mapped;
+      } else if (autoApplied) {
+        setAutoApplied(false);
+      }
     }
+    applyProjectSuggest(effectiveCat, v);
   }
 
   function pick(id: string) {
     manual.current = true;
     setAutoApplied(false);
-    setCategoryId((cur) => (cur === id ? null : id));
+    const next = categoryId === id ? null : id;
+    setCategoryId(next);
+    applyProjectSuggest(next, merchant);
   }
 
   return (
