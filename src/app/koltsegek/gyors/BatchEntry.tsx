@@ -150,7 +150,7 @@ export function BatchEntry({
       { key: "nature", label: "Jelleg" },
       { key: "payment", label: "Fizetés" },
     ];
-    if (persons.length) cols.push({ key: "person", label: "Ki" });
+    if (persons.length) cols.push({ key: "person", label: "Ki(nek)" });
     if (projects.length) cols.push({ key: "project", label: "Projekt" });
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
@@ -290,7 +290,7 @@ export function BatchEntry({
               {isVisible("category") && <th className="font-semibold px-1 w-40">Kategória</th>}
               {isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
               {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
-              {showPerson && <th className="font-semibold px-1 w-28">Ki</th>}
+              {showPerson && <th className="font-semibold px-1 w-28">Ki(nek)</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
               {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
