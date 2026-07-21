@@ -14,6 +14,8 @@ import {
   getMerchantMap,
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
+import Link from "next/link";
+import { ImagePlus } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { ExpenseForm } from "../ExpenseForm";
@@ -72,7 +74,20 @@ export default async function NewEntryPage({
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
-      <PageHeader title="Új tétel" subtitle="Kiadás vagy bevétel" back="/koltsegek" />
+      <PageHeader
+        title="Új tétel"
+        subtitle="Kiadás vagy bevétel"
+        back="/koltsegek"
+        action={
+          <Link
+            href="/koltsegek/kep"
+            className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-sm font-medium border border-[var(--color-border)] hover:bg-[var(--color-muted)] transition"
+          >
+            <ImagePlus className="w-4 h-4" />
+            Kép
+          </Link>
+        }
+      />
       <CategoryRuleBanner />
       <Card className="mt-6 p-5">
         <ExpenseForm

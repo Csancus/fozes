@@ -14,13 +14,13 @@ import {
   getMerchantMap,
 } from "@/lib/data";
 import Link from "next/link";
-import { SlidersHorizontal, ImagePlus } from "lucide-react";
+import { SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { BatchEntry } from "./BatchEntry";
 import { CategoryRuleBanner } from "../CategoryRuleBanner";
+import { ExpenseOcrImport } from "./ExpenseOcrImport";
 import { saveExpensesBatchAction } from "../actions";
 
-export default async function BatchPage() {
+export default async function KepImportPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
@@ -47,9 +47,7 @@ export default async function BatchPage() {
     listExpenses(me.householdId),
   ]);
 
-  const incomeSources = expenses
-    .filter((e) => e.kind === "income")
-    .map((e) => e.merchant);
+  const incomeSources = expenses.filter((e) => e.kind === "income").map((e) => e.merchant);
   const knownMerchants = [...new Set([...merchants.map((m) => m.name), ...incomeSources])]
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b, "hu"));
@@ -57,37 +55,25 @@ export default async function BatchPage() {
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-none mx-auto">
       <PageHeader
-        title="Gyors rögzítés"
-        subtitle="Több tétel egyszerre — kiadás és bevétel"
+        title="Kép alapján"
+        subtitle="Bank-képernyőképből tételek"
         back="/koltsegek"
         action={
-          <div className="flex items-center gap-1">
-            <Link
-              href="/koltsegek/kep"
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl text-sm font-medium border border-[var(--color-border)] hover:bg-[var(--color-muted)] transition"
-            >
-              <ImagePlus className="w-4 h-4" />
-              Kép
-            </Link>
-            <Link
-              href="/koltsegek/beallitasok"
-              aria-label="Beállítások"
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
-            >
-              <SlidersHorizontal className="w-5 h-5" />
-            </Link>
-          </div>
+          <Link
+            href="/koltsegek/beallitasok"
+            aria-label="Beállítások"
+            className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+          >
+            <SlidersHorizontal className="w-5 h-5" />
+          </Link>
         }
       />
       <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">
-        Kártyák, kategóriák és személyek felvétele a{" "}
-        <Link href="/koltsegek/beallitasok" className="text-[var(--color-primary)] font-medium">
-          Beállításokban
-        </Link>
-        .
+        Az OCR a böngésződben fut (tesseract.js). A felismerés nem tökéletes — a
+        táblázatban minden mezőt tudsz pontosítani mentés előtt.
       </p>
       <CategoryRuleBanner />
-      <BatchEntry
+      <ExpenseOcrImport
         action={saveExpensesBatchAction}
         categories={categories}
         incomeCategories={incomeCategories}

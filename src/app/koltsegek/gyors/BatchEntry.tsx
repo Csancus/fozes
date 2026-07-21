@@ -110,6 +110,7 @@ export function BatchEntry({
   groups = [],
   merchantMap,
   knownMerchants,
+  initialRows,
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
@@ -120,17 +121,20 @@ export function BatchEntry({
   groups?: ExpenseGroup[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
+  initialRows?: Array<Partial<Omit<Row, "key">>>;
 }) {
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [incomeCatList, setIncomeCatList] =
     useState<ExpenseCategory[]>(incomeCategories);
-  const [rows, setRows] = useState<Row[]>(() => [
-    emptyRow(),
-    emptyRow(),
-    emptyRow(),
-    emptyRow(),
-    emptyRow(),
-  ]);
+  const [rows, setRows] = useState<Row[]>(() => {
+    if (initialRows && initialRows.length) {
+      return initialRows.map((seed) => ({
+        ...emptyRow((seed.kind as ExpenseKind) ?? "expense"),
+        ...seed,
+      }));
+    }
+    return [emptyRow(), emptyRow(), emptyRow(), emptyRow(), emptyRow()];
+  });
 
   const allColumns: ColumnDef[] = useMemo(() => {
     const cols: ColumnDef[] = [

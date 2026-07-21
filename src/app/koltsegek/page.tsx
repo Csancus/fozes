@@ -15,7 +15,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, ListChecks } from "lucide-react";
+import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, ListChecks, ImagePlus } from "lucide-react";
 import { ExpensesDashboard } from "./ExpensesDashboard";
 
 export default async function KoltsegekPage() {
@@ -64,6 +64,17 @@ export default async function KoltsegekPage() {
           Gyors táblázat
         </Button>
       </div>
+
+      <Button
+        href="/koltsegek/kep"
+        size="lg"
+        variant="secondary"
+        fullWidth
+        className="mt-3"
+        leftIcon={<ImagePlus className="w-4 h-4" />}
+      >
+        Kép alapján (képernyőkép → tételek)
+      </Button>
 
       {expenses.filter((e) => e.review).length > 0 && (
         <Link
