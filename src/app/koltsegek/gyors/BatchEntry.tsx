@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
@@ -309,9 +309,9 @@ export function BatchEntry({
             <span className="font-semibold tabular-nums">{fmtFt(total)}</span>
             <span className="text-[var(--color-muted-foreground)]"> · {valid.length} tétel</span>
           </div>
-          <Button type="submit" disabled={valid.length === 0}>
+          <SubmitButton disabled={valid.length === 0}>
             {valid.length} tétel mentése
-          </Button>
+          </SubmitButton>
         </div>
       </div>
     </form>

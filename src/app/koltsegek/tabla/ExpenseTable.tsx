@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { Button } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { cn } from "@/lib/cn";
 import { X, Search, Undo2, Trash2 } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
@@ -396,8 +396,7 @@ export function ExpenseTable({
               )}
             </span>
           </div>
-          <Button
-            type="submit"
+          <SubmitButton
             disabled={changeCount === 0}
             leftIcon={
               deleted.size > 0 ? <Trash2 className="w-4 h-4" /> : undefined
@@ -406,7 +405,7 @@ export function ExpenseTable({
             {changeCount === 0
               ? "Nincs változás"
               : `${changeCount} változás mentése`}
-          </Button>
+          </SubmitButton>
         </div>
       </div>
     </form>

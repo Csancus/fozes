@@ -4,6 +4,7 @@ import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
 import { Check, Sparkles, Plus, AlertTriangle } from "lucide-react";
@@ -355,9 +356,9 @@ export function ExpenseForm({
         </div>
       )}
 
-      <Button type="submit" size="lg" fullWidth>
+      <SubmitButton size="lg" fullWidth pendingText={initial ? "Mentés…" : "Rögzítés…"}>
         {initial ? "Mentés" : "Kiadás rögzítése"}
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

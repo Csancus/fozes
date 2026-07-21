@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Card } from "@/components/ui/Card";
 import {
   CAT_COLORS,
@@ -291,13 +292,12 @@ export function EntityManager({
                   <input type="hidden" name="id" value={item.id} />
                   <Fields variant={variant} initial={item} categories={categories} />
                   <div className="flex gap-2">
-                    <Button
-                      type="submit"
+                    <SubmitButton
                       fullWidth
                       leftIcon={<Check className="w-4 h-4" />}
                     >
                       Mentés
-                    </Button>
+                    </SubmitButton>
                     <Button
                       type="button"
                       variant="secondary"
@@ -362,14 +362,14 @@ export function EntityManager({
       <Card className="mt-3 p-5">
         <form action={createAction} className="space-y-4">
           <Fields variant={variant} categories={categories} />
-          <Button
-            type="submit"
+          <SubmitButton
             size="lg"
             fullWidth
             leftIcon={<Plus className="w-4 h-4" />}
+            pendingText="Hozzáadás…"
           >
             {ADD_LABEL[variant]}
-          </Button>
+          </SubmitButton>
         </form>
       </Card>
     </div>
