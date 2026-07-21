@@ -6,6 +6,7 @@ import {
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
+  listGroups,
   listMerchants,
   listIncomeCategories,
   ensureDefaultIncomeCategories,
@@ -33,6 +34,9 @@ import {
   createIncomeCategoryAction,
   updateIncomeCategoryAction,
   deleteIncomeCategoryAction,
+  createGroupAction,
+  updateGroupAction,
+  deleteGroupAction,
 } from "../actions";
 
 export default async function BeallitasokPage() {
@@ -41,13 +45,14 @@ export default async function BeallitasokPage() {
   await ensureDefaultPaymentMethods(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);
-  const [categories, incomeCategories, paymentMethods, persons, projects, merchants] =
+  const [categories, incomeCategories, paymentMethods, persons, projects, groups, merchants] =
     await Promise.all([
       listExpenseCategories(me.householdId),
       listIncomeCategories(me.householdId),
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listProjects(me.householdId),
+      listGroups(me.householdId),
       listMerchants(me.householdId),
     ]);
 
@@ -127,6 +132,20 @@ export default async function BeallitasokPage() {
             createAction={createProjectAction}
             updateAction={updateProjectAction}
             deleteAction={deleteProjectAction}
+          />
+        </CollapsiblePanel>
+
+        <CollapsiblePanel title="Csoportok" count={groups.length}>
+          <p className="mb-3 text-xs text-[var(--color-muted-foreground)]">
+            Csoportba kiadás és bevétel is kerülhet — a Csoportok oldalon együtt
+            látod, hogy kioltják-e egymást.
+          </p>
+          <EntityManager
+            variant="group"
+            items={groups}
+            createAction={createGroupAction}
+            updateAction={updateGroupAction}
+            deleteAction={deleteGroupAction}
           />
         </CollapsiblePanel>
       </div>

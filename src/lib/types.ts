@@ -294,6 +294,14 @@ export type Project = {
   createdAt: number;
 };
 
+// Csoport: kiadás ÉS bevétel is bekerülhet, együtt nézve (kioltják-e egymást).
+export type ExpenseGroup = {
+  id: string;
+  name: string;
+  color: string; // szín token (expense-visuals)
+  createdAt: number;
+};
+
 // Bolt / kinek (pl. Lidl, Shell, Spotify) — kezelt lista, megjegyzi az alap-kategóriát.
 // A dropdown ebből épül, és Beállításokban szerkeszthető.
 export type Merchant = {
@@ -345,6 +353,7 @@ export type RecurringExpense = {
   paymentMethodId: string | null;
   personId: string | null;
   projectId: string | null;
+  groupId: string | null;
   nature: ExpenseNature;
   note: string;
   dayOfMonth: number; // 1–31, generáláskor a hónap hosszához igazítva
@@ -362,6 +371,7 @@ export type Expense = {
   paymentMethodId: string | null; // PaymentMethod.id
   personId: string | null;        // Person.id — ki költötte / kinek jött
   projectId: string | null;       // Project.id — melyik projekthez
+  groupId: string | null;         // ExpenseGroup.id — csoport (kiadás+bevétel együtt)
   nature: ExpenseNature;          // havi átlagos / eseti projekt (kiadásnál értelmezett)
   review: boolean;                // felülvizsgálat: ellenőrizni kell → Teendők
   note: string;
@@ -448,3 +458,64 @@ export type SavedItem = {
   createdAt: number;
   updatedAt: number;
 };
+
+// ============ UTAZÁSOK (Trips) ============
+
+// Egy sor a nap tervében (egy tevékenység / szakasz), a Google Sheets-minta oszlopai.
+export type TripPlanItem = {
+  id: string;
+  start: string;         // indulás ideje, pl. "7:00"
+  place: string;         // Város / Látnivaló
+  type: string;          // Type: kocsi / Túra / Felvonó…
+  travelTime: string;    // Travel time
+  duration: string;      // Duration
+  arrival: string;       // Arrival (érkezés)
+  note: string;          // Note/Link szöveg
+  link: string;          // opcionális URL (map/komoot/menetrend…)
+  accommodation: string; // Szállás
+  bikeDist: string;      // Biciki táv
+  kayak: string;         // Kaják
+  gear: string;          // Felszereltség
+};
+
+// Egy nap a tervben: fejléc (dátum + aggregált idők) + tételek.
+export type TripDay = {
+  id: string;
+  date: string;        // dátum-címke, pl. "ápr. 30. Cs"
+  title: string;       // nap címe, pl. "Budapest-Velika Planina"
+  start: string;
+  travelTime: string;
+  duration: string;
+  arrival: string;
+  items: TripPlanItem[];
+};
+
+export type Trip = {
+  id: string;
+  name: string;         // pl. "Ausztria 2026"
+  year: number;         // csoportosítás éve
+  destination: string;  // úti cél (opcionális)
+  startDate: string;    // kezdő dátum-címke (opcionális)
+  endDate: string;      // záró dátum-címke (opcionális)
+  note: string;
+  imageUrl: string | null;
+  days: TripDay[];
+  createdAt: number;
+  updatedAt: number;
+};
+
+// A tervező oszlopai (fejléc-címkék + mezőnevek) — a UI ebből épül.
+export const TRIP_PLAN_COLUMNS: { key: keyof TripPlanItem; label: string }[] = [
+  { key: "start", label: "Start" },
+  { key: "place", label: "Város / Látnivaló" },
+  { key: "type", label: "Típus" },
+  { key: "travelTime", label: "Menetidő" },
+  { key: "duration", label: "Időtartam" },
+  { key: "arrival", label: "Érkezés" },
+  { key: "note", label: "Megjegyzés" },
+  { key: "link", label: "Link" },
+  { key: "accommodation", label: "Szállás" },
+  { key: "bikeDist", label: "Bicikli táv" },
+  { key: "kayak", label: "Kaják" },
+  { key: "gear", label: "Felszereltség" },
+];

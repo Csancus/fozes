@@ -20,6 +20,9 @@ import {
   Table2,
   SlidersHorizontal,
   ListChecks,
+  Layers,
+  Plane,
+  Map as MapIcon,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
@@ -44,6 +47,7 @@ const primary: NavItem[] = [
   { href: "/fozes", label: "Főzés", icon: ChefHat },
   { href: "/koltsegek", label: "Költségek", icon: Wallet },
   { href: "/bakancslista", label: "Bakancslista", icon: Bookmark },
+  { href: "/utazasok", label: "Utazások", icon: Plane },
   { href: "/csalad", label: "Család", icon: Users },
 ];
 
@@ -61,6 +65,7 @@ const costs: NavItem[] = [
   { href: "/koltsegek/attekintes", label: "Áttekintés", icon: LayoutDashboard },
   { href: "/koltsegek", label: "Költségkezelés", icon: Wallet },
   { href: "/koltsegek/gyors", label: "Gyors rögzítés", icon: Table2 },
+  { href: "/koltsegek/csoportok", label: "Csoportok", icon: Layers },
   { href: "/koltsegek/teendok", label: "Teendők", icon: ListChecks },
   { href: "/koltsegek/beallitasok", label: "Beállítások", icon: SlidersHorizontal },
 ];
@@ -128,6 +133,17 @@ export function Sidebar() {
   );
   const inCosts = pathname === "/koltsegek" || pathname.startsWith("/koltsegek/");
 
+  // Egy konkrét utazáson belül: al-menü (Áttekintés / Terv).
+  const tripMatch = pathname.match(/^\/utazasok\/([^/]+)/);
+  const tripId =
+    tripMatch && tripMatch[1] !== "uj" ? tripMatch[1] : null;
+  const tripSub: NavItem[] = tripId
+    ? [
+        { href: `/utazasok/${tripId}`, label: "Áttekintés", icon: LayoutDashboard },
+        { href: `/utazasok/${tripId}/terv`, label: "Terv", icon: MapIcon },
+      ]
+    : [];
+
   return (
     <aside className="hidden md:flex md:flex-col md:fixed md:inset-y-0 md:left-0 md:w-64 border-r border-[var(--color-border)] bg-[var(--color-card)] z-40">
       <Link href="/" className="px-5 pt-6 pb-4 flex items-center gap-3">
@@ -161,6 +177,18 @@ export function Sidebar() {
                     item={sub}
                     pathname={pathname}
                     exact={sub.href === "/koltsegek"}
+                  />
+                ))}
+              </div>
+            )}
+            {it.href === "/utazasok" && tripSub.length > 0 && (
+              <div className="mt-1 mb-1 space-y-0.5 border-l border-[var(--color-border)] ml-4">
+                {tripSub.map((sub) => (
+                  <SubLink
+                    key={sub.href}
+                    item={sub}
+                    pathname={pathname}
+                    exact={sub.href === `/utazasok/${tripId}`}
                   />
                 ))}
               </div>

@@ -16,9 +16,9 @@ import {
 import { PAYMENT_KIND_LABEL } from "@/lib/types";
 import type { PaymentKind } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid } from "lucide-react";
+import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers } from "lucide-react";
 
-export type Variant = "category" | "payment" | "person" | "project" | "merchant";
+export type Variant = "category" | "payment" | "person" | "project" | "merchant" | "group";
 
 export type EntityItem = {
   id: string;
@@ -45,6 +45,7 @@ const DEFAULT_COLOR: Record<Variant, string> = {
   person: "rose",
   project: "violet",
   merchant: "zinc",
+  group: "violet",
 };
 
 const ADD_LABEL: Record<Variant, string> = {
@@ -53,6 +54,7 @@ const ADD_LABEL: Record<Variant, string> = {
   person: "Személy hozzáadása",
   project: "Projekt hozzáadása",
   merchant: "Bolt / kinek hozzáadása",
+  group: "Csoport hozzáadása",
 };
 
 const NAME_PLACEHOLDER: Record<Variant, string> = {
@@ -61,6 +63,7 @@ const NAME_PLACEHOLDER: Record<Variant, string> = {
   person: "pl. Anikó, Csanád",
   project: "pl. Autóvásárlás, Olaszország-út",
   merchant: "pl. Lidl, Shell, Spotify",
+  group: "pl. Nyaralás elszámolás, Közös kassza",
 };
 
 function ColorPicker({
@@ -255,6 +258,8 @@ function Visual({
       ? catIcon(item.icon ?? "tag")
       : variant === "payment"
       ? payIcon(item.kind ?? "card")
+      : variant === "group"
+      ? Layers
       : FolderKanban;
   return (
     <span className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>

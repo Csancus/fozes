@@ -18,6 +18,9 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  createGroup,
+  updateGroup,
+  deleteGroup,
   createMerchant,
   updateMerchant,
   deleteMerchant,
@@ -58,6 +61,7 @@ export async function saveExpenseAction(fd: FormData) {
   const paymentMethodId = String(fd.get("paymentMethodId") ?? "").trim() || null;
   const personId = String(fd.get("personId") ?? "").trim() || null;
   const projectId = String(fd.get("projectId") ?? "").trim() || null;
+  const groupId = String(fd.get("groupId") ?? "").trim() || null;
   const note = String(fd.get("note") ?? "").trim();
   const spentAt = parseDate(String(fd.get("spentAt") ?? ""));
 
@@ -78,6 +82,7 @@ export async function saveExpenseAction(fd: FormData) {
     paymentMethodId,
     personId,
     projectId,
+    groupId,
     nature,
     review,
     note,
@@ -99,6 +104,7 @@ export async function saveExpenseAction(fd: FormData) {
       paymentMethodId,
       personId,
       projectId,
+      groupId,
       nature,
       note,
       dayOfMonth,
@@ -350,6 +356,38 @@ export async function deleteProjectAction(fd: FormData) {
   revalidatePath("/koltsegek");
 }
 
+// ============ CSOPORTOK ============
+
+export async function createGroupAction(fd: FormData) {
+  const me = await requireUser();
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "violet").trim();
+  if (!name) return;
+  await createGroup(me.householdId, { name, color });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek/csoportok");
+}
+
+export async function updateGroupAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "violet").trim();
+  if (!id || !name) return;
+  await updateGroup(me.householdId, id, { name, color });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek/csoportok");
+}
+
+export async function deleteGroupAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await deleteGroup(me.householdId, id);
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek/csoportok");
+}
+
 // ============ BOLTOK / KINEK (merchants) ============
 
 export async function createMerchantAction(fd: FormData) {
@@ -469,6 +507,7 @@ type BatchRow = {
   paymentMethodId: unknown;
   personId: unknown;
   projectId: unknown;
+  groupId: unknown;
   nature: unknown;
   review: unknown;
   recurring: unknown;
@@ -503,6 +542,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
     const personId = String(r.personId ?? "").trim() || null;
     const projectId =
       kind === "income" ? null : String(r.projectId ?? "").trim() || null;
+    const groupId = String(r.groupId ?? "").trim() || null;
     const nature: ExpenseNature =
       kind === "income"
         ? "avg"
@@ -521,6 +561,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
       paymentMethodId,
       personId,
       projectId,
+      groupId,
       nature,
       review,
       note,
@@ -540,6 +581,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
         paymentMethodId,
         personId,
         projectId,
+        groupId,
         nature,
         note,
         dayOfMonth: d.getDate(),
@@ -568,6 +610,7 @@ type EditRow = {
   paymentMethodId: unknown;
   personId: unknown;
   projectId: unknown;
+  groupId: unknown;
   nature: unknown;
   review: unknown;
   spentAt: unknown;
@@ -608,6 +651,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
     const paymentMethodId = String(r.paymentMethodId ?? "").trim() || null;
     const personId = String(r.personId ?? "").trim() || null;
     const projectId = String(r.projectId ?? "").trim() || null;
+    const groupId = String(r.groupId ?? "").trim() || null;
     const nature: ExpenseNature =
       String(r.nature ?? "avg") === "project" ? "project" : "avg";
     const review = r.review === true;
@@ -622,6 +666,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
       paymentMethodId,
       personId,
       projectId,
+      groupId,
       nature,
       review,
       note,

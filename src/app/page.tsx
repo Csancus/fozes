@@ -15,6 +15,7 @@ import {
   Wallet,
   Bookmark,
   Users,
+  Plane,
   LogOut,
   AlertTriangle,
   ChevronRight,

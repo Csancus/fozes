@@ -12,6 +12,7 @@ import type {
   PaymentMethod,
   Person,
   Project,
+  ExpenseGroup,
 } from "@/lib/types";
 import {
   createCategoryInline,
@@ -51,6 +52,7 @@ type Row = {
   paymentMethodId: string;
   personId: string;
   projectId: string;
+  groupId: string;
   nature: string;
   review: boolean;
   recurring: boolean;
@@ -70,6 +72,7 @@ function emptyRow(kind: ExpenseKind = "expense"): Row {
     paymentMethodId: "",
     personId: "",
     projectId: "",
+    groupId: "",
     nature: "avg",
     review: false,
     recurring: false,
@@ -90,6 +93,7 @@ const COL_W: Record<string, number> = {
   payment: 150,
   person: 120,
   project: 130,
+  group: 140,
   review: 120,
   recurring: 120,
   date: 150,
@@ -103,6 +107,7 @@ export function BatchEntry({
   paymentMethods,
   persons,
   projects,
+  groups = [],
   merchantMap,
   knownMerchants,
 }: {
@@ -112,6 +117,7 @@ export function BatchEntry({
   paymentMethods: PaymentMethod[];
   persons: Person[];
   projects: Project[];
+  groups?: ExpenseGroup[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
 }) {
@@ -137,12 +143,13 @@ export function BatchEntry({
     ];
     if (persons.length) cols.push({ key: "person", label: "Ki / Kinek" });
     if (projects.length) cols.push({ key: "project", label: "Projekt" });
+    if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
     cols.push({ key: "recurring", label: "Ismétlődő" });
     cols.push({ key: "date", label: "Dátum" });
     cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
-  }, [persons.length, projects.length]);
+  }, [persons.length, projects.length, groups.length]);
 
   const { isVisible, hidden, toggle } = useColumnVisibility(
     "cols:gyors-unified-v2",
@@ -219,6 +226,7 @@ export function BatchEntry({
       nature: r.kind === "income" ? "avg" : r.nature,
       review: r.review,
       recurring: r.recurring,
+      groupId: r.groupId,
       spentAt: r.spentAt,
       note: r.note,
     }))
@@ -226,6 +234,7 @@ export function BatchEntry({
 
   const showPerson = persons.length > 0 && isVisible("person");
   const showProject = projects.length > 0 && isVisible("project");
+  const showGroup = groups.length > 0 && isVisible("group");
 
   const minW =
     64 +
@@ -261,6 +270,7 @@ export function BatchEntry({
               {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
               {showPerson && <th className="font-semibold px-1 w-28">Ki / Kinek</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
+              {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
               {isVisible("recurring") && <th className="font-semibold px-1 w-28 text-center">Ismétlődő</th>}
               {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
@@ -394,6 +404,22 @@ export function BatchEntry({
                           ))}
                         </select>
                       )}
+                    </td>
+                  )}
+                  {showGroup && (
+                    <td>
+                      <select
+                        value={r.groupId}
+                        onChange={(e) => update(r.key, { groupId: e.target.value })}
+                        className={cn(ctrl, "appearance-none")}
+                      >
+                        <option value="">—</option>
+                        {groups.map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.name}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                   )}
                   {isVisible("review") && (

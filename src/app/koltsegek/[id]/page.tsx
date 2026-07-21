@@ -9,6 +9,7 @@ import {
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
+  listGroups,
   getMerchantMap,
   ensureMerchantsFromHistory,
 } from "@/lib/data";
@@ -38,6 +39,7 @@ export default async function EditExpensePage({
     paymentMethods,
     persons,
     projects,
+    groups,
     merchantMap,
     expenses,
   ] = await Promise.all([
@@ -47,6 +49,7 @@ export default async function EditExpensePage({
     ensureDefaultPaymentMethods(me.householdId),
     listPersons(me.householdId),
     listProjects(me.householdId),
+    listGroups(me.householdId),
     getMerchantMap(me.householdId),
     listExpenses(me.householdId),
   ]);
@@ -75,6 +78,7 @@ export default async function EditExpensePage({
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}
+          groups={groups}
           merchantMap={merchantMap}
           knownMerchants={knownMerchants}
           initial={expense}

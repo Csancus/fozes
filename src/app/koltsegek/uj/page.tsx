@@ -8,6 +8,7 @@ import {
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
+  listGroups,
   listMerchants,
   ensureMerchantsFromHistory,
   getMerchantMap,
@@ -44,6 +45,7 @@ export default async function NewEntryPage({
     paymentMethods,
     persons,
     projects,
+    groups,
     merchantMap,
     merchants,
     expenses,
@@ -53,6 +55,7 @@ export default async function NewEntryPage({
     ensureDefaultPaymentMethods(me.householdId),
     listPersons(me.householdId),
     listProjects(me.householdId),
+    listGroups(me.householdId),
     getMerchantMap(me.householdId),
     listMerchants(me.householdId),
     listExpenses(me.householdId),
@@ -80,6 +83,7 @@ export default async function NewEntryPage({
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}
+          groups={groups}
           merchantMap={merchantMap}
           knownMerchants={knownMerchants}
           existing={existing}

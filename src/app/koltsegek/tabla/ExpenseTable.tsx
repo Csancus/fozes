@@ -12,6 +12,7 @@ import type {
   PaymentMethod,
   Person,
   Project,
+  ExpenseGroup,
 } from "@/lib/types";
 
 function slugify(s: string): string {
@@ -55,6 +56,7 @@ type Row = {
   paymentMethodId: string;
   personId: string;
   projectId: string;
+  groupId: string;
   nature: string;
   review: boolean;
   spentAt: string;
@@ -70,6 +72,7 @@ function toRow(e: Expense): Row {
     paymentMethodId: e.paymentMethodId ?? "",
     personId: e.personId ?? "",
     projectId: e.projectId ?? "",
+    groupId: e.groupId ?? "",
     nature: e.nature ?? "avg",
     review: e.review ?? false,
     spentAt: tsToDay(e.spentAt),
@@ -85,6 +88,7 @@ function serialize(r: Row): string {
     r.paymentMethodId,
     r.personId,
     r.projectId,
+    r.groupId,
     r.nature,
     r.review,
     r.spentAt,
@@ -104,6 +108,7 @@ const COL_W: Record<string, number> = {
   payment: 150,
   person: 120,
   project: 130,
+  group: 140,
   review: 120,
   note: 200,
 };
@@ -115,6 +120,7 @@ export function ExpenseTable({
   paymentMethods,
   persons,
   projects,
+  groups = [],
   merchantMap,
   knownMerchants,
 }: {
@@ -124,6 +130,7 @@ export function ExpenseTable({
   paymentMethods: PaymentMethod[];
   persons: Person[];
   projects: Project[];
+  groups?: ExpenseGroup[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
 }) {
@@ -144,10 +151,11 @@ export function ExpenseTable({
     ];
     if (persons.length) cols.push({ key: "person", label: "Ki", defaultHidden: true });
     if (projects.length) cols.push({ key: "project", label: "Projekt", defaultHidden: true });
+    if (groups.length) cols.push({ key: "group", label: "Csoport", defaultHidden: true });
     cols.push({ key: "review", label: "Felülvizsgálat", defaultHidden: true });
     cols.push({ key: "note", label: "Megjegyzés", defaultHidden: true });
     return cols;
-  }, [persons.length, projects.length]);
+  }, [persons.length, projects.length, groups.length]);
 
   const { isVisible, hidden, toggle } = useColumnVisibility(
     "cols:koltsegek-tabla",
@@ -223,6 +231,7 @@ export function ExpenseTable({
       paymentMethodId: r.paymentMethodId,
       personId: r.personId,
       projectId: r.projectId,
+      groupId: r.groupId,
       nature: r.nature,
       review: r.review,
       spentAt: r.spentAt,
@@ -233,6 +242,7 @@ export function ExpenseTable({
 
   const showPerson = persons.length > 0 && isVisible("person");
   const showProject = projects.length > 0 && isVisible("project");
+  const showGroup = groups.length > 0 && isVisible("group");
   const minW =
     40 +
     allColumns.reduce((s, c) => s + (isVisible(c.key) ? COL_W[c.key] ?? 120 : 0), 0);
@@ -291,6 +301,7 @@ export function ExpenseTable({
               {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
               {showPerson && <th className="font-semibold px-1 w-28">Ki</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
+              {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
               {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
               <th className="w-7" />
@@ -415,6 +426,23 @@ export function ExpenseTable({
                         {projects.map((p) => (
                           <option key={p.id} value={p.id}>
                             {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  )}
+                  {showGroup && (
+                    <td>
+                      <select
+                        value={r.groupId}
+                        disabled={isDeleted}
+                        onChange={(e) => update(r.id, { groupId: e.target.value })}
+                        className={cn(ctrl, "appearance-none")}
+                      >
+                        <option value="">—</option>
+                        {groups.map((g) => (
+                          <option key={g.id} value={g.id}>
+                            {g.name}
                           </option>
                         ))}
                       </select>

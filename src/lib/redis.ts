@@ -70,6 +70,8 @@ export const key = {
   person: (hh: string, id: string) => `hh:${hh}:person:${id}`,
   projects: (hh: string) => `hh:${hh}:projects`,
   project: (hh: string, id: string) => `hh:${hh}:project:${id}`,
+  groups: (hh: string) => `hh:${hh}:groups`,
+  group: (hh: string, id: string) => `hh:${hh}:group:${id}`,
 
   // Bakancslista
   savedItems: (hh: string) => `hh:${hh}:saved`,
@@ -77,6 +79,11 @@ export const key = {
   savedFile: (hh: string, itemId: string, fileId: string) =>
     `hh:${hh}:saved:${itemId}:file:${fileId}`,
   surprisePassword: (hh: string) => `hh:${hh}:surprise-pw`,
+
+  // Utazások
+  trips: (hh: string) => `hh:${hh}:trips`,
+  trip: (hh: string, id: string) => `hh:${hh}:trip:${id}`,
+
   savedTypes: (hh: string) => `hh:${hh}:saved-types`,
   savedType: (hh: string, id: string) => `hh:${hh}:saved-type:${id}`,
 };

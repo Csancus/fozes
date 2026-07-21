@@ -7,6 +7,7 @@ import {
   listPaymentMethods,
   listPersons,
   listProjects,
+  listGroups,
   listMerchants,
   ensureMerchantsFromHistory,
   getMerchantMap,
@@ -26,13 +27,14 @@ export default async function TablaPage() {
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);
-  const [expenses, categories, paymentMethods, persons, projects, merchantMap, merchants] =
+  const [expenses, categories, paymentMethods, persons, projects, groups, merchantMap, merchants] =
     await Promise.all([
       listExpenses(me.householdId),
       listExpenseCategories(me.householdId),
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listProjects(me.householdId),
+      listGroups(me.householdId),
       getMerchantMap(me.householdId),
       listMerchants(me.householdId),
     ]);
@@ -79,6 +81,7 @@ export default async function TablaPage() {
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}
+          groups={groups}
           merchantMap={merchantMap}
           knownMerchants={knownMerchants}
         />

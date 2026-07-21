@@ -12,6 +12,7 @@ import type {
   PaymentMethod,
   Person,
   Project,
+  ExpenseGroup,
   Merchant,
   RecurringExpense,
   IncomeCategory,
@@ -19,6 +20,8 @@ import type {
   ExpenseNature,
   SavedItem,
   SavedType,
+  Trip,
+  TripDay,
   User,
 } from "./types";
 import bcrypt from "bcryptjs";
@@ -788,6 +791,55 @@ export async function deleteProject(hh: string, id: string) {
   await redis.srem(key.projects(hh), id);
 }
 
+// ============ CSOPORTOK (kiadás + bevétel együtt) ============
+
+export async function listGroups(hh: string): Promise<ExpenseGroup[]> {
+  const ids = await redis.smembers(key.groups(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<ExpenseGroup>(key.group(hh, id)))
+  );
+  return items
+    .filter((g): g is ExpenseGroup => !!g)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getGroup(hh: string, id: string) {
+  return redis.get<ExpenseGroup>(key.group(hh, id));
+}
+
+export async function createGroup(
+  hh: string,
+  input: Pick<ExpenseGroup, "name" | "color">
+): Promise<ExpenseGroup> {
+  const g: ExpenseGroup = {
+    id: newId(),
+    name: input.name.trim(),
+    color: input.color,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.group(hh, g.id), g);
+  await redis.sadd(key.groups(hh), g.id);
+  return g;
+}
+
+export async function updateGroup(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<ExpenseGroup, "name" | "color">>
+) {
+  const cur = await getGroup(hh, id);
+  if (!cur) return null;
+  const next = { ...cur, ...patch };
+  await redis.set(key.group(hh, id), next);
+  return next;
+}
+
+export async function deleteGroup(hh: string, id: string) {
+  await redis.del(key.group(hh, id));
+  await redis.srem(key.groups(hh), id);
+}
+
 // ============ EXPENSES ============
 
 export async function listExpenses(hh: string): Promise<Expense[]> {
@@ -800,10 +852,11 @@ export async function listExpenses(hh: string): Promise<Expense[]> {
     .filter((e): e is Expense => !!e)
     .map((e) => ({
       ...e,
-      // Régi rekordokban nincs kind/nature/review → alapértelmezés.
+      // Régi rekordokban nincs kind/nature/review/groupId → alapértelmezés.
       kind: e.kind ?? "expense",
       nature: e.nature ?? "avg",
       review: e.review ?? false,
+      groupId: e.groupId ?? null,
     }))
     .sort((a, b) => b.spentAt - a.spentAt || b.createdAt - a.createdAt);
 }
@@ -816,16 +869,21 @@ export async function getExpense(hh: string, id: string) {
     kind: e.kind ?? "expense",
     nature: e.nature ?? "avg",
     review: e.review ?? false,
+    groupId: e.groupId ?? null,
   };
 }
 
 export async function saveExpense(
   hh: string,
-  input: Omit<Expense, "id" | "createdAt" | "kind" | "nature" | "review"> & {
+  input: Omit<
+    Expense,
+    "id" | "createdAt" | "kind" | "nature" | "review" | "groupId"
+  > & {
     id?: string;
     kind?: ExpenseKind;
     nature?: ExpenseNature;
     review?: boolean;
+    groupId?: string | null;
   }
 ): Promise<Expense> {
   const id = input.id ?? newId();
@@ -840,6 +898,7 @@ export async function saveExpense(
     paymentMethodId: input.paymentMethodId ?? null,
     personId: input.personId ?? null,
     projectId: input.projectId ?? null,
+    groupId: input.groupId ?? existing?.groupId ?? null,
     nature: input.nature ?? existing?.nature ?? "avg",
     review: input.review ?? existing?.review ?? false,
     note: input.note.trim(),
@@ -879,21 +938,30 @@ export async function listRecurrings(hh: string): Promise<RecurringExpense[]> {
   );
   return items
     .filter((r): r is RecurringExpense => !!r)
-    .map((r) => ({ ...r, kind: r.kind ?? "expense", nature: r.nature ?? "avg" }))
+    .map((r) => ({
+      ...r,
+      kind: r.kind ?? "expense",
+      nature: r.nature ?? "avg",
+      groupId: r.groupId ?? null,
+    }))
     .sort((a, b) => a.dayOfMonth - b.dayOfMonth || a.createdAt - b.createdAt);
 }
 
 export async function getRecurring(hh: string, id: string) {
   const r = await redis.get<RecurringExpense>(key.recurring(hh, id));
   if (!r) return null;
-  return { ...r, kind: r.kind ?? "expense", nature: r.nature ?? "avg" };
+  return { ...r, kind: r.kind ?? "expense", nature: r.nature ?? "avg", groupId: r.groupId ?? null };
 }
 
 export async function createRecurring(
   hh: string,
-  input: Omit<RecurringExpense, "id" | "createdAt" | "kind" | "nature"> & {
+  input: Omit<
+    RecurringExpense,
+    "id" | "createdAt" | "kind" | "nature" | "groupId"
+  > & {
     kind?: ExpenseKind;
     nature?: ExpenseNature;
+    groupId?: string | null;
   }
 ): Promise<RecurringExpense> {
   const kind: ExpenseKind = input.kind ?? "expense";
@@ -906,6 +974,7 @@ export async function createRecurring(
     paymentMethodId: input.paymentMethodId ?? null,
     personId: input.personId ?? null,
     projectId: input.projectId ?? null,
+    groupId: input.groupId ?? null,
     nature: input.nature ?? "avg",
     note: input.note.trim(),
     dayOfMonth: Math.min(31, Math.max(1, Math.round(input.dayOfMonth) || 1)),
@@ -993,6 +1062,7 @@ export async function runDueRecurring(hh: string): Promise<number> {
         paymentMethodId: rule.paymentMethodId,
         personId: rule.personId,
         projectId: rule.projectId,
+        groupId: rule.groupId ?? null,
         nature: rule.nature ?? "avg",
         note: rule.note,
         spentAt: due.getTime(),
@@ -1170,4 +1240,63 @@ export async function deleteSavedFile(
   fileId: string
 ) {
   await redis.del(key.savedFile(hh, itemId, fileId));
+}
+
+// ============ UTAZÁSOK (Trips) ============
+
+export async function listTrips(hh: string): Promise<Trip[]> {
+  const ids = await redis.smembers(key.trips(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<Trip>(key.trip(hh, id)))
+  );
+  return items
+    .filter((t): t is Trip => !!t)
+    .sort((a, b) => b.year - a.year || b.createdAt - a.createdAt);
+}
+
+export async function getTrip(hh: string, id: string) {
+  return redis.get<Trip>(key.trip(hh, id));
+}
+
+export async function saveTrip(
+  hh: string,
+  input: Omit<Trip, "id" | "createdAt" | "updatedAt" | "days"> & {
+    id?: string;
+    days?: TripDay[];
+  }
+): Promise<Trip> {
+  const now = Date.now();
+  const id = input.id ?? newId();
+  const existing = input.id ? await getTrip(hh, input.id) : null;
+  const trip: Trip = {
+    id,
+    name: input.name.trim() || "Utazás",
+    year: input.year,
+    destination: input.destination ?? "",
+    startDate: input.startDate ?? "",
+    endDate: input.endDate ?? "",
+    note: input.note ?? "",
+    imageUrl: input.imageUrl ?? null,
+    days: input.days ?? existing?.days ?? [],
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  };
+  await redis.set(key.trip(hh, id), trip);
+  await redis.sadd(key.trips(hh), id);
+  return trip;
+}
+
+// Csak a nap-terv frissítése (a tervezőből).
+export async function saveTripDays(hh: string, id: string, days: TripDay[]) {
+  const trip = await getTrip(hh, id);
+  if (!trip) return null;
+  const next: Trip = { ...trip, days, updatedAt: Date.now() };
+  await redis.set(key.trip(hh, id), next);
+  return next;
+}
+
+export async function deleteTrip(hh: string, id: string) {
+  await redis.del(key.trip(hh, id));
+  await redis.srem(key.trips(hh), id);
 }

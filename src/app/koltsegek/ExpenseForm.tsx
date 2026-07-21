@@ -18,6 +18,7 @@ import type {
   PaymentMethod,
   Person,
   Project,
+  ExpenseGroup,
 } from "@/lib/types";
 
 function slugify(s: string): string {
@@ -42,6 +43,7 @@ export function ExpenseForm({
   paymentMethods,
   persons,
   projects,
+  groups = [],
   merchantMap,
   knownMerchants,
   initial,
@@ -54,6 +56,7 @@ export function ExpenseForm({
   paymentMethods: PaymentMethod[];
   persons: Person[];
   projects: Project[];
+  groups?: ExpenseGroup[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
   initial?: Expense | null;
@@ -85,6 +88,7 @@ export function ExpenseForm({
   const [projectId, setProjectId] = useState<string | null>(
     initial?.projectId ?? null
   );
+  const [groupId, setGroupId] = useState<string | null>(initial?.groupId ?? null);
   const [autoApplied, setAutoApplied] = useState(false);
   const manual = useRef(!!initial?.categoryId);
   const catCreateFn = useMemo(
@@ -182,6 +186,7 @@ export function ExpenseForm({
       <input type="hidden" name="paymentMethodId" value={paymentMethodId ?? ""} />
       <input type="hidden" name="personId" value={personId ?? ""} />
       <input type="hidden" name="projectId" value={projectId ?? ""} />
+      <input type="hidden" name="groupId" value={groupId ?? ""} />
 
       <div className="grid grid-cols-2 gap-2">
         <button
@@ -450,6 +455,37 @@ export function ExpenseForm({
           <input type="hidden" name="recurringDay" value={recurringDay} />
         </div>
       )}
+
+      <div>
+        <span className="block text-sm font-medium mb-2">Csoport</span>
+        <div className="flex flex-wrap gap-2">
+          {groups.map((g) => {
+            const col = catColor(g.color);
+            const active = groupId === g.id;
+            return (
+              <button
+                type="button"
+                key={g.id}
+                onClick={() => setGroupId((cur) => (cur === g.id ? null : g.id))}
+                className={cn(
+                  "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
+                  active
+                    ? cn(col.soft, col.text, "border-transparent ring-2", col.ring)
+                    : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                <span className={cn("w-2.5 h-2.5 rounded-full", col.dot)} />
+                {g.name}
+                {active && <Check className="w-3.5 h-3.5" />}
+              </button>
+            );
+          })}
+          <AddLink
+            href="/koltsegek/beallitasok"
+            label={groups.length ? "Csoport" : "Add hozzá (pl. Nyaralás elszámolás)"}
+          />
+        </div>
+      </div>
 
       <label
         className={cn(
