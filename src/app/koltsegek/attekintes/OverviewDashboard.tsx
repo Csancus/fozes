@@ -115,7 +115,7 @@ export function OverviewDashboard({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }); // alapból az aktuális hónap ("all" = teljes 12 hó)
   const [nature, setNature] = useState<ExpenseNature | "all">("avg");
-  const [kindF, setKindF] = useState<ExpenseKind | "all">("all");
+  const [kindF, setKindF] = useState<ExpenseKind | "all">("expense");
   const [cats, setCats] = useState<Set<string>>(new Set());
   const [pays, setPays] = useState<Set<string>>(new Set());
   const [people, setPeople] = useState<Set<string>>(new Set());
@@ -327,7 +327,6 @@ export function OverviewDashboard({
     people.size +
     projs.size +
     grps.size +
-    (kindF !== "all" ? 1 : 0) +
     (search ? 1 : 0);
 
   function toggle(set: Set<string>, setter: (s: Set<string>) => void, id: string) {
@@ -389,6 +388,19 @@ export function OverviewDashboard({
         </NatureChip>
       </div>
 
+      {/* Kiadás / Bevétel szűrő */}
+      <div className="mt-2 flex gap-2">
+        <NatureChip active={kindF === "expense"} onClick={() => setKindF("expense")}>
+          Kiadás
+        </NatureChip>
+        <NatureChip active={kindF === "income"} onClick={() => setKindF("income")}>
+          Bevétel
+        </NatureChip>
+        <NatureChip active={kindF === "all"} onClick={() => setKindF("all")}>
+          Mind
+        </NatureChip>
+      </div>
+
       {/* Szűrők nyitó + kereső + rendezés egy sorban */}
       <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
@@ -429,26 +441,6 @@ export function OverviewDashboard({
 
       {showFilters && (
         <div className="mt-3 space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-          <div>
-            <p className="text-xs font-medium text-[var(--color-muted-foreground)] mb-1.5">Típus</p>
-            <div className="flex gap-2">
-              {(["all", "expense", "income"] as const).map((k) => (
-                <button
-                  key={k}
-                  type="button"
-                  onClick={() => setKindF(k)}
-                  className={cn(
-                    "flex-1 h-9 rounded-full text-[13px] font-medium border transition",
-                    kindF === k
-                      ? "bg-[var(--color-primary)] text-white border-transparent"
-                      : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
-                  )}
-                >
-                  {k === "all" ? "Mind" : k === "expense" ? "Kiadás" : "Bevétel"}
-                </button>
-              ))}
-            </div>
-          </div>
           {groups.length > 0 && (
             <FilterGroup label="Csoport">
               {groups.map((g) => (
