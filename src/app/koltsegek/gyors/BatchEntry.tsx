@@ -13,6 +13,10 @@ import type {
   Person,
   Project,
 } from "@/lib/types";
+import {
+  createCategoryInline,
+  createIncomeCategoryInline,
+} from "../actions";
 
 function slugify(s: string): string {
   return s
@@ -40,6 +44,7 @@ function toNum(v: string): number {
 
 type Row = {
   key: string;
+  kind: ExpenseKind;
   amount: string;
   merchant: string;
   categoryId: string;
@@ -48,13 +53,15 @@ type Row = {
   projectId: string;
   nature: string;
   spentAt: string;
+  note: string;
 };
 
 let counter = 0;
-function emptyRow(): Row {
+function emptyRow(kind: ExpenseKind = "expense"): Row {
   counter += 1;
   return {
     key: `r${counter}`,
+    kind,
     amount: "",
     merchant: "",
     categoryId: "",
@@ -63,53 +70,48 @@ function emptyRow(): Row {
     projectId: "",
     nature: "avg",
     spentAt: todayStr(),
+    note: "",
   };
 }
 
 const ctrl =
   "h-9 w-full rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)]";
 
+const COL_W: Record<string, number> = {
+  kind: 110,
+  amount: 110,
+  merchant: 180,
+  category: 160,
+  nature: 130,
+  payment: 150,
+  person: 120,
+  project: 130,
+  date: 150,
+  note: 200,
+};
+
 export function BatchEntry({
   action,
   categories,
+  incomeCategories = [],
   paymentMethods,
   persons,
   projects,
   merchantMap,
   knownMerchants,
-  kind = "expense",
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
+  incomeCategories?: ExpenseCategory[];
   paymentMethods: PaymentMethod[];
   persons: Person[];
   projects: Project[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
-  kind?: ExpenseKind;
 }) {
-  const income = kind === "income";
-
-  const allColumns: ColumnDef[] = useMemo(() => {
-    const cols: ColumnDef[] = [
-      { key: "amount", label: "Összeg", alwaysOn: true },
-      { key: "merchant", label: income ? "Forrás" : "Bolt / kinek", alwaysOn: true },
-      { key: "category", label: "Kategória" },
-    ];
-    if (!income) cols.push({ key: "nature", label: "Jelleg" });
-    if (!income) cols.push({ key: "payment", label: "Fizetés" });
-    if (persons.length) cols.push({ key: "person", label: income ? "Kinek" : "Ki" });
-    if (!income && projects.length) cols.push({ key: "project", label: "Projekt" });
-    cols.push({ key: "date", label: "Dátum" });
-    return cols;
-  }, [income, persons.length, projects.length]);
-
-  const { isVisible, hidden, toggle } = useColumnVisibility(
-    `cols:gyors-${kind}`,
-    allColumns
-  );
-
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
+  const [incomeCatList, setIncomeCatList] =
+    useState<ExpenseCategory[]>(incomeCategories);
   const [rows, setRows] = useState<Row[]>(() => [
     emptyRow(),
     emptyRow(),
@@ -118,16 +120,45 @@ export function BatchEntry({
     emptyRow(),
   ]);
 
+  const allColumns: ColumnDef[] = useMemo(() => {
+    const cols: ColumnDef[] = [
+      { key: "kind", label: "Típus", alwaysOn: true },
+      { key: "amount", label: "Összeg", alwaysOn: true },
+      { key: "merchant", label: "Megnevezés", alwaysOn: true },
+      { key: "category", label: "Kategória" },
+      { key: "nature", label: "Jelleg", defaultHidden: true },
+      { key: "payment", label: "Fizetés", defaultHidden: true },
+    ];
+    if (persons.length) cols.push({ key: "person", label: "Ki / Kinek", defaultHidden: true });
+    if (projects.length) cols.push({ key: "project", label: "Projekt", defaultHidden: true });
+    cols.push({ key: "date", label: "Dátum" });
+    cols.push({ key: "note", label: "Megjegyzés" });
+    return cols;
+  }, [persons.length, projects.length]);
+
+  const { isVisible, hidden, toggle } = useColumnVisibility(
+    "cols:gyors-unified",
+    allColumns
+  );
+
   function update(key: string, patch: Partial<Row>) {
     setRows((cur) =>
       cur.map((r) => {
         if (r.key !== key) return r;
         const next = { ...r, ...patch };
-        if (!income && patch.merchant !== undefined && !next.categoryId) {
+        if (
+          next.kind === "expense" &&
+          patch.merchant !== undefined &&
+          !next.categoryId
+        ) {
           const mapped = merchantMap[slugify(patch.merchant)];
           if (mapped && catList.some((c) => c.id === mapped)) {
             next.categoryId = mapped;
           }
+        }
+        // Típusváltáskor a kategória ürül (más a készlet).
+        if (patch.kind !== undefined && patch.kind !== r.kind) {
+          next.categoryId = "";
         }
         return next;
       })
@@ -139,13 +170,13 @@ export function BatchEntry({
   }
 
   function addRow() {
-    setRows((cur) => [...cur, emptyRow()]);
+    setRows((cur) => [...cur, emptyRow(cur[cur.length - 1]?.kind ?? "expense")]);
   }
 
   function addRowLikeLast() {
     setRows((cur) => {
       const last = cur[cur.length - 1];
-      const r = emptyRow();
+      const r = emptyRow(last?.kind ?? "expense");
       if (last) {
         r.spentAt = last.spentAt;
         r.paymentMethodId = last.paymentMethodId;
@@ -161,34 +192,31 @@ export function BatchEntry({
     () => rows.filter((r) => toNum(r.amount) > 0 && r.merchant.trim()),
     [rows]
   );
-  const total = valid.reduce((s, r) => s + toNum(r.amount), 0);
+  const expenseTotal = valid
+    .filter((r) => r.kind === "expense")
+    .reduce((s, r) => s + toNum(r.amount), 0);
+  const incomeTotal = valid
+    .filter((r) => r.kind === "income")
+    .reduce((s, r) => s + toNum(r.amount), 0);
 
   const payload = JSON.stringify(
     valid.map((r) => ({
+      kind: r.kind,
       amount: r.amount,
       merchant: r.merchant,
       categoryId: r.categoryId,
-      paymentMethodId: income ? "" : r.paymentMethodId,
+      paymentMethodId: r.kind === "income" ? "" : r.paymentMethodId,
       personId: r.personId,
-      projectId: income ? "" : r.projectId,
-      nature: income ? "avg" : r.nature,
+      projectId: r.kind === "income" ? "" : r.projectId,
+      nature: r.kind === "income" ? "avg" : r.nature,
       spentAt: r.spentAt,
+      note: r.note,
     }))
   );
 
   const showPerson = persons.length > 0 && isVisible("person");
-  const showProject = !income && projects.length > 0 && isVisible("project");
+  const showProject = projects.length > 0 && isVisible("project");
 
-  const COL_W: Record<string, number> = {
-    amount: 110,
-    merchant: 180,
-    category: 160,
-    nature: 130,
-    payment: 150,
-    person: 120,
-    project: 130,
-    date: 150,
-  };
   const minW =
     64 +
     allColumns.reduce((s, c) => s + (isVisible(c.key) ? COL_W[c.key] ?? 120 : 0), 0);
@@ -196,17 +224,16 @@ export function BatchEntry({
   return (
     <form action={action} className="mt-5">
       <input type="hidden" name="rows" value={payload} />
-      <input type="hidden" name="kind" value={kind} />
-
-      <div className="flex justify-end mb-2">
-        <ColumnToggle columns={allColumns} hidden={hidden} onToggle={toggle} />
-      </div>
 
       <datalist id="batch-merchants">
         {knownMerchants.map((m) => (
           <option key={m} value={m} />
         ))}
       </datalist>
+
+      <div className="flex justify-end mb-2">
+        <ColumnToggle columns={allColumns} hidden={hidden} onToggle={toggle} />
+      </div>
 
       <div className="overflow-x-auto -mx-5 px-5">
         <table
@@ -216,136 +243,180 @@ export function BatchEntry({
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
               <th className="font-semibold w-7" />
+              <th className="font-semibold px-1 w-28">Típus</th>
               <th className="font-semibold px-1 w-28">Összeg</th>
-              <th className="font-semibold px-1">{income ? "Forrás" : "Bolt / kinek"}</th>
+              <th className="font-semibold px-1">Megnevezés</th>
               {isVisible("category") && <th className="font-semibold px-1 w-40">Kategória</th>}
-              {!income && isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
-              {!income && isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
-              {showPerson && (
-                <th className="font-semibold px-1 w-28">{income ? "Kinek" : "Ki"}</th>
-              )}
+              {isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
+              {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
+              {showPerson && <th className="font-semibold px-1 w-28">Ki / Kinek</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
               {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
+              {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
               <th className="w-7" />
             </tr>
           </thead>
           <tbody>
-            {rows.map((r, i) => (
-              <tr key={r.key} className="align-top">
-                <td className="text-xs text-[var(--color-muted-foreground)] tabular-nums pt-2">
-                  {i + 1}.
-                </td>
-                <td>
-                  <input
-                    inputMode="numeric"
-                    value={r.amount}
-                    onChange={(e) => update(r.key, { amount: e.target.value })}
-                    placeholder="0"
-                    className={cn(ctrl, "tabular-nums font-medium")}
-                  />
-                </td>
-                <td>
-                  <input
-                    value={r.merchant}
-                    onChange={(e) => update(r.key, { merchant: e.target.value })}
-                    list="batch-merchants"
-                    placeholder={income ? "pl. Munkahely" : "pl. Lidl"}
-                    className={ctrl}
-                  />
-                </td>
-                {isVisible("category") && (
-                  <td>
-                    <CategorySelect
-                      categories={catList}
-                      value={r.categoryId}
-                      onChange={(id) => update(r.key, { categoryId: id })}
-                      onCreated={(c) => setCatList((cur) => [...cur, c])}
-                      className={cn(ctrl, "appearance-none")}
-                    />
+            {rows.map((r, i) => {
+              const inc = r.kind === "income";
+              const rowCats = inc ? incomeCatList : catList;
+              return (
+                <tr key={r.key} className="align-top">
+                  <td className="text-xs text-[var(--color-muted-foreground)] tabular-nums pt-2">
+                    {i + 1}.
                   </td>
-                )}
-                {!income && isVisible("nature") && (
                   <td>
                     <select
-                      value={r.nature}
-                      onChange={(e) => update(r.key, { nature: e.target.value })}
-                      className={cn(ctrl, "appearance-none")}
+                      value={r.kind}
+                      onChange={(e) => update(r.key, { kind: e.target.value as ExpenseKind })}
+                      className={cn(
+                        ctrl,
+                        "appearance-none font-medium",
+                        inc && "text-emerald-600 dark:text-emerald-400"
+                      )}
                     >
-                      <option value="avg">Havi átlagos</option>
-                      <option value="project">Eseti projekt</option>
+                      <option value="expense">Kiadás</option>
+                      <option value="income">Bevétel</option>
                     </select>
                   </td>
-                )}
-                {!income && isVisible("payment") && (
-                  <td>
-                    <select
-                      value={r.paymentMethodId}
-                      onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
-                      className={cn(ctrl, "appearance-none")}
-                    >
-                      <option value="">—</option>
-                      {paymentMethods.map((pm) => (
-                        <option key={pm.id} value={pm.id}>
-                          {pm.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                )}
-                {showPerson && (
-                  <td>
-                    <select
-                      value={r.personId}
-                      onChange={(e) => update(r.key, { personId: e.target.value })}
-                      className={cn(ctrl, "appearance-none")}
-                    >
-                      <option value="">—</option>
-                      {persons.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                )}
-                {showProject && (
-                  <td>
-                    <select
-                      value={r.projectId}
-                      onChange={(e) => update(r.key, { projectId: e.target.value })}
-                      className={cn(ctrl, "appearance-none")}
-                    >
-                      <option value="">—</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
-                )}
-                {isVisible("date") && (
                   <td>
                     <input
-                      type="date"
-                      value={r.spentAt}
-                      onChange={(e) => update(r.key, { spentAt: e.target.value })}
+                      inputMode="numeric"
+                      value={r.amount}
+                      onChange={(e) => update(r.key, { amount: e.target.value })}
+                      placeholder="0"
+                      className={cn(ctrl, "tabular-nums font-medium")}
+                    />
+                  </td>
+                  <td>
+                    <input
+                      value={r.merchant}
+                      onChange={(e) => update(r.key, { merchant: e.target.value })}
+                      list="batch-merchants"
+                      placeholder={inc ? "pl. Munkahely" : "pl. Lidl"}
                       className={ctrl}
                     />
                   </td>
-                )}
-                <td className="pt-0.5">
-                  <button
-                    type="button"
-                    onClick={() => removeRow(r.key)}
-                    className="h-9 w-7 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600"
-                    aria-label="Sor törlése"
-                  >
-                    <X className="w-4 h-4" />
-                  </button>
-                </td>
-              </tr>
-            ))}
+                  {isVisible("category") && (
+                    <td>
+                      <CategorySelect
+                        categories={rowCats}
+                        value={r.categoryId}
+                        onChange={(id) => update(r.key, { categoryId: id })}
+                        onCreated={(c) =>
+                          inc
+                            ? setIncomeCatList((cur) => [...cur, c])
+                            : setCatList((cur) => [...cur, c])
+                        }
+                        className={cn(ctrl, "appearance-none")}
+                      />
+                    </td>
+                  )}
+                  {isVisible("nature") && (
+                    <td>
+                      {inc ? (
+                        <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
+                      ) : (
+                        <select
+                          value={r.nature}
+                          onChange={(e) => update(r.key, { nature: e.target.value })}
+                          className={cn(ctrl, "appearance-none")}
+                        >
+                          <option value="avg">Havi átlagos</option>
+                          <option value="project">Eseti projekt</option>
+                        </select>
+                      )}
+                    </td>
+                  )}
+                  {isVisible("payment") && (
+                    <td>
+                      {inc ? (
+                        <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
+                      ) : (
+                        <select
+                          value={r.paymentMethodId}
+                          onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
+                          className={cn(ctrl, "appearance-none")}
+                        >
+                          <option value="">—</option>
+                          {paymentMethods.map((pm) => (
+                            <option key={pm.id} value={pm.id}>
+                              {pm.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+                  )}
+                  {showPerson && (
+                    <td>
+                      <select
+                        value={r.personId}
+                        onChange={(e) => update(r.key, { personId: e.target.value })}
+                        className={cn(ctrl, "appearance-none")}
+                      >
+                        <option value="">—</option>
+                        {persons.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  )}
+                  {showProject && (
+                    <td>
+                      {inc ? (
+                        <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
+                      ) : (
+                        <select
+                          value={r.projectId}
+                          onChange={(e) => update(r.key, { projectId: e.target.value })}
+                          className={cn(ctrl, "appearance-none")}
+                        >
+                          <option value="">—</option>
+                          {projects.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {p.name}
+                            </option>
+                          ))}
+                        </select>
+                      )}
+                    </td>
+                  )}
+                  {isVisible("date") && (
+                    <td>
+                      <input
+                        type="date"
+                        value={r.spentAt}
+                        onChange={(e) => update(r.key, { spentAt: e.target.value })}
+                        className={ctrl}
+                      />
+                    </td>
+                  )}
+                  {isVisible("note") && (
+                    <td>
+                      <input
+                        value={r.note}
+                        onChange={(e) => update(r.key, { note: e.target.value })}
+                        placeholder="Megjegyzés"
+                        className={ctrl}
+                      />
+                    </td>
+                  )}
+                  <td className="pt-0.5">
+                    <button
+                      type="button"
+                      onClick={() => removeRow(r.key)}
+                      className="h-9 w-7 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600"
+                      aria-label="Sor törlése"
+                    >
+                      <X className="w-4 h-4" />
+                    </button>
+                  </td>
+                </tr>
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -371,7 +442,12 @@ export function BatchEntry({
       <div className="mt-6 sticky bottom-0 -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm">
-            <span className="font-semibold tabular-nums">{fmtFt(total)}</span>
+            {incomeTotal > 0 && (
+              <span className="font-semibold tabular-nums text-emerald-600 dark:text-emerald-400">
+                +{fmtFt(incomeTotal)}{" "}
+              </span>
+            )}
+            <span className="font-semibold tabular-nums">−{fmtFt(expenseTotal)}</span>
             <span className="text-[var(--color-muted-foreground)]"> · {valid.length} tétel</span>
           </div>
           <SubmitButton disabled={valid.length === 0}>

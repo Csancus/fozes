@@ -40,7 +40,7 @@ export default async function TablaPage() {
   const knownMerchants = merchants.map((m) => m.name);
 
   return (
-    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-6xl mx-auto">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-none mx-auto">
       <PageHeader
         title="Kiadások szerkesztése"
         subtitle="Minden tétel egy táblázatban"

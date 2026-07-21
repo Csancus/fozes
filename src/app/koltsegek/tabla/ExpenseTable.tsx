@@ -85,6 +85,7 @@ function serialize(r: Row): string {
     r.projectId,
     r.nature,
     r.spentAt,
+    r.note,
   ]);
 }
 
@@ -100,6 +101,7 @@ const COL_W: Record<string, number> = {
   payment: 150,
   person: 120,
   project: 130,
+  note: 200,
 };
 
 export function ExpenseTable({
@@ -138,6 +140,7 @@ export function ExpenseTable({
     ];
     if (persons.length) cols.push({ key: "person", label: "Ki", defaultHidden: true });
     if (projects.length) cols.push({ key: "project", label: "Projekt", defaultHidden: true });
+    cols.push({ key: "note", label: "Megjegyzés", defaultHidden: true });
     return cols;
   }, [persons.length, projects.length]);
 
@@ -282,6 +285,7 @@ export function ExpenseTable({
               {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
               {showPerson && <th className="font-semibold px-1 w-28">Ki</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
+              {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
               <th className="w-7" />
             </tr>
           </thead>
@@ -407,6 +411,17 @@ export function ExpenseTable({
                           </option>
                         ))}
                       </select>
+                    </td>
+                  )}
+                  {isVisible("note") && (
+                    <td>
+                      <input
+                        value={r.note}
+                        disabled={isDeleted}
+                        onChange={(e) => update(r.id, { note: e.target.value })}
+                        placeholder="Megjegyzés"
+                        className={ctrl}
+                      />
                     </td>
                   )}
                   <td className="pt-0.5">

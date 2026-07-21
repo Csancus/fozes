@@ -53,7 +53,6 @@ export default async function EditExpensePage({
   if (!expense) notFound();
 
   const income = expense.kind === "income";
-  const categories = income ? incomeCategories : expenseCategories;
   const knownMerchants = [
     ...new Set(
       expenses.filter((e) => e.kind === expense.kind).map((e) => e.merchant)
@@ -70,13 +69,13 @@ export default async function EditExpensePage({
       />
       <Card className="mt-6 p-5">
         <ExpenseForm
-          kind={expense.kind}
           action={saveExpenseAction}
-          categories={categories}
+          categories={expenseCategories}
+          incomeCategories={incomeCategories}
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}
-          merchantMap={income ? {} : merchantMap}
+          merchantMap={merchantMap}
           knownMerchants={knownMerchants}
           initial={expense}
         />

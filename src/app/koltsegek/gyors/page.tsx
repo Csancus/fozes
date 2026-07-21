@@ -1,7 +1,10 @@
 import { requireUser } from "@/lib/auth";
 import {
+  listExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
+  listIncomeCategories,
+  ensureDefaultIncomeCategories,
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
@@ -19,24 +22,40 @@ import { saveExpensesBatchAction } from "../actions";
 export default async function BatchPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
+  await ensureDefaultIncomeCategories(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);
-  const [categories, paymentMethods, persons, projects, merchantMap, merchants] =
-    await Promise.all([
-      listExpenseCategories(me.householdId),
-      ensureDefaultPaymentMethods(me.householdId),
-      listPersons(me.householdId),
-      listProjects(me.householdId),
-      getMerchantMap(me.householdId),
-      listMerchants(me.householdId),
-    ]);
+  const [
+    categories,
+    incomeCategories,
+    paymentMethods,
+    persons,
+    projects,
+    merchantMap,
+    merchants,
+    expenses,
+  ] = await Promise.all([
+    listExpenseCategories(me.householdId),
+    listIncomeCategories(me.householdId),
+    ensureDefaultPaymentMethods(me.householdId),
+    listPersons(me.householdId),
+    listProjects(me.householdId),
+    getMerchantMap(me.householdId),
+    listMerchants(me.householdId),
+    listExpenses(me.householdId),
+  ]);
 
-  const knownMerchants = merchants.map((m) => m.name);
+  const incomeSources = expenses
+    .filter((e) => e.kind === "income")
+    .map((e) => e.merchant);
+  const knownMerchants = [...new Set([...merchants.map((m) => m.name), ...incomeSources])]
+    .filter(Boolean)
+    .sort((a, b) => a.localeCompare(b, "hu"));
 
   return (
-    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-6xl mx-auto">
+    <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-none mx-auto">
       <PageHeader
         title="Gyors rögzítés"
-        subtitle="Több tétel egyszerre, táblázatban"
+        subtitle="Több tétel egyszerre — kiadás és bevétel"
         back="/koltsegek"
         action={
           <Link
@@ -59,6 +78,7 @@ export default async function BatchPage() {
       <BatchEntry
         action={saveExpensesBatchAction}
         categories={categories}
+        incomeCategories={incomeCategories}
         paymentMethods={paymentMethods}
         persons={persons}
         projects={projects}

@@ -15,7 +15,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, TrendingUp, BarChart3 } from "lucide-react";
+import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, BarChart3 } from "lucide-react";
 import { ExpensesDashboard } from "./ExpensesDashboard";
 
 export default async function KoltsegekPage() {
@@ -62,29 +62,18 @@ export default async function KoltsegekPage() {
       </Button>
 
       <div className="mt-3 grid grid-cols-2 gap-3">
-        <Button href="/koltsegek/uj" size="lg" variant="secondary" leftIcon={<Plus className="w-4 h-4" />}>
-          Új kiadás
+        <Button href="/koltsegek/uj" size="lg" leftIcon={<Plus className="w-4 h-4" />}>
+          Új tétel
         </Button>
         <Button
-          href="/koltsegek/bevetel"
+          href="/koltsegek/gyors"
           size="lg"
           variant="secondary"
-          leftIcon={<TrendingUp className="w-4 h-4" />}
+          leftIcon={<Table2 className="w-4 h-4" />}
         >
-          Bevétel
+          Gyors táblázat
         </Button>
       </div>
-
-      <Button
-        href="/koltsegek/gyors"
-        size="lg"
-        variant="secondary"
-        fullWidth
-        className="mt-3"
-        leftIcon={<Table2 className="w-4 h-4" />}
-      >
-        Gyors táblázat (több kiadás)
-      </Button>
 
       {expenses.length > 0 && (
         <Link

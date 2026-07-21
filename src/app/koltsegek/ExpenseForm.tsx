@@ -46,7 +46,8 @@ export function ExpenseForm({
   knownMerchants,
   initial,
   existing = [],
-  kind = "expense",
+  incomeCategories = [],
+  defaultKind,
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
@@ -57,10 +58,19 @@ export function ExpenseForm({
   knownMerchants: string[];
   initial?: Expense | null;
   existing?: { slug: string; amount: number; day: string }[];
-  kind?: ExpenseKind;
+  incomeCategories?: ExpenseCategory[];
+  defaultKind?: ExpenseKind;
 }) {
+  const [kind, setKind] = useState<ExpenseKind>(
+    defaultKind ?? initial?.kind ?? "expense"
+  );
   const income = kind === "income";
+  const kindRef = useRef<ExpenseKind>(kind);
+  kindRef.current = kind;
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
+  const [incomeCatList, setIncomeCatList] =
+    useState<ExpenseCategory[]>(incomeCategories);
+  const currentCats = income ? incomeCatList : catList;
   const [nature, setNature] = useState<ExpenseNature>(initial?.nature ?? "avg");
   const [merchant, setMerchant] = useState(initial?.merchant ?? "");
   const [categoryId, setCategoryId] = useState<string | null>(
@@ -77,9 +87,22 @@ export function ExpenseForm({
   );
   const [autoApplied, setAutoApplied] = useState(false);
   const manual = useRef(!!initial?.categoryId);
-  const { open: openCatModal, modal: catModal } = useCategoryCreator(
-    income ? createIncomeCategoryInline : createCategoryInline
+  const catCreateFn = useMemo(
+    () => (name: string) =>
+      (kindRef.current === "income"
+        ? createIncomeCategoryInline
+        : createCategoryInline)(name),
+    []
   );
+  const { open: openCatModal, modal: catModal } = useCategoryCreator(catCreateFn);
+
+  function switchKind(k: ExpenseKind) {
+    if (k === kind) return;
+    setKind(k);
+    setCategoryId(null);
+    manual.current = false;
+    setAutoApplied(false);
+  }
 
   const [dupWarn, setDupWarn] = useState(false);
   const confirmedRef = useRef(false);
@@ -93,7 +116,8 @@ export function ExpenseForm({
   async function addCategoryInline() {
     const cat = await openCatModal();
     if (cat) {
-      setCatList((cur) => [...cur, cat]);
+      if (income) setIncomeCatList((cur) => [...cur, cat]);
+      else setCatList((cur) => [...cur, cat]);
       manual.current = true;
       setAutoApplied(false);
       setCategoryId(cat.id);
@@ -132,7 +156,7 @@ export function ExpenseForm({
     setMerchant(v);
     if (manual.current) return;
     const mapped = merchantMap[slugify(v)];
-    if (mapped && catList.some((c) => c.id === mapped)) {
+    if (mapped && currentCats.some((c) => c.id === mapped)) {
       setCategoryId(mapped);
       setAutoApplied(true);
     } else if (autoApplied) {
@@ -157,6 +181,33 @@ export function ExpenseForm({
       <input type="hidden" name="personId" value={personId ?? ""} />
       <input type="hidden" name="projectId" value={projectId ?? ""} />
 
+      <div className="grid grid-cols-2 gap-2">
+        <button
+          type="button"
+          onClick={() => switchKind("expense")}
+          className={cn(
+            "h-11 rounded-xl text-sm font-semibold border transition",
+            !income
+              ? "bg-[var(--color-primary)] text-white border-transparent"
+              : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+          )}
+        >
+          Kiadás
+        </button>
+        <button
+          type="button"
+          onClick={() => switchKind("income")}
+          className={cn(
+            "h-11 rounded-xl text-sm font-semibold border transition",
+            income
+              ? "bg-emerald-600 text-white border-transparent"
+              : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+          )}
+        >
+          Bevétel
+        </button>
+      </div>
+
       <Field label="Összeg (Ft)" required>
         <Input
           name="amount"
@@ -164,7 +215,10 @@ export function ExpenseForm({
           required
           defaultValue={initial?.amount ? String(initial.amount) : ""}
           placeholder="pl. 4990"
-          className="text-2xl font-bold h-14 tabular-nums"
+          className={cn(
+            "text-2xl font-bold h-14 tabular-nums",
+            income && "text-emerald-600 dark:text-emerald-400"
+          )}
           autoFocus={!initial}
         />
       </Field>
@@ -199,7 +253,7 @@ export function ExpenseForm({
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {catList.map((c) => {
+          {currentCats.map((c) => {
             const col = catColor(c.color);
             const Icon = catIcon(c.icon);
             const active = categoryId === c.id;

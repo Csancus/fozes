@@ -3,6 +3,8 @@ import {
   listExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
+  listIncomeCategories,
+  ensureDefaultIncomeCategories,
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
@@ -24,36 +26,57 @@ function toDay(ts: number): string {
   ).padStart(2, "0")}`;
 }
 
-export default async function NewExpensePage() {
+export default async function NewEntryPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tipus?: string }>;
+}) {
+  const { tipus } = await searchParams;
+  const defaultKind = tipus === "bevetel" ? "income" : "expense";
+
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
+  await ensureDefaultIncomeCategories(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);
-  const [categories, paymentMethods, persons, projects, merchantMap, merchants, expenses] =
-    await Promise.all([
-      listExpenseCategories(me.householdId),
-      ensureDefaultPaymentMethods(me.householdId),
-      listPersons(me.householdId),
-      listProjects(me.householdId),
-      getMerchantMap(me.householdId),
-      listMerchants(me.householdId),
-      listExpenses(me.householdId),
-    ]);
+  const [
+    categories,
+    incomeCategories,
+    paymentMethods,
+    persons,
+    projects,
+    merchantMap,
+    merchants,
+    expenses,
+  ] = await Promise.all([
+    listExpenseCategories(me.householdId),
+    listIncomeCategories(me.householdId),
+    ensureDefaultPaymentMethods(me.householdId),
+    listPersons(me.householdId),
+    listProjects(me.householdId),
+    getMerchantMap(me.householdId),
+    listMerchants(me.householdId),
+    listExpenses(me.householdId),
+  ]);
 
   const knownMerchants = merchants.map((m) => m.name);
-  const existing = expenses.map((e) => ({
-    slug: slug(e.merchant),
-    amount: e.amount,
-    day: toDay(e.spentAt),
-  }));
+  const existing = expenses
+    .filter((e) => (e.kind ?? "expense") !== "income")
+    .map((e) => ({
+      slug: slug(e.merchant),
+      amount: e.amount,
+      day: toDay(e.spentAt),
+    }));
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
-      <PageHeader title="Új kiadás" back="/koltsegek" />
+      <PageHeader title="Új tétel" subtitle="Kiadás vagy bevétel" back="/koltsegek" />
       <CategoryRuleBanner />
       <Card className="mt-6 p-5">
         <ExpenseForm
           action={saveExpenseAction}
+          defaultKind={defaultKind}
           categories={categories}
+          incomeCategories={incomeCategories}
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}

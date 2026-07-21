@@ -448,6 +448,7 @@ export async function deleteRecurringAction(fd: FormData) {
 // ============ TÖMEGES RÖGZÍTÉS (táblázat) ============
 
 type BatchRow = {
+  kind: unknown;
   amount: unknown;
   merchant: unknown;
   categoryId: unknown;
@@ -456,12 +457,11 @@ type BatchRow = {
   projectId: unknown;
   nature: unknown;
   spentAt: unknown;
+  note: unknown;
 };
 
 export async function saveExpensesBatchAction(fd: FormData) {
   const me = await requireUser();
-  const kind: ExpenseKind =
-    String(fd.get("kind") ?? "expense") === "income" ? "income" : "expense";
   let rows: BatchRow[] = [];
   try {
     const parsed = JSON.parse(String(fd.get("rows") ?? "[]"));
@@ -470,22 +470,31 @@ export async function saveExpensesBatchAction(fd: FormData) {
     rows = [];
   }
 
-  const map = kind === "expense" ? await getMerchantMap(me.householdId) : {};
+  const map = await getMerchantMap(me.householdId);
   let saved = 0;
 
   for (const r of rows) {
+    const kind: ExpenseKind =
+      String(r.kind ?? "expense") === "income" ? "income" : "expense";
     const amount = parseAmount(String(r.amount ?? ""));
     const merchant = String(r.merchant ?? "").trim();
     if (amount <= 0 || !merchant) continue;
 
     let categoryId = String(r.categoryId ?? "").trim() || null;
     if (kind === "expense" && !categoryId) categoryId = map[slug(merchant)] ?? null;
-    const paymentMethodId = String(r.paymentMethodId ?? "").trim() || null;
+    const paymentMethodId =
+      kind === "income" ? null : String(r.paymentMethodId ?? "").trim() || null;
     const personId = String(r.personId ?? "").trim() || null;
-    const projectId = String(r.projectId ?? "").trim() || null;
+    const projectId =
+      kind === "income" ? null : String(r.projectId ?? "").trim() || null;
     const nature: ExpenseNature =
-      String(r.nature ?? "avg") === "project" ? "project" : "avg";
+      kind === "income"
+        ? "avg"
+        : String(r.nature ?? "avg") === "project"
+          ? "project"
+          : "avg";
     const spentAt = parseDate(String(r.spentAt ?? ""));
+    const note = String(r.note ?? "").trim();
 
     await saveExpense(me.householdId, {
       kind,
@@ -496,7 +505,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
       personId,
       projectId,
       nature,
-      note: "",
+      note,
       spentAt,
     });
     saved++;
@@ -507,7 +516,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
     revalidatePath("/koltsegek/attekintes");
     revalidatePath("/");
   }
-  redirect(kind === "income" ? "/koltsegek?nezet=bevetel" : "/koltsegek");
+  redirect("/koltsegek");
 }
 
 // ============ MEGLÉVŐK SZERKESZTÉSE (táblázat) ============
