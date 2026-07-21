@@ -17,6 +17,9 @@ import {
   createProject,
   updateProject,
   deleteProject,
+  createMerchant,
+  updateMerchant,
+  deleteMerchant,
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
 import type { PaymentKind } from "@/lib/types";
@@ -91,6 +94,21 @@ export async function createCategoryAction(fd: FormData) {
   await createExpenseCategory(me.householdId, { name, color, icon });
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
+}
+
+// Gyors, helyben létrehozott kategória (táblázatból / űrlapról). Visszaadja az újat.
+export async function createCategoryInline(name: string) {
+  const me = await requireUser();
+  const n = name.trim();
+  if (!n) return null;
+  const cat = await createExpenseCategory(me.householdId, {
+    name: n,
+    color: "sky",
+    icon: "tag",
+  });
+  revalidatePath("/koltsegek");
+  revalidatePath("/koltsegek/beallitasok");
+  return cat;
 }
 
 export async function updateCategoryAction(fd: FormData) {
@@ -232,6 +250,38 @@ export async function deleteProjectAction(fd: FormData) {
   revalidatePath("/koltsegek");
 }
 
+// ============ BOLTOK / KINEK (merchants) ============
+
+export async function createMerchantAction(fd: FormData) {
+  const me = await requireUser();
+  const name = String(fd.get("name") ?? "").trim();
+  const categoryId = String(fd.get("categoryId") ?? "").trim() || null;
+  if (!name) return;
+  await createMerchant(me.householdId, { name, categoryId });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
+export async function updateMerchantAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  const name = String(fd.get("name") ?? "").trim();
+  const categoryId = String(fd.get("categoryId") ?? "").trim() || null;
+  if (!id || !name) return;
+  await updateMerchant(me.householdId, id, { name, categoryId });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
+export async function deleteMerchantAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await deleteMerchant(me.householdId, id);
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
 // ============ TÖMEGES RÖGZÍTÉS (táblázat) ============
 
 type BatchRow = {
@@ -287,4 +337,74 @@ export async function saveExpensesBatchAction(fd: FormData) {
     revalidatePath("/");
   }
   redirect("/koltsegek");
+}
+
+// ============ MEGLÉVŐK SZERKESZTÉSE (táblázat) ============
+
+type EditRow = {
+  id: unknown;
+  amount: unknown;
+  merchant: unknown;
+  categoryId: unknown;
+  paymentMethodId: unknown;
+  personId: unknown;
+  projectId: unknown;
+  spentAt: unknown;
+  note: unknown;
+};
+
+export async function updateExpensesBatchAction(fd: FormData) {
+  const me = await requireUser();
+  let rows: EditRow[] = [];
+  let deletedIds: string[] = [];
+  try {
+    const parsed = JSON.parse(String(fd.get("rows") ?? "[]"));
+    if (Array.isArray(parsed)) rows = parsed;
+  } catch {
+    rows = [];
+  }
+  try {
+    const parsed = JSON.parse(String(fd.get("deletedIds") ?? "[]"));
+    if (Array.isArray(parsed)) deletedIds = parsed.map((x) => String(x)).filter(Boolean);
+  } catch {
+    deletedIds = [];
+  }
+
+  for (const id of deletedIds) {
+    await deleteExpense(me.householdId, id);
+  }
+
+  const map = await getMerchantMap(me.householdId);
+  for (const r of rows) {
+    const id = String(r.id ?? "").trim();
+    if (!id) continue; // csak meglévőket frissítünk itt
+    const amount = parseAmount(String(r.amount ?? ""));
+    const merchant = String(r.merchant ?? "").trim();
+    if (amount <= 0 || !merchant) continue;
+
+    let categoryId = String(r.categoryId ?? "").trim() || null;
+    if (!categoryId) categoryId = map[slug(merchant)] ?? null;
+    const paymentMethodId = String(r.paymentMethodId ?? "").trim() || null;
+    const personId = String(r.personId ?? "").trim() || null;
+    const projectId = String(r.projectId ?? "").trim() || null;
+    const spentAt = parseDate(String(r.spentAt ?? ""));
+    const note = String(r.note ?? "");
+
+    await saveExpense(me.householdId, {
+      id,
+      amount,
+      merchant,
+      categoryId,
+      paymentMethodId,
+      personId,
+      projectId,
+      note,
+      spentAt,
+    });
+  }
+
+  revalidatePath("/koltsegek");
+  revalidatePath("/koltsegek/tabla");
+  revalidatePath("/");
+  redirect("/koltsegek/tabla");
 }

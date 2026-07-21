@@ -12,7 +12,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Wallet, Plus, Table2, SlidersHorizontal } from "lucide-react";
+import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine } from "lucide-react";
 import { ExpensesDashboard } from "./ExpensesDashboard";
 
 export default async function KoltsegekPage() {
@@ -59,13 +59,26 @@ export default async function KoltsegekPage() {
         </Button>
       </div>
 
+      {expenses.length > 0 && (
+        <Link
+          href="/koltsegek/tabla"
+          className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-[var(--color-border)] px-4 h-11 text-sm font-medium text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-foreground)] transition"
+        >
+          <span className="flex items-center gap-2">
+            <PencilLine className="w-4 h-4" />
+            Meglévő kiadások szerkesztése egyben
+          </span>
+          <span className="text-[var(--color-primary)]">Táblázat</span>
+        </Link>
+      )}
+
       <Link
         href="/koltsegek/beallitasok"
         className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-[var(--color-border)] px-4 h-11 text-sm font-medium text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-foreground)] transition"
       >
         <span className="flex items-center gap-2">
           <SlidersHorizontal className="w-4 h-4" />
-          Kategóriák · kártyák · személyek
+          Kategóriák · boltok · kártyák · személyek
         </span>
         <span className="text-[var(--color-primary)]">Beállítások</span>
       </Link>

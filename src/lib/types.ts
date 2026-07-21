@@ -294,6 +294,15 @@ export type Project = {
   createdAt: number;
 };
 
+// Bolt / kinek (pl. Lidl, Shell, Spotify) — kezelt lista, megjegyzi az alap-kategóriát.
+// A dropdown ebből épül, és Beállításokban szerkeszthető.
+export type Merchant = {
+  id: string;
+  name: string;
+  categoryId: string | null; // alapértelmezett kategória, amit kiválasztáskor auto-kitölt
+  createdAt: number;
+};
+
 export type Expense = {
   id: string;
   amount: number;                 // Ft

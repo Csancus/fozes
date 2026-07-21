@@ -6,7 +6,8 @@ import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { Check, Sparkles, Plus } from "lucide-react";
+import { Check, Sparkles, Plus, AlertTriangle } from "lucide-react";
+import { createCategoryInline } from "./actions";
 import type {
   Expense,
   ExpenseCategory,
@@ -40,6 +41,7 @@ export function ExpenseForm({
   merchantMap,
   knownMerchants,
   initial,
+  existing = [],
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
@@ -49,7 +51,9 @@ export function ExpenseForm({
   merchantMap: Record<string, string>;
   knownMerchants: string[];
   initial?: Expense | null;
+  existing?: { slug: string; amount: number; day: string }[];
 }) {
+  const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [merchant, setMerchant] = useState(initial?.merchant ?? "");
   const [categoryId, setCategoryId] = useState<string | null>(
     initial?.categoryId ?? null
@@ -66,6 +70,40 @@ export function ExpenseForm({
   const [autoApplied, setAutoApplied] = useState(false);
   const manual = useRef(!!initial?.categoryId);
 
+  const [dupWarn, setDupWarn] = useState(false);
+  const confirmedRef = useRef(false);
+  const formRef = useRef<HTMLFormElement>(null);
+
+  async function addCategoryInline() {
+    const name = window.prompt("Új kategória neve:");
+    if (!name || !name.trim()) return;
+    const cat = await createCategoryInline(name.trim());
+    if (cat) {
+      setCatList((cur) => [...cur, cat]);
+      manual.current = true;
+      setAutoApplied(false);
+      setCategoryId(cat.id);
+    }
+  }
+
+  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
+    if (initial || confirmedRef.current) return; // szerkesztésnél / megerősítés után nincs check
+    const fd = new FormData(e.currentTarget);
+    const amt = Math.round(
+      Number(String(fd.get("amount") ?? "").replace(/\s/g, "").replace(",", "."))
+    );
+    const s = slugify(String(fd.get("merchant") ?? ""));
+    const day = String(fd.get("spentAt") ?? "");
+    const isDup =
+      amt > 0 &&
+      !!s &&
+      existing.some((x) => x.slug === s && x.amount === amt && x.day === day);
+    if (isDup) {
+      e.preventDefault();
+      setDupWarn(true);
+    }
+  }
+
   const dateDefault = useMemo(() => {
     if (initial?.spentAt) {
       const d = new Date(initial.spentAt);
@@ -80,7 +118,7 @@ export function ExpenseForm({
     setMerchant(v);
     if (manual.current) return;
     const mapped = merchantMap[slugify(v)];
-    if (mapped && categories.some((c) => c.id === mapped)) {
+    if (mapped && catList.some((c) => c.id === mapped)) {
       setCategoryId(mapped);
       setAutoApplied(true);
     } else if (autoApplied) {
@@ -95,7 +133,7 @@ export function ExpenseForm({
   }
 
   return (
-    <form action={action} className="space-y-5">
+    <form ref={formRef} action={action} onSubmit={onSubmit} className="space-y-5">
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="categoryId" value={categoryId ?? ""} />
       <input type="hidden" name="paymentMethodId" value={paymentMethodId ?? ""} />
@@ -140,7 +178,7 @@ export function ExpenseForm({
           )}
         </div>
         <div className="flex flex-wrap gap-2">
-          {categories.map((c) => {
+          {catList.map((c) => {
             const col = catColor(c.color);
             const Icon = catIcon(c.icon);
             const active = categoryId === c.id;
@@ -162,6 +200,14 @@ export function ExpenseForm({
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={addCategoryInline}
+            className="inline-flex items-center gap-1 rounded-full pl-2 pr-3 h-9 text-[13px] font-medium border border-dashed border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)] transition"
+          >
+            <Plus className="w-4 h-4" />
+            Új kategória
+          </button>
         </div>
       </div>
 
@@ -275,6 +321,39 @@ export function ExpenseForm({
           className="min-h-20"
         />
       </Field>
+
+      {dupWarn && (
+        <div className="rounded-xl border border-amber-400/70 bg-amber-50 dark:bg-amber-500/10 p-3.5 text-sm">
+          <p className="flex items-start gap-2 text-amber-800 dark:text-amber-300">
+            <AlertTriangle className="w-4 h-4 mt-0.5 shrink-0" />
+            <span>
+              Ezen a napon már van <strong>{merchant}</strong> tétel ugyanennyiért.
+              Biztosan nem duplikáció?
+            </span>
+          </p>
+          <div className="mt-3 flex gap-2">
+            <Button
+              type="button"
+              size="sm"
+              onClick={() => {
+                confirmedRef.current = true;
+                setDupWarn(false);
+                formRef.current?.requestSubmit();
+              }}
+            >
+              Mégis rögzítem
+            </Button>
+            <Button
+              type="button"
+              size="sm"
+              variant="secondary"
+              onClick={() => setDupWarn(false)}
+            >
+              Mégse
+            </Button>
+          </div>
+        </div>
+      )}
 
       <Button type="submit" size="lg" fullWidth>
         {initial ? "Mentés" : "Kiadás rögzítése"}

@@ -8,6 +8,7 @@ import {
   listPersons,
   listProjects,
   getMerchantMap,
+  ensureMerchantsFromHistory,
 } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -25,6 +26,7 @@ export default async function EditExpensePage({
   const { id } = await params;
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
+  await ensureMerchantsFromHistory(me.householdId);
 
   const [
     expense,

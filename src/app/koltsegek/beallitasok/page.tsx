@@ -6,6 +6,8 @@ import {
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
+  listMerchants,
+  ensureMerchantsFromHistory,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
@@ -23,24 +25,30 @@ import {
   createProjectAction,
   updateProjectAction,
   deleteProjectAction,
+  createMerchantAction,
+  updateMerchantAction,
+  deleteMerchantAction,
 } from "../actions";
 
 export default async function BeallitasokPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
-  const [categories, paymentMethods, persons, projects] = await Promise.all([
-    listExpenseCategories(me.householdId),
-    listPaymentMethods(me.householdId),
-    listPersons(me.householdId),
-    listProjects(me.householdId),
-  ]);
+  await ensureMerchantsFromHistory(me.householdId);
+  const [categories, paymentMethods, persons, projects, merchants] =
+    await Promise.all([
+      listExpenseCategories(me.householdId),
+      listPaymentMethods(me.householdId),
+      listPersons(me.householdId),
+      listProjects(me.householdId),
+      listMerchants(me.householdId),
+    ]);
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader
         title="Beállítások"
-        subtitle="Kategóriák, kártyák, személyek, projektek"
+        subtitle="Kategóriák, boltok, kártyák, személyek, projektek"
         back="/koltsegek"
       />
 
@@ -51,6 +59,29 @@ export default async function BeallitasokPage() {
           createAction={createCategoryAction}
           updateAction={updateCategoryAction}
           deleteAction={deleteCategoryAction}
+        />
+      </Section>
+
+      <Section
+        title="Boltok / kinek"
+        className="mt-10"
+      >
+        <p className="-mt-2 mb-3 text-xs text-[var(--color-muted-foreground)]">
+          A rögzített boltok itt jelennek meg. Az alap-kategóriát rögzítéskor
+          automatikusan kitölti, amikor ezt a boltot választod.
+        </p>
+        <EntityManager
+          variant="merchant"
+          items={merchants.map((m) => ({
+            id: m.id,
+            name: m.name,
+            color: "zinc",
+            categoryId: m.categoryId,
+          }))}
+          categories={categories}
+          createAction={createMerchantAction}
+          updateAction={updateMerchantAction}
+          deleteAction={deleteMerchantAction}
         />
       </Section>
 

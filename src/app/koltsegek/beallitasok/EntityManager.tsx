@@ -15,9 +15,9 @@ import {
 import { PAYMENT_KIND_LABEL } from "@/lib/types";
 import type { PaymentKind } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { Plus, Pencil, X, Check, FolderKanban } from "lucide-react";
+import { Plus, Pencil, X, Check, FolderKanban, Store } from "lucide-react";
 
-export type Variant = "category" | "payment" | "person" | "project";
+export type Variant = "category" | "payment" | "person" | "project" | "merchant";
 
 export type EntityItem = {
   id: string;
@@ -26,6 +26,14 @@ export type EntityItem = {
   icon?: string;
   kind?: PaymentKind;
   last4?: string | null;
+  categoryId?: string | null;
+};
+
+export type CategoryLite = {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
 };
 
 const KINDS: PaymentKind[] = ["card", "transfer", "cash"];
@@ -35,6 +43,7 @@ const DEFAULT_COLOR: Record<Variant, string> = {
   payment: "indigo",
   person: "rose",
   project: "violet",
+  merchant: "zinc",
 };
 
 const ADD_LABEL: Record<Variant, string> = {
@@ -42,6 +51,7 @@ const ADD_LABEL: Record<Variant, string> = {
   payment: "Fizetési mód hozzáadása",
   person: "Személy hozzáadása",
   project: "Projekt hozzáadása",
+  merchant: "Bolt / kinek hozzáadása",
 };
 
 const NAME_PLACEHOLDER: Record<Variant, string> = {
@@ -49,6 +59,7 @@ const NAME_PLACEHOLDER: Record<Variant, string> = {
   payment: "pl. OTP Mastercard",
   person: "pl. Anikó, Csanád",
   project: "pl. Autóvásárlás, Olaszország-út",
+  merchant: "pl. Lidl, Shell, Spotify",
 };
 
 function ColorPicker({
@@ -86,9 +97,11 @@ function ColorPicker({
 function Fields({
   variant,
   initial,
+  categories = [],
 }: {
   variant: Variant;
   initial?: EntityItem;
+  categories?: CategoryLite[];
 }) {
   const [color, setColor] = useState(initial?.color ?? DEFAULT_COLOR[variant]);
   const [icon, setIcon] = useState(initial?.icon ?? "tag");
@@ -96,7 +109,9 @@ function Fields({
 
   return (
     <div className="space-y-4">
-      <input type="hidden" name="color" value={color} />
+      {variant !== "merchant" && (
+        <input type="hidden" name="color" value={color} />
+      )}
       {variant === "category" && <input type="hidden" name="icon" value={icon} />}
       {variant === "payment" && <input type="hidden" name="kind" value={kind} />}
 
@@ -137,6 +152,26 @@ function Fields({
         />
       </Field>
 
+      {variant === "merchant" && (
+        <Field
+          label="Alap-kategória"
+          hint="Ezt tölti ki automatikusan, amikor ezt a boltot választod"
+        >
+          <select
+            name="categoryId"
+            defaultValue={initial?.categoryId ?? ""}
+            className="h-11 w-full rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)]"
+          >
+            <option value="">— Nincs —</option>
+            {categories.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+
       {variant === "payment" && kind === "card" && (
         <Field label="Utolsó 4 számjegy" hint="Nem kötelező">
           <Input
@@ -149,10 +184,12 @@ function Fields({
         </Field>
       )}
 
-      <div>
-        <span className="block text-sm font-medium mb-2">Szín</span>
-        <ColorPicker value={color} onChange={setColor} />
-      </div>
+      {variant !== "merchant" && (
+        <div>
+          <span className="block text-sm font-medium mb-2">Szín</span>
+          <ColorPicker value={color} onChange={setColor} />
+        </div>
+      )}
 
       {variant === "category" && (
         <div>
@@ -186,15 +223,32 @@ function Fields({
   );
 }
 
-function Visual({ variant, item }: { variant: Variant; item: EntityItem }) {
-  const col = catColor(item.color);
+function Visual({
+  variant,
+  item,
+  cat,
+}: {
+  variant: Variant;
+  item: EntityItem;
+  cat?: CategoryLite | null;
+}) {
   if (variant === "person") {
+    const col = catColor(item.color);
     return (
       <span className={cn("w-9 h-9 rounded-full flex items-center justify-center text-white font-semibold text-sm shrink-0", col.dot)}>
         {item.name.slice(0, 1).toUpperCase()}
       </span>
     );
   }
+  if (variant === "merchant") {
+    const col = catColor(cat?.color ?? "zinc");
+    return (
+      <span className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
+        <Store className="w-5 h-5" />
+      </span>
+    );
+  }
+  const col = catColor(item.color);
   const Icon =
     variant === "category"
       ? catIcon(item.icon ?? "tag")
@@ -214,14 +268,17 @@ export function EntityManager({
   createAction,
   updateAction,
   deleteAction,
+  categories = [],
 }: {
   variant: Variant;
   items: EntityItem[];
   createAction: (fd: FormData) => void | Promise<void>;
   updateAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
+  categories?: CategoryLite[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const catById = new Map(categories.map((c) => [c.id, c]));
 
   return (
     <div>
@@ -232,7 +289,7 @@ export function EntityManager({
               <Card className="p-5">
                 <form action={updateAction} className="space-y-4">
                   <input type="hidden" name="id" value={item.id} />
-                  <Fields variant={variant} initial={item} />
+                  <Fields variant={variant} initial={item} categories={categories} />
                   <div className="flex gap-2">
                     <Button
                       type="submit"
@@ -256,7 +313,11 @@ export function EntityManager({
             <li key={item.id}>
               <Card className="p-3">
                 <div className="flex items-center gap-3">
-                  <Visual variant={variant} item={item} />
+                  <Visual
+                    variant={variant}
+                    item={item}
+                    cat={item.categoryId ? catById.get(item.categoryId) : null}
+                  />
                   <div className="flex-1 min-w-0">
                     <p className="font-medium truncate">
                       {item.name}
@@ -267,6 +328,13 @@ export function EntityManager({
                     {variant === "payment" && item.kind && (
                       <p className="text-xs text-[var(--color-muted-foreground)]">
                         {PAYMENT_KIND_LABEL[item.kind]}
+                      </p>
+                    )}
+                    {variant === "merchant" && (
+                      <p className="text-xs text-[var(--color-muted-foreground)] truncate">
+                        {item.categoryId
+                          ? catById.get(item.categoryId)?.name ?? "Ismeretlen kategória"
+                          : "Nincs alap-kategória"}
                       </p>
                     )}
                   </div>
@@ -293,7 +361,7 @@ export function EntityManager({
 
       <Card className="mt-3 p-5">
         <form action={createAction} className="space-y-4">
-          <Fields variant={variant} />
+          <Fields variant={variant} categories={categories} />
           <Button
             type="submit"
             size="lg"

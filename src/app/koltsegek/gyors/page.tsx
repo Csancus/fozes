@@ -1,35 +1,36 @@
 import { requireUser } from "@/lib/auth";
 import {
-  listExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
+  listMerchants,
+  ensureMerchantsFromHistory,
   getMerchantMap,
 } from "@/lib/data";
 import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BatchEntry } from "./BatchEntry";
+import { CategoryRuleBanner } from "../CategoryRuleBanner";
 import { saveExpensesBatchAction } from "../actions";
 
 export default async function BatchPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
-  const [categories, paymentMethods, persons, projects, merchantMap, expenses] =
+  await ensureMerchantsFromHistory(me.householdId);
+  const [categories, paymentMethods, persons, projects, merchantMap, merchants] =
     await Promise.all([
       listExpenseCategories(me.householdId),
       ensureDefaultPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listProjects(me.householdId),
       getMerchantMap(me.householdId),
-      listExpenses(me.householdId),
+      listMerchants(me.householdId),
     ]);
 
-  const knownMerchants = [...new Set(expenses.map((e) => e.merchant))]
-    .filter(Boolean)
-    .sort((a, b) => a.localeCompare(b, "hu"));
+  const knownMerchants = merchants.map((m) => m.name);
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-6xl mx-auto">
@@ -54,6 +55,7 @@ export default async function BatchPage() {
         </Link>
         .
       </p>
+      <CategoryRuleBanner />
       <BatchEntry
         action={saveExpensesBatchAction}
         categories={categories}

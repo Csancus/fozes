@@ -12,6 +12,7 @@ import type {
   PaymentMethod,
   Person,
   Project,
+  Merchant,
   SavedItem,
 } from "./types";
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_PAYMENT_METHODS } from "./types";
@@ -441,23 +442,113 @@ export async function ensureDefaultExpenseCategories(
 
 // ============ MERCHANT → CATEGORY MEMORY ============
 
+// ============ MERCHANTS (boltok / kinek) ============
+
+export async function listMerchants(hh: string): Promise<Merchant[]> {
+  const ids = await redis.smembers(key.merchants(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<Merchant>(key.merchant(hh, id)))
+  );
+  return items
+    .filter((m): m is Merchant => !!m)
+    .sort((a, b) => a.name.localeCompare(b.name, "hu"));
+}
+
+export async function getMerchant(hh: string, id: string) {
+  return redis.get<Merchant>(key.merchant(hh, id));
+}
+
+export async function createMerchant(
+  hh: string,
+  input: { name: string; categoryId: string | null }
+): Promise<Merchant> {
+  const m: Merchant = {
+    id: newId(),
+    name: input.name.trim(),
+    categoryId: input.categoryId,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.merchant(hh, m.id), m);
+  await redis.sadd(key.merchants(hh), m.id);
+  return m;
+}
+
+export async function updateMerchant(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<Merchant, "name" | "categoryId">>
+) {
+  const cur = await getMerchant(hh, id);
+  if (!cur) return null;
+  const next: Merchant = {
+    ...cur,
+    ...patch,
+    name: (patch.name ?? cur.name).trim(),
+  };
+  await redis.set(key.merchant(hh, id), next);
+  return next;
+}
+
+export async function deleteMerchant(hh: string, id: string) {
+  await redis.del(key.merchant(hh, id));
+  await redis.srem(key.merchants(hh), id);
+}
+
+// Kiadás mentésekor: ha a bolt még nincs a listában, felvesszük; ha még nincs
+// alap-kategóriája és most kaptunk egyet, beállítjuk (első hozzárendelés nyer).
+export async function ensureMerchant(
+  hh: string,
+  name: string,
+  categoryId: string | null
+): Promise<void> {
+  const s = slug(name);
+  if (!s) return;
+  const list = await listMerchants(hh);
+  const found = list.find((m) => slug(m.name) === s);
+  if (found) {
+    if (!found.categoryId && categoryId) {
+      await updateMerchant(hh, found.id, { categoryId });
+    }
+    return;
+  }
+  await createMerchant(hh, { name: name.trim(), categoryId });
+}
+
+// Egyszeri feltöltés a korábbi kiadásokból + a régi slug→kategória hash-ből.
+// Idempotens: ha már van merchant-lista, nem csinál semmit (onnantól a saveExpense tartja karban).
+export async function ensureMerchantsFromHistory(hh: string): Promise<void> {
+  const existing = await redis.smembers(key.merchants(hh));
+  if (existing.length > 0) return;
+  const [expenses, oldMap] = await Promise.all([
+    listExpenses(hh),
+    redis.hgetall<Record<string, string>>(key.expenseMerchants(hh)),
+  ]);
+  const map = oldMap ?? {};
+  const seen = new Map<string, { name: string; categoryId: string | null }>();
+  for (const e of expenses) {
+    const s = slug(e.merchant);
+    if (!s || seen.has(s)) continue; // listExpenses csökkenő spentAt → legfrissebb név nyer
+    seen.set(s, {
+      name: e.merchant.trim(),
+      categoryId: map[s] ?? e.categoryId ?? null,
+    });
+  }
+  for (const v of seen.values()) {
+    await createMerchant(hh, { name: v.name, categoryId: v.categoryId });
+  }
+}
+
+// A form/táblázat auto-kitöltéséhez: slug(bolt) → categoryId, a szerkeszthető listából.
 export async function getMerchantMap(
   hh: string
 ): Promise<Record<string, string>> {
-  const map = await redis.hgetall<Record<string, string>>(
-    key.expenseMerchants(hh)
-  );
-  return map ?? {};
-}
-
-export async function rememberMerchantCategory(
-  hh: string,
-  merchant: string,
-  categoryId: string
-) {
-  const s = slug(merchant);
-  if (!s) return;
-  await redis.hset(key.expenseMerchants(hh), { [s]: categoryId });
+  const list = await listMerchants(hh);
+  const map: Record<string, string> = {};
+  for (const m of list) {
+    if (m.categoryId) map[slug(m.name)] = m.categoryId;
+  }
+  return map;
 }
 
 // ============ PAYMENT METHODS ============
@@ -659,9 +750,9 @@ export async function saveExpense(
   };
   await redis.set(key.expense(hh, id), e);
   await redis.sadd(key.expenses(hh), id);
-  // Tanulás: jegyezzük meg a bolt → kategória párosítást.
-  if (e.merchant && e.categoryId) {
-    await rememberMerchantCategory(hh, e.merchant, e.categoryId);
+  // A boltot mindig felvesszük a kezelt listába (dropdown), és megjegyezzük a kategóriát.
+  if (e.merchant) {
+    await ensureMerchant(hh, e.merchant, e.categoryId);
   }
   return e;
 }

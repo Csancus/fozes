@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
+import { CategorySelect } from "../CategorySelect";
 import type {
   ExpenseCategory,
   PaymentMethod,
@@ -81,6 +82,7 @@ export function BatchEntry({
   merchantMap: Record<string, string>;
   knownMerchants: string[];
 }) {
+  const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [rows, setRows] = useState<Row[]>(() => [
     emptyRow(),
     emptyRow(),
@@ -96,7 +98,7 @@ export function BatchEntry({
         const next = { ...r, ...patch };
         if (patch.merchant !== undefined && !next.categoryId) {
           const mapped = merchantMap[slugify(patch.merchant)];
-          if (mapped && categories.some((c) => c.id === mapped)) {
+          if (mapped && catList.some((c) => c.id === mapped)) {
             next.categoryId = mapped;
           }
         }
@@ -205,18 +207,13 @@ export function BatchEntry({
                   />
                 </td>
                 <td>
-                  <select
+                  <CategorySelect
+                    categories={catList}
                     value={r.categoryId}
-                    onChange={(e) => update(r.key, { categoryId: e.target.value })}
+                    onChange={(id) => update(r.key, { categoryId: id })}
+                    onCreated={(c) => setCatList((cur) => [...cur, c])}
                     className={cn(ctrl, "appearance-none")}
-                  >
-                    <option value="">—</option>
-                    {categories.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.name}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </td>
                 <td>
                   <select
