@@ -65,6 +65,7 @@ export function ExpenseOcrImport({
   const [busy, setBusy] = useState(false);
   const [progress, setProgress] = useState<{ done: number; total: number; pct: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
+  const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const dragDepth = useRef(0);
 
@@ -209,9 +210,10 @@ export function ExpenseOcrImport({
                   <img
                     src={im.url}
                     alt={im.name}
-                    className="w-full h-28 object-cover rounded-lg border border-[var(--color-border)]"
+                    onClick={() => setPreview(im.url)}
+                    className="w-full h-28 object-cover rounded-lg border border-[var(--color-border)] cursor-zoom-in"
                   />
-                  <span className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white tabular-nums">
+                  <span className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white tabular-nums pointer-events-none">
                     {im.rows.length} tétel
                   </span>
                   <button
@@ -281,6 +283,31 @@ export function ExpenseOcrImport({
           >
             Képek feltöltése
           </Button>
+        </div>
+      )}
+
+      {preview && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm"
+          onClick={() => setPreview(null)}
+          role="dialog"
+          aria-modal="true"
+        >
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview}
+            alt="Nagyított kép"
+            onClick={(e) => e.stopPropagation()}
+            className="max-w-full max-h-[90vh] rounded-xl shadow-2xl object-contain"
+          />
+          <button
+            type="button"
+            onClick={() => setPreview(null)}
+            aria-label="Bezárás"
+            className="absolute top-4 right-4 w-10 h-10 rounded-full bg-white/15 text-white flex items-center justify-center hover:bg-white/25 transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
       )}
     </div>
