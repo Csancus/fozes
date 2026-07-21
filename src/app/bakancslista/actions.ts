@@ -57,6 +57,79 @@ function parseFiles(raw: string): IncomingFile[] {
   }
 }
 
+// Több, képből (OCR) készült piszkozat mentése egyszerre.
+type OcrDraft = {
+  title?: string;
+  kind?: string;
+  location?: string;
+  note?: string;
+  tags?: string;
+  imageUrl?: string;
+  links?: { url?: string; label?: string }[];
+  surpriseFor?: string;
+};
+
+export async function saveOcrDraftsAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+
+  let drafts: OcrDraft[] = [];
+  try {
+    const parsed = JSON.parse(String(fd.get("drafts") ?? "[]"));
+    if (Array.isArray(parsed)) drafts = parsed;
+  } catch {
+    drafts = [];
+  }
+
+  const now = Date.now();
+  let saved = 0;
+
+  for (const d of drafts) {
+    const title = String(d.title ?? "").trim();
+    if (!title) continue;
+    const kind = String(d.kind ?? "").trim() || "egyeb";
+    const tags = String(d.tags ?? "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+    const links: SavedLink[] = Array.isArray(d.links)
+      ? d.links
+          .map((l) => ({
+            url: String(l?.url ?? "").trim(),
+            label: String(l?.label ?? "").trim(),
+          }))
+          .filter((l) => l.url)
+      : [];
+    const imageUrl = String(d.imageUrl ?? "").trim() || null;
+    const surpriseFor = String(d.surpriseFor ?? "").trim() || null;
+
+    const item: SavedItem = {
+      id: newId(),
+      title,
+      kind,
+      note: String(d.note ?? "").trim(),
+      location: String(d.location ?? "").trim(),
+      imageUrl,
+      links,
+      files: [],
+      tags,
+      done: false,
+      doneAt: null,
+      surpriseFor,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await saveSavedItem(hh, item);
+    saved++;
+  }
+
+  if (saved > 0) {
+    revalidatePath("/bakancslista");
+    revalidatePath("/");
+  }
+  redirect("/bakancslista");
+}
+
 export async function saveSavedAction(fd: FormData) {
   const me = await requireUser();
   const hh = me.householdId;

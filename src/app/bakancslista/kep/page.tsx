@@ -6,7 +6,7 @@ import {
   ensureDefaultSavedTypes,
 } from "@/lib/data";
 import { OcrImport } from "./OcrImport";
-import { saveSavedAction } from "../actions";
+import { saveOcrDraftsAction } from "../actions";
 
 export default async function OcrImportPage() {
   const me = await requireUser();
@@ -19,11 +19,11 @@ export default async function OcrImportPage() {
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
       <PageHeader
         title="Kép a listára"
-        subtitle="Képernyőképből kiolvasott elem"
+        subtitle="Képekből kiolvasott elemek — húzd be vagy tallózz"
         back="/bakancslista"
       />
       <OcrImport
-        action={saveSavedAction}
+        action={saveOcrDraftsAction}
         types={types}
         members={members}
         myId={me.userId}
