@@ -53,6 +53,7 @@ type Row = {
   projectId: string;
   nature: string;
   review: boolean;
+  recurring: boolean;
   spentAt: string;
   note: string;
 };
@@ -71,6 +72,7 @@ function emptyRow(kind: ExpenseKind = "expense"): Row {
     projectId: "",
     nature: "avg",
     review: false,
+    recurring: false,
     spentAt: todayStr(),
     note: "",
   };
@@ -89,6 +91,7 @@ const COL_W: Record<string, number> = {
   person: 120,
   project: 130,
   review: 120,
+  recurring: 120,
   date: 150,
   note: 200,
 };
@@ -129,19 +132,20 @@ export function BatchEntry({
       { key: "amount", label: "Összeg", alwaysOn: true },
       { key: "merchant", label: "Megnevezés", alwaysOn: true },
       { key: "category", label: "Kategória" },
-      { key: "nature", label: "Jelleg", defaultHidden: true },
-      { key: "payment", label: "Fizetés", defaultHidden: true },
+      { key: "nature", label: "Jelleg" },
+      { key: "payment", label: "Fizetés" },
     ];
-    if (persons.length) cols.push({ key: "person", label: "Ki / Kinek", defaultHidden: true });
-    if (projects.length) cols.push({ key: "project", label: "Projekt", defaultHidden: true });
-    cols.push({ key: "review", label: "Felülvizsgálat", defaultHidden: true });
+    if (persons.length) cols.push({ key: "person", label: "Ki / Kinek" });
+    if (projects.length) cols.push({ key: "project", label: "Projekt" });
+    cols.push({ key: "review", label: "Felülvizsgálat" });
+    cols.push({ key: "recurring", label: "Ismétlődő" });
     cols.push({ key: "date", label: "Dátum" });
     cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
   }, [persons.length, projects.length]);
 
   const { isVisible, hidden, toggle } = useColumnVisibility(
-    "cols:gyors-unified",
+    "cols:gyors-unified-v2",
     allColumns
   );
 
@@ -214,6 +218,7 @@ export function BatchEntry({
       projectId: r.kind === "income" ? "" : r.projectId,
       nature: r.kind === "income" ? "avg" : r.nature,
       review: r.review,
+      recurring: r.recurring,
       spentAt: r.spentAt,
       note: r.note,
     }))
@@ -257,6 +262,7 @@ export function BatchEntry({
               {showPerson && <th className="font-semibold px-1 w-28">Ki / Kinek</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
+              {isVisible("recurring") && <th className="font-semibold px-1 w-28 text-center">Ismétlődő</th>}
               {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
               {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
               <th className="w-7" />
@@ -399,6 +405,19 @@ export function BatchEntry({
                           onChange={(e) => update(r.key, { review: e.target.checked })}
                           className="w-4 h-4 accent-amber-500"
                           aria-label="Felülvizsgálat"
+                        />
+                      </div>
+                    </td>
+                  )}
+                  {isVisible("recurring") && (
+                    <td>
+                      <div className={cn(ctrl, "flex items-center justify-center")}>
+                        <input
+                          type="checkbox"
+                          checked={r.recurring}
+                          onChange={(e) => update(r.key, { recurring: e.target.checked })}
+                          className="w-4 h-4 accent-[var(--color-primary)]"
+                          aria-label="Ismétlődő havonta"
                         />
                       </div>
                     </td>

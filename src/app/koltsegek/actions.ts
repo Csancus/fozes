@@ -471,6 +471,7 @@ type BatchRow = {
   projectId: unknown;
   nature: unknown;
   review: unknown;
+  recurring: unknown;
   spentAt: unknown;
   note: unknown;
 };
@@ -526,11 +527,32 @@ export async function saveExpensesBatchAction(fd: FormData) {
       spentAt,
     });
     saved++;
+
+    // Ismétlődő jelölés → havi szabály (a rögzített hónapot a mostani tétel fedi le).
+    if (r.recurring === true) {
+      const d = new Date(spentAt);
+      const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+      await createRecurring(me.householdId, {
+        kind,
+        amount,
+        merchant,
+        categoryId,
+        paymentMethodId,
+        personId,
+        projectId,
+        nature,
+        note,
+        dayOfMonth: d.getDate(),
+        active: true,
+        lastRunPeriod: period,
+      });
+    }
   }
 
   if (saved > 0) {
     revalidatePath("/koltsegek");
     revalidatePath("/koltsegek/attekintes");
+    revalidatePath("/koltsegek/ismetlodo");
     revalidatePath("/");
   }
   redirect("/koltsegek");

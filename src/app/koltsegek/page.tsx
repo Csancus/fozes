@@ -15,7 +15,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, BarChart3, ListChecks } from "lucide-react";
+import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, ListChecks } from "lucide-react";
 import { ExpensesDashboard } from "./ExpensesDashboard";
 
 export default async function KoltsegekPage() {
@@ -51,17 +51,7 @@ export default async function KoltsegekPage() {
         }
       />
 
-      <Button
-        href="/koltsegek/attekintes"
-        size="lg"
-        fullWidth
-        className="mt-5"
-        leftIcon={<BarChart3 className="w-4 h-4" />}
-      >
-        Áttekintés (dashboard)
-      </Button>
-
-      <div className="mt-3 grid grid-cols-2 gap-3">
+      <div className="mt-5 grid grid-cols-2 gap-3">
         <Button href="/koltsegek/uj" size="lg" leftIcon={<Plus className="w-4 h-4" />}>
           Új tétel
         </Button>

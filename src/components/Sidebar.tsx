@@ -58,8 +58,8 @@ const cooking: NavItem[] = [
 ];
 
 const costs: NavItem[] = [
-  { href: "/koltsegek", label: "Költségkezelés", icon: Wallet },
   { href: "/koltsegek/attekintes", label: "Áttekintés", icon: LayoutDashboard },
+  { href: "/koltsegek", label: "Költségkezelés", icon: Wallet },
   { href: "/koltsegek/gyors", label: "Gyors rögzítés", icon: Table2 },
   { href: "/koltsegek/teendok", label: "Teendők", icon: ListChecks },
   { href: "/koltsegek/beallitasok", label: "Beállítások", icon: SlidersHorizontal },
