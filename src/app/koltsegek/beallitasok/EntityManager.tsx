@@ -16,7 +16,7 @@ import {
 import { PAYMENT_KIND_LABEL } from "@/lib/types";
 import type { PaymentKind } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { Plus, Pencil, X, Check, FolderKanban, Store } from "lucide-react";
+import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid } from "lucide-react";
 
 export type Variant = "category" | "payment" | "person" | "project" | "merchant";
 
@@ -279,85 +279,152 @@ export function EntityManager({
   categories?: CategoryLite[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
+  const [view, setView] = useState<"list" | "board">("list");
   const catById = new Map(categories.map((c) => [c.id, c]));
+
+  function subtitle(item: EntityItem): string | null {
+    if (variant === "payment" && item.kind) return PAYMENT_KIND_LABEL[item.kind];
+    if (variant === "merchant")
+      return item.categoryId
+        ? catById.get(item.categoryId)?.name ?? "Ismeretlen kategória"
+        : "Nincs alap-kategória";
+    return null;
+  }
+
+  function EditCard({ item }: { item: EntityItem }) {
+    return (
+      <Card className="p-5">
+        <form action={updateAction} className="space-y-4">
+          <input type="hidden" name="id" value={item.id} />
+          <Fields variant={variant} initial={item} categories={categories} />
+          <div className="flex gap-2">
+            <SubmitButton fullWidth leftIcon={<Check className="w-4 h-4" />}>
+              Mentés
+            </SubmitButton>
+            <Button
+              type="button"
+              variant="secondary"
+              onClick={() => setEditingId(null)}
+            >
+              Mégse
+            </Button>
+          </div>
+        </form>
+      </Card>
+    );
+  }
 
   return (
     <div>
-      <ul className="space-y-2">
-        {items.map((item) =>
-          editingId === item.id ? (
+      {/* Nézetváltó */}
+      <div className="flex justify-end mb-2">
+        <div className="inline-flex rounded-lg border border-[var(--color-border)] p-0.5">
+          <ViewBtn active={view === "list"} onClick={() => setView("list")} label="Lista">
+            <List className="w-4 h-4" />
+          </ViewBtn>
+          <ViewBtn active={view === "board"} onClick={() => setView("board")} label="Board">
+            <LayoutGrid className="w-4 h-4" />
+          </ViewBtn>
+        </div>
+      </div>
+
+      {view === "list" ? (
+        <ul className="space-y-2">
+          {items.map((item) => (
             <li key={item.id}>
-              <Card className="p-5">
-                <form action={updateAction} className="space-y-4">
-                  <input type="hidden" name="id" value={item.id} />
-                  <Fields variant={variant} initial={item} categories={categories} />
-                  <div className="flex gap-2">
-                    <SubmitButton
-                      fullWidth
-                      leftIcon={<Check className="w-4 h-4" />}
-                    >
-                      Mentés
-                    </SubmitButton>
-                    <Button
-                      type="button"
-                      variant="secondary"
-                      onClick={() => setEditingId(null)}
-                    >
-                      Mégse
-                    </Button>
-                  </div>
-                </form>
-              </Card>
-            </li>
-          ) : (
-            <li key={item.id}>
-              <Card className="p-3">
-                <div className="flex items-center gap-3">
-                  <Visual
-                    variant={variant}
-                    item={item}
-                    cat={item.categoryId ? catById.get(item.categoryId) : null}
-                  />
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium truncate">
-                      {item.name}
-                      {variant === "payment" && item.last4 && (
-                        <span className="text-[var(--color-muted-foreground)] tabular-nums"> ··{item.last4}</span>
+              {editingId === item.id ? (
+                <EditCard item={item} />
+              ) : (
+                <Card className="p-3">
+                  <div className="flex items-center gap-3">
+                    <Visual
+                      variant={variant}
+                      item={item}
+                      cat={item.categoryId ? catById.get(item.categoryId) : null}
+                    />
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium truncate">
+                        {item.name}
+                        {variant === "payment" && item.last4 && (
+                          <span className="text-[var(--color-muted-foreground)] tabular-nums"> ··{item.last4}</span>
+                        )}
+                      </p>
+                      {subtitle(item) && (
+                        <p className="text-xs text-[var(--color-muted-foreground)] truncate">
+                          {subtitle(item)}
+                        </p>
                       )}
-                    </p>
-                    {variant === "payment" && item.kind && (
-                      <p className="text-xs text-[var(--color-muted-foreground)]">
-                        {PAYMENT_KIND_LABEL[item.kind]}
-                      </p>
-                    )}
-                    {variant === "merchant" && (
-                      <p className="text-xs text-[var(--color-muted-foreground)] truncate">
-                        {item.categoryId
-                          ? catById.get(item.categoryId)?.name ?? "Ismeretlen kategória"
-                          : "Nincs alap-kategória"}
-                      </p>
-                    )}
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setEditingId(item.id)}
+                      className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+                      aria-label="Szerkesztés"
+                    >
+                      <Pencil className="w-4 h-4" />
+                    </button>
+                    <form action={deleteAction}>
+                      <input type="hidden" name="id" value={item.id} />
+                      <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700" aria-label="Törlés">
+                        <X className="w-4 h-4" />
+                      </Button>
+                    </form>
                   </div>
+                </Card>
+              )}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+          {items.map((item) =>
+            editingId === item.id ? (
+              <div key={item.id} className="col-span-full">
+                <EditCard item={item} />
+              </div>
+            ) : (
+              <Card key={item.id} className="p-3 flex flex-col items-center text-center gap-1.5">
+                <Visual
+                  variant={variant}
+                  item={item}
+                  cat={item.categoryId ? catById.get(item.categoryId) : null}
+                />
+                <p className="font-medium text-sm truncate w-full">
+                  {item.name}
+                  {variant === "payment" && item.last4 && (
+                    <span className="text-[var(--color-muted-foreground)] tabular-nums"> ··{item.last4}</span>
+                  )}
+                </p>
+                {subtitle(item) && (
+                  <p className="text-[11px] text-[var(--color-muted-foreground)] truncate w-full -mt-1">
+                    {subtitle(item)}
+                  </p>
+                )}
+                <div className="flex items-center gap-1 mt-0.5">
                   <button
                     type="button"
                     onClick={() => setEditingId(item.id)}
-                    className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+                    className="w-8 h-8 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
                     aria-label="Szerkesztés"
                   >
-                    <Pencil className="w-4 h-4" />
+                    <Pencil className="w-3.5 h-3.5" />
                   </button>
                   <form action={deleteAction}>
                     <input type="hidden" name="id" value={item.id} />
-                    <Button type="submit" variant="ghost" size="sm" className="text-red-600 hover:text-red-700" aria-label="Törlés">
-                      <X className="w-4 h-4" />
-                    </Button>
+                    <button
+                      type="submit"
+                      className="w-8 h-8 rounded-lg flex items-center justify-center text-red-600 hover:bg-red-500/10 transition"
+                      aria-label="Törlés"
+                    >
+                      <X className="w-3.5 h-3.5" />
+                    </button>
                   </form>
                 </div>
               </Card>
-            </li>
-          )
-        )}
-      </ul>
+            )
+          )}
+        </div>
+      )}
 
       <Card className="mt-3 p-5">
         <form action={createAction} className="space-y-4">
@@ -373,5 +440,34 @@ export function EntityManager({
         </form>
       </Card>
     </div>
+  );
+}
+
+function ViewBtn({
+  active,
+  onClick,
+  label,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      className={cn(
+        "w-8 h-8 rounded-md flex items-center justify-center transition",
+        active
+          ? "bg-[var(--color-primary)] text-white"
+          : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+      )}
+    >
+      {children}
+    </button>
   );
 }

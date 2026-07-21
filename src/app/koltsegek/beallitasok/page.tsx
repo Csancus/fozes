@@ -10,7 +10,7 @@ import {
   ensureMerchantsFromHistory,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { Section } from "@/components/ui/Section";
+import { CollapsiblePanel } from "./CollapsiblePanel";
 import { EntityManager } from "./EntityManager";
 import {
   createCategoryAction,
@@ -48,72 +48,71 @@ export default async function BeallitasokPage() {
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader
         title="Beállítások"
-        subtitle="Kategóriák, boltok, kártyák, személyek, projektek"
+        subtitle="Koppints egy panelre a kinyitáshoz"
         back="/koltsegek"
       />
 
-      <Section title="Kategóriák" className="mt-6">
-        <EntityManager
-          variant="category"
-          items={categories}
-          createAction={createCategoryAction}
-          updateAction={updateCategoryAction}
-          deleteAction={deleteCategoryAction}
-        />
-      </Section>
+      <div className="mt-6 space-y-3">
+        <CollapsiblePanel title="Kategóriák" count={categories.length}>
+          <EntityManager
+            variant="category"
+            items={categories}
+            createAction={createCategoryAction}
+            updateAction={updateCategoryAction}
+            deleteAction={deleteCategoryAction}
+          />
+        </CollapsiblePanel>
 
-      <Section
-        title="Boltok / kinek"
-        className="mt-10"
-      >
-        <p className="-mt-2 mb-3 text-xs text-[var(--color-muted-foreground)]">
-          A rögzített boltok itt jelennek meg. Az alap-kategóriát rögzítéskor
-          automatikusan kitölti, amikor ezt a boltot választod.
-        </p>
-        <EntityManager
-          variant="merchant"
-          items={merchants.map((m) => ({
-            id: m.id,
-            name: m.name,
-            color: "zinc",
-            categoryId: m.categoryId,
-          }))}
-          categories={categories}
-          createAction={createMerchantAction}
-          updateAction={updateMerchantAction}
-          deleteAction={deleteMerchantAction}
-        />
-      </Section>
+        <CollapsiblePanel title="Boltok / kinek" count={merchants.length}>
+          <p className="mb-3 text-xs text-[var(--color-muted-foreground)]">
+            A rögzített boltok itt jelennek meg. Az alap-kategóriát rögzítéskor
+            automatikusan kitölti, amikor ezt a boltot választod.
+          </p>
+          <EntityManager
+            variant="merchant"
+            items={merchants.map((m) => ({
+              id: m.id,
+              name: m.name,
+              color: "zinc",
+              categoryId: m.categoryId,
+            }))}
+            categories={categories}
+            createAction={createMerchantAction}
+            updateAction={updateMerchantAction}
+            deleteAction={deleteMerchantAction}
+          />
+        </CollapsiblePanel>
 
-      <Section title="Fizetési módok / kártyák" className="mt-10">
-        <EntityManager
-          variant="payment"
-          items={paymentMethods}
-          createAction={createPaymentMethodAction}
-          updateAction={updatePaymentMethodAction}
-          deleteAction={deletePaymentMethodAction}
-        />
-      </Section>
+        <CollapsiblePanel title="Fizetési módok / kártyák" count={paymentMethods.length}>
+          <EntityManager
+            variant="payment"
+            items={paymentMethods}
+            createAction={createPaymentMethodAction}
+            updateAction={updatePaymentMethodAction}
+            deleteAction={deletePaymentMethodAction}
+          />
+        </CollapsiblePanel>
 
-      <Section title="Ki költötte (személyek)" className="mt-10">
-        <EntityManager
-          variant="person"
-          items={persons}
-          createAction={createPersonAction}
-          updateAction={updatePersonAction}
-          deleteAction={deletePersonAction}
-        />
-      </Section>
+        <CollapsiblePanel title="Ki költötte (személyek)" count={persons.length}>
+          <EntityManager
+            variant="person"
+            items={persons}
+            createAction={createPersonAction}
+            updateAction={updatePersonAction}
+            deleteAction={deletePersonAction}
+          />
+        </CollapsiblePanel>
 
-      <Section title="Projektek" className="mt-10">
-        <EntityManager
-          variant="project"
-          items={projects}
-          createAction={createProjectAction}
-          updateAction={updateProjectAction}
-          deleteAction={deleteProjectAction}
-        />
-      </Section>
+        <CollapsiblePanel title="Projektek" count={projects.length}>
+          <EntityManager
+            variant="project"
+            items={projects}
+            createAction={createProjectAction}
+            updateAction={updateProjectAction}
+            deleteAction={deleteProjectAction}
+          />
+        </CollapsiblePanel>
+      </div>
     </main>
   );
 }

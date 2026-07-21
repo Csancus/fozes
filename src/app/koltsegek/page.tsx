@@ -7,18 +7,20 @@ import {
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
+  runDueRecurring,
 } from "@/lib/data";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine } from "lucide-react";
+import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat } from "lucide-react";
 import { ExpensesDashboard } from "./ExpensesDashboard";
 
 export default async function KoltsegekPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
+  await runDueRecurring(me.householdId);
   const [expenses, categories, paymentMethods, persons, projects] =
     await Promise.all([
       listExpenses(me.householdId),
@@ -71,6 +73,17 @@ export default async function KoltsegekPage() {
           <span className="text-[var(--color-primary)]">Táblázat</span>
         </Link>
       )}
+
+      <Link
+        href="/koltsegek/ismetlodo"
+        className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-[var(--color-border)] px-4 h-11 text-sm font-medium text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-foreground)] transition"
+      >
+        <span className="flex items-center gap-2">
+          <Repeat className="w-4 h-4" />
+          Ismétlődő tételek (havi automatikus)
+        </span>
+        <span className="text-[var(--color-primary)]">Kezelés</span>
+      </Link>
 
       <Link
         href="/koltsegek/beallitasok"

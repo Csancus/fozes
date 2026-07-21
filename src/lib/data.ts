@@ -13,6 +13,7 @@ import type {
   Person,
   Project,
   Merchant,
+  RecurringExpense,
   SavedItem,
 } from "./types";
 import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_PAYMENT_METHODS } from "./types";
@@ -760,6 +761,140 @@ export async function saveExpense(
 export async function deleteExpense(hh: string, id: string) {
   await redis.del(key.expense(hh, id));
   await redis.srem(key.expenses(hh), id);
+}
+
+// ============ ISMÉTLŐDŐ KÖLTSÉGEK (recurring) ============
+
+export async function listRecurrings(hh: string): Promise<RecurringExpense[]> {
+  const ids = await redis.smembers(key.recurrings(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<RecurringExpense>(key.recurring(hh, id)))
+  );
+  return items
+    .filter((r): r is RecurringExpense => !!r)
+    .sort((a, b) => a.dayOfMonth - b.dayOfMonth || a.createdAt - b.createdAt);
+}
+
+export async function getRecurring(hh: string, id: string) {
+  return redis.get<RecurringExpense>(key.recurring(hh, id));
+}
+
+export async function createRecurring(
+  hh: string,
+  input: Omit<RecurringExpense, "id" | "createdAt">
+): Promise<RecurringExpense> {
+  const r: RecurringExpense = {
+    id: newId(),
+    amount: input.amount,
+    merchant: input.merchant.trim(),
+    categoryId: input.categoryId,
+    paymentMethodId: input.paymentMethodId ?? null,
+    personId: input.personId ?? null,
+    projectId: input.projectId ?? null,
+    note: input.note.trim(),
+    dayOfMonth: Math.min(31, Math.max(1, Math.round(input.dayOfMonth) || 1)),
+    active: input.active,
+    lastRunPeriod: input.lastRunPeriod,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.recurring(hh, r.id), r);
+  await redis.sadd(key.recurrings(hh), r.id);
+  if (r.merchant) await ensureMerchant(hh, r.merchant, r.categoryId);
+  return r;
+}
+
+export async function updateRecurring(
+  hh: string,
+  id: string,
+  patch: Partial<Omit<RecurringExpense, "id" | "createdAt">>
+) {
+  const cur = await getRecurring(hh, id);
+  if (!cur) return null;
+  const next: RecurringExpense = { ...cur, ...patch };
+  if (patch.dayOfMonth !== undefined) {
+    next.dayOfMonth = Math.min(31, Math.max(1, Math.round(patch.dayOfMonth) || 1));
+  }
+  if (patch.merchant !== undefined) next.merchant = patch.merchant.trim();
+  await redis.set(key.recurring(hh, id), next);
+  return next;
+}
+
+export async function deleteRecurring(hh: string, id: string) {
+  await redis.del(key.recurring(hh, id));
+  await redis.srem(key.recurrings(hh), id);
+}
+
+function periodStr(y: number, mIndex0: number): string {
+  return `${y}-${String(mIndex0 + 1).padStart(2, "0")}`;
+}
+
+// Lejárt ismétlődő szabályokból legenerálja a hiányzó havi tételeket (a kihagyott
+// hónapokat is bepótolja). Idempotens: lastRunPeriod jelzi, meddig futott.
+export async function runDueRecurring(hh: string): Promise<number> {
+  const rules = await listRecurrings(hh);
+  if (rules.length === 0) return 0;
+  const now = new Date();
+  const nowMs = now.getTime();
+  const curY = now.getFullYear();
+  const curM = now.getMonth(); // 0-alapú
+  let created = 0;
+
+  for (const rule of rules) {
+    if (!rule.active) continue;
+
+    // Kezdő hónap: a lastRunPeriod utáni hónap, vagy a létrehozás hónapja.
+    let y: number;
+    let m: number;
+    if (rule.lastRunPeriod) {
+      const [ly, lm] = rule.lastRunPeriod.split("-").map(Number); // lm 1-alapú
+      if (lm >= 12) {
+        y = ly + 1;
+        m = 0;
+      } else {
+        y = ly;
+        m = lm; // 1-alapú lm → következő hónap 0-alapú indexe
+      }
+    } else {
+      const c = new Date(rule.createdAt);
+      y = c.getFullYear();
+      m = c.getMonth();
+    }
+
+    let last = rule.lastRunPeriod;
+    while (y < curY || (y === curY && m <= curM)) {
+      const daysInMonth = new Date(y, m + 1, 0).getDate();
+      const day = Math.min(rule.dayOfMonth, daysInMonth);
+      const due = new Date(y, m, day, 12, 0, 0);
+      if (due.getTime() > nowMs) break; // jövőbeli esedékesség → itt megállunk
+
+      await saveExpense(hh, {
+        amount: rule.amount,
+        merchant: rule.merchant,
+        categoryId: rule.categoryId,
+        paymentMethodId: rule.paymentMethodId,
+        personId: rule.personId,
+        projectId: rule.projectId,
+        note: rule.note,
+        spentAt: due.getTime(),
+      });
+      created++;
+      last = periodStr(y, m);
+
+      if (m >= 11) {
+        m = 0;
+        y += 1;
+      } else {
+        m += 1;
+      }
+    }
+
+    if (last && last !== rule.lastRunPeriod) {
+      await updateRecurring(hh, rule.id, { lastRunPeriod: last });
+    }
+  }
+
+  return created;
 }
 
 // ============ SAVED ITEMS (Bakancslista) ============

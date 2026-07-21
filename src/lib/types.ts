@@ -303,6 +303,23 @@ export type Merchant = {
   createdAt: number;
 };
 
+// Ismétlődő (havi) költség-szabály. A hónap megadott napján automatikusan
+// létrejön belőle egy valódi Expense (megnyitáskori pótlással, cron nélkül).
+export type RecurringExpense = {
+  id: string;
+  amount: number;
+  merchant: string;
+  categoryId: string | null;
+  paymentMethodId: string | null;
+  personId: string | null;
+  projectId: string | null;
+  note: string;
+  dayOfMonth: number; // 1–31, generáláskor a hónap hosszához igazítva
+  active: boolean;
+  lastRunPeriod: string | null; // "yyyy-mm" — utoljára legenerált hónap
+  createdAt: number;
+};
+
 export type Expense = {
   id: string;
   amount: number;                 // Ft

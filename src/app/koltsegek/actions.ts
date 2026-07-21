@@ -20,6 +20,9 @@ import {
   createMerchant,
   updateMerchant,
   deleteMerchant,
+  createRecurring,
+  updateRecurring,
+  deleteRecurring,
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
 import type { PaymentKind } from "@/lib/types";
@@ -68,6 +71,29 @@ export async function saveExpenseAction(fd: FormData) {
     note,
     spentAt,
   });
+
+  // Ismétlődővé jelölés: létrehozunk egy havi szabályt is. A mostani hónapot a
+  // most rögzített tétel lefedi → lastRunPeriod = ez a hónap (nem duplikál).
+  if (!id && String(fd.get("recurring") ?? "") === "on") {
+    const d = new Date(spentAt);
+    const rawDay = parseInt(String(fd.get("recurringDay") ?? ""), 10);
+    const dayOfMonth = Number.isFinite(rawDay) ? rawDay : d.getDate();
+    const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    await createRecurring(me.householdId, {
+      amount,
+      merchant,
+      categoryId,
+      paymentMethodId,
+      personId,
+      projectId,
+      note,
+      dayOfMonth,
+      active: true,
+      lastRunPeriod: period,
+    });
+    revalidatePath("/koltsegek/ismetlodo");
+  }
+
   revalidatePath("/koltsegek");
   revalidatePath("/");
   redirect("/koltsegek");
@@ -280,6 +306,83 @@ export async function deleteMerchantAction(fd: FormData) {
   await deleteMerchant(me.householdId, id);
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
+}
+
+// ============ ISMÉTLŐDŐ KÖLTSÉGEK (recurring) ============
+
+function prevPeriod(): string {
+  const d = new Date();
+  d.setDate(1);
+  d.setMonth(d.getMonth() - 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+async function readRecurringFields(fd: FormData, hh: string) {
+  const amount = parseAmount(String(fd.get("amount") ?? ""));
+  const merchant = String(fd.get("merchant") ?? "").trim();
+  let categoryId = String(fd.get("categoryId") ?? "").trim() || null;
+  if (!categoryId && merchant) {
+    const map = await getMerchantMap(hh);
+    categoryId = map[slug(merchant)] ?? null;
+  }
+  const paymentMethodId = String(fd.get("paymentMethodId") ?? "").trim() || null;
+  const personId = String(fd.get("personId") ?? "").trim() || null;
+  const projectId = String(fd.get("projectId") ?? "").trim() || null;
+  const note = String(fd.get("note") ?? "").trim();
+  const dayOfMonth = parseInt(String(fd.get("dayOfMonth") ?? "1"), 10) || 1;
+  return {
+    amount,
+    merchant,
+    categoryId,
+    paymentMethodId,
+    personId,
+    projectId,
+    note,
+    dayOfMonth,
+  };
+}
+
+export async function createRecurringAction(fd: FormData) {
+  const me = await requireUser();
+  const f = await readRecurringFields(fd, me.householdId);
+  if (f.amount <= 0 || !f.merchant) return;
+  await createRecurring(me.householdId, {
+    ...f,
+    active: true,
+    lastRunPeriod: prevPeriod(), // az e havit is generálja, ha az esedékesség napja már elmúlt
+  });
+  revalidatePath("/koltsegek/ismetlodo");
+  revalidatePath("/koltsegek");
+  redirect("/koltsegek/ismetlodo");
+}
+
+export async function updateRecurringAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  const f = await readRecurringFields(fd, me.householdId);
+  if (f.amount <= 0 || !f.merchant) return;
+  await updateRecurring(me.householdId, id, f);
+  revalidatePath("/koltsegek/ismetlodo");
+  revalidatePath("/koltsegek");
+  redirect("/koltsegek/ismetlodo");
+}
+
+export async function toggleRecurringAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  const active = String(fd.get("active") ?? "") === "on";
+  await updateRecurring(me.householdId, id, { active });
+  revalidatePath("/koltsegek/ismetlodo");
+}
+
+export async function deleteRecurringAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await deleteRecurring(me.householdId, id);
+  revalidatePath("/koltsegek/ismetlodo");
 }
 
 // ============ TÖMEGES RÖGZÍTÉS (táblázat) ============

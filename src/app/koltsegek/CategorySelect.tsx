@@ -1,13 +1,12 @@
 "use client";
 
-import { useState } from "react";
-import { createCategoryInline } from "./actions";
+import { useCategoryCreator } from "./useCategoryCreator";
 import type { ExpenseCategory } from "@/lib/types";
 
 const NEW = "__new_category__";
 
-// Kategória-legördülő, aminek van egy „+ Új kategória…" opciója: helyben létrehoz
-// egy kategóriát (window.prompt névvel), a szülő listájába teszi és kiválasztja.
+// Kategória-legördülő „+ Új kategória…" opcióval: szép modállal hoz létre újat,
+// a szülő listájába teszi és kiválasztja.
 export function CategorySelect({
   categories,
   value,
@@ -23,41 +22,36 @@ export function CategorySelect({
   className?: string;
   placeholder?: string;
 }) {
-  const [busy, setBusy] = useState(false);
+  const { open, modal } = useCategoryCreator();
 
   async function handle(v: string) {
     if (v !== NEW) {
       onChange(v);
       return;
     }
-    const name = window.prompt("Új kategória neve:");
-    if (!name || !name.trim()) return; // megszakítva → marad a régi érték
-    setBusy(true);
-    try {
-      const cat = await createCategoryInline(name.trim());
-      if (cat) {
-        onCreated(cat);
-        onChange(cat.id);
-      }
-    } finally {
-      setBusy(false);
+    const cat = await open();
+    if (cat) {
+      onCreated(cat);
+      onChange(cat.id);
     }
   }
 
   return (
-    <select
-      value={value}
-      disabled={busy}
-      onChange={(e) => handle(e.target.value)}
-      className={className}
-    >
-      <option value="">{placeholder}</option>
-      {categories.map((c) => (
-        <option key={c.id} value={c.id}>
-          {c.name}
-        </option>
-      ))}
-      <option value={NEW}>+ Új kategória…</option>
-    </select>
+    <>
+      {modal}
+      <select
+        value={value}
+        onChange={(e) => handle(e.target.value)}
+        className={className}
+      >
+        <option value="">{placeholder}</option>
+        {categories.map((c) => (
+          <option key={c.id} value={c.id}>
+            {c.name}
+          </option>
+        ))}
+        <option value={NEW}>+ Új kategória…</option>
+      </select>
+    </>
   );
 }

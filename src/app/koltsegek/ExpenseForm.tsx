@@ -7,8 +7,8 @@ import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { Check, Sparkles, Plus, AlertTriangle } from "lucide-react";
-import { createCategoryInline } from "./actions";
+import { Check, Sparkles, Plus, AlertTriangle, Repeat } from "lucide-react";
+import { useCategoryCreator } from "./useCategoryCreator";
 import type {
   Expense,
   ExpenseCategory,
@@ -70,15 +70,19 @@ export function ExpenseForm({
   );
   const [autoApplied, setAutoApplied] = useState(false);
   const manual = useRef(!!initial?.categoryId);
+  const { open: openCatModal, modal: catModal } = useCategoryCreator();
 
   const [dupWarn, setDupWarn] = useState(false);
   const confirmedRef = useRef(false);
   const formRef = useRef<HTMLFormElement>(null);
 
+  const [recurring, setRecurring] = useState(false);
+  const [recurringDay, setRecurringDay] = useState<string>(
+    String(new Date(initial?.spentAt ?? Date.now()).getDate())
+  );
+
   async function addCategoryInline() {
-    const name = window.prompt("Új kategória neve:");
-    if (!name || !name.trim()) return;
-    const cat = await createCategoryInline(name.trim());
+    const cat = await openCatModal();
     if (cat) {
       setCatList((cur) => [...cur, cat]);
       manual.current = true;
@@ -135,6 +139,7 @@ export function ExpenseForm({
 
   return (
     <form ref={formRef} action={action} onSubmit={onSubmit} className="space-y-5">
+      {catModal}
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="categoryId" value={categoryId ?? ""} />
       <input type="hidden" name="paymentMethodId" value={paymentMethodId ?? ""} />
@@ -313,6 +318,37 @@ export function ExpenseForm({
           <Input type="date" name="spentAt" defaultValue={dateDefault} />
         </Field>
       </div>
+
+      {!initial && (
+        <div className="rounded-xl border border-[var(--color-border)] p-3.5">
+          <label className="flex items-center gap-2.5 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={recurring}
+              onChange={(e) => setRecurring(e.target.checked)}
+              className="w-4 h-4 accent-[var(--color-primary)]"
+            />
+            <span className="text-sm font-medium flex items-center gap-1.5">
+              <Repeat className="w-4 h-4 text-[var(--color-muted-foreground)]" />
+              Ismétlődő havonta
+            </span>
+          </label>
+          {recurring && (
+            <div className="mt-3 flex items-center gap-2 text-sm">
+              <span className="text-[var(--color-muted-foreground)]">Minden hónap</span>
+              <input
+                inputMode="numeric"
+                value={recurringDay}
+                onChange={(e) => setRecurringDay(e.target.value)}
+                className="w-16 h-9 rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2 text-center tabular-nums focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+              />
+              <span className="text-[var(--color-muted-foreground)]">napján.</span>
+            </div>
+          )}
+          <input type="hidden" name="recurring" value={recurring ? "on" : ""} />
+          <input type="hidden" name="recurringDay" value={recurringDay} />
+        </div>
+      )}
 
       <Field label="Megjegyzés">
         <Textarea
