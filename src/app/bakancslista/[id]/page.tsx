@@ -10,6 +10,7 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SurpriseUnlock } from "../SurpriseUnlock";
+import { SavedCover } from "../SavedCover";
 import { unlockSurpriseAction } from "../actions";
 import { Button } from "@/components/ui/Button";
 import { catColor } from "@/lib/expense-visuals";
@@ -92,12 +93,7 @@ export default async function SavedDetailPage({
         }
       />
 
-      {item.imageUrl && (
-        <div className="mt-5 rounded-2xl overflow-hidden border border-[var(--color-border)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={item.imageUrl} alt={item.title} className="w-full max-h-72 object-cover" />
-        </div>
-      )}
+      {item.imageUrl && <SavedCover src={item.imageUrl} alt={item.title} />}
 
       <div className="mt-5 flex items-start gap-3">
         <div className={cn("w-11 h-11 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
