@@ -225,6 +225,15 @@ export function OverviewDashboard({
 
   const totalExpense = scopedExpense.reduce((s, e) => s + e.amount, 0);
   const totalIncome = scopedIncome.reduce((s, e) => s + e.amount, 0);
+  // A nagy szám a Kiadás/Bevétel/Mind szűrő szerint (a kisebb számok fixek).
+  const headline =
+    kindF === "expense"
+      ? -totalExpense
+      : kindF === "income"
+        ? totalIncome
+        : totalIncome - totalExpense;
+  const headlineWord =
+    kindF === "expense" ? "Kiadás" : kindF === "income" ? "Bevétel" : "Egyenleg";
   const monthsCount = month === "all" ? 12 : 1;
   const avgPerMonth = totalExpense / monthsCount;
 
@@ -353,11 +362,14 @@ export function OverviewDashboard({
       {/* Egyenleg kártya */}
       <section className="mt-4 rounded-2xl brand-gradient text-white p-5 shadow-sm">
         <p className="text-xs opacity-80 uppercase tracking-wider">
-          {month === "all" ? "Elmúlt 12 hónap" : monthLongFmt.format(monthKeyToDate(month))}
+          {headlineWord}
+          {month === "all"
+            ? " · elmúlt 12 hónap"
+            : ` · ${monthLongFmt.format(monthKeyToDate(month))}`}
         </p>
         <p className="mt-1 text-3xl font-bold tabular-nums">
-          {totalIncome - totalExpense >= 0 ? "+" : ""}
-          {fmtFt(totalIncome - totalExpense)}
+          {headline >= 0 ? "+" : "−"}
+          {fmtFt(Math.abs(headline))}
         </p>
         <div className="mt-3 flex flex-wrap gap-4 text-xs">
           <span className="flex flex-col">

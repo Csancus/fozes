@@ -185,6 +185,12 @@ export function ExpensesDashboard({
   );
   const total = scoped.reduce((s, e) => s + e.amount, 0);
 
+  // A nagy szám a Kiadás/Bevétel/Mind szűrő szerint (a kisebb számok fixek).
+  const headline =
+    kindF === "expense" ? -total : kindF === "income" ? incomeTotal : incomeTotal - total;
+  const headlineWord =
+    kindF === "expense" ? "Kiadás" : kindF === "income" ? "Bevétel" : "Egyenleg";
+
   // A tétel-lista a Típus-szűrő szerint (kiadás/bevétel/mind) + rendezve.
   const listItems = useMemo(
     () =>
@@ -291,11 +297,14 @@ export function ExpensesDashboard({
       {/* Egyenleg kártya */}
       <section className="mt-4 rounded-2xl brand-gradient text-white p-5 shadow-sm">
         <p className="text-xs opacity-80 uppercase tracking-wider">
-          {month === "all" ? "Egyenleg (összes)" : monthLongFmt.format(monthKeyToDate(month))}
+          {headlineWord}
+          {month === "all"
+            ? " (összes)"
+            : ` · ${monthLongFmt.format(monthKeyToDate(month))}`}
         </p>
         <p className="mt-1 text-3xl font-bold tabular-nums">
-          {incomeTotal - total >= 0 ? "+" : ""}
-          {fmtFt(incomeTotal - total)}
+          {headline >= 0 ? "+" : "−"}
+          {fmtFt(Math.abs(headline))}
         </p>
         <div className="mt-3 flex gap-4 text-xs">
           <span className="flex flex-col">
