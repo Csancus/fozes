@@ -161,6 +161,13 @@ export default async function Home() {
           badge={savedTodo.length ? String(savedTodo.length) : undefined}
           badgeTone="primary"
         />
+        <AreaTile
+          href="/utazasok"
+          icon={Plane}
+          title="Utazások"
+          desc="Útitervek évről évre, napról napra"
+          stat="Tervezd meg a következő utat"
+        />
       </section>
 
       <section className="mt-8">
