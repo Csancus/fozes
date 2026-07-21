@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ColumnToggle, useColumnVisibility, type ColumnDef } from "@/components/ui/ColumnToggle";
 import { cn } from "@/lib/cn";
 import { X, Search, Undo2, Trash2 } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
@@ -90,6 +91,17 @@ function serialize(r: Row): string {
 const ctrl =
   "h-9 w-full rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)]";
 
+const COL_W: Record<string, number> = {
+  date: 140,
+  amount: 110,
+  merchant: 180,
+  category: 160,
+  nature: 130,
+  payment: 150,
+  person: 120,
+  project: 130,
+};
+
 export function ExpenseTable({
   action,
   expenses,
@@ -113,6 +125,27 @@ export function ExpenseTable({
     () => expenses.filter((e) => (e.kind ?? "expense") !== "income"),
     [expenses]
   );
+
+  // Elérhető oszlopok (a személy/projekt csak ha van ilyen adat).
+  const allColumns: ColumnDef[] = useMemo(() => {
+    const cols: ColumnDef[] = [
+      { key: "date", label: "Dátum" },
+      { key: "amount", label: "Összeg", alwaysOn: true },
+      { key: "merchant", label: "Bolt / kinek", alwaysOn: true },
+      { key: "category", label: "Kategória" },
+      { key: "nature", label: "Jelleg" },
+      { key: "payment", label: "Fizetés" },
+    ];
+    if (persons.length) cols.push({ key: "person", label: "Ki", defaultHidden: true });
+    if (projects.length) cols.push({ key: "project", label: "Projekt", defaultHidden: true });
+    return cols;
+  }, [persons.length, projects.length]);
+
+  const { isVisible, hidden, toggle } = useColumnVisibility(
+    "cols:koltsegek-tabla",
+    allColumns
+  );
+
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [rows, setRows] = useState<Row[]>(() => expenseItems.map(toRow));
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
@@ -189,9 +222,11 @@ export function ExpenseTable({
   );
   const deletedPayload = JSON.stringify([...deleted]);
 
-  const showPerson = persons.length > 0;
-  const showProject = projects.length > 0;
-  const minW = 960 + (showPerson ? 120 : 0) + (showProject ? 140 : 0);
+  const showPerson = persons.length > 0 && isVisible("person");
+  const showProject = projects.length > 0 && isVisible("project");
+  const minW =
+    40 +
+    allColumns.reduce((s, c) => s + (isVisible(c.key) ? COL_W[c.key] ?? 120 : 0), 0);
 
   const visibleTotal = visible
     .filter((r) => !deleted.has(r.id))
@@ -229,6 +264,7 @@ export function ExpenseTable({
             </MonthChip>
           ))}
         </div>
+        <ColumnToggle columns={allColumns} hidden={hidden} onToggle={toggle} />
       </div>
 
       <div className="mt-4 overflow-x-auto -mx-5 px-5">
@@ -238,12 +274,12 @@ export function ExpenseTable({
         >
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
-              <th className="font-semibold px-1 w-36">Dátum</th>
+              {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
               <th className="font-semibold px-1 w-28">Összeg</th>
               <th className="font-semibold px-1">Bolt / kinek</th>
-              <th className="font-semibold px-1 w-40">Kategória</th>
-              <th className="font-semibold px-1 w-32">Jelleg</th>
-              <th className="font-semibold px-1 w-36">Fizetés</th>
+              {isVisible("category") && <th className="font-semibold px-1 w-40">Kategória</th>}
+              {isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
+              {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
               {showPerson && <th className="font-semibold px-1 w-28">Ki</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
               <th className="w-7" />
@@ -263,15 +299,17 @@ export function ExpenseTable({
                     isDirty && "ring-1 ring-[var(--color-primary)]/30 rounded-lg"
                   )}
                 >
-                  <td>
-                    <input
-                      type="date"
-                      value={r.spentAt}
-                      disabled={isDeleted}
-                      onChange={(e) => update(r.id, { spentAt: e.target.value })}
-                      className={ctrl}
-                    />
-                  </td>
+                  {isVisible("date") && (
+                    <td>
+                      <input
+                        type="date"
+                        value={r.spentAt}
+                        disabled={isDeleted}
+                        onChange={(e) => update(r.id, { spentAt: e.target.value })}
+                        className={ctrl}
+                      />
+                    </td>
+                  )}
                   <td>
                     <input
                       inputMode="numeric"
@@ -290,43 +328,49 @@ export function ExpenseTable({
                       className={ctrl}
                     />
                   </td>
-                  <td>
-                    <CategorySelect
-                      categories={catList}
-                      value={r.categoryId}
-                      onChange={(id) => update(r.id, { categoryId: id })}
-                      onCreated={(c) => setCatList((cur) => [...cur, c])}
-                      className={cn(ctrl, "appearance-none", isDeleted && "pointer-events-none")}
-                    />
-                  </td>
-                  <td>
-                    <select
-                      value={r.nature}
-                      disabled={isDeleted}
-                      onChange={(e) => update(r.id, { nature: e.target.value })}
-                      className={cn(ctrl, "appearance-none")}
-                    >
-                      <option value="avg">Havi átlagos</option>
-                      <option value="project">Eseti projekt</option>
-                    </select>
-                  </td>
-                  <td>
-                    <select
-                      value={r.paymentMethodId}
-                      disabled={isDeleted}
-                      onChange={(e) =>
-                        update(r.id, { paymentMethodId: e.target.value })
-                      }
-                      className={cn(ctrl, "appearance-none")}
-                    >
-                      <option value="">—</option>
-                      {paymentMethods.map((pm) => (
-                        <option key={pm.id} value={pm.id}>
-                          {pm.name}
-                        </option>
-                      ))}
-                    </select>
-                  </td>
+                  {isVisible("category") && (
+                    <td>
+                      <CategorySelect
+                        categories={catList}
+                        value={r.categoryId}
+                        onChange={(id) => update(r.id, { categoryId: id })}
+                        onCreated={(c) => setCatList((cur) => [...cur, c])}
+                        className={cn(ctrl, "appearance-none", isDeleted && "pointer-events-none")}
+                      />
+                    </td>
+                  )}
+                  {isVisible("nature") && (
+                    <td>
+                      <select
+                        value={r.nature}
+                        disabled={isDeleted}
+                        onChange={(e) => update(r.id, { nature: e.target.value })}
+                        className={cn(ctrl, "appearance-none")}
+                      >
+                        <option value="avg">Havi átlagos</option>
+                        <option value="project">Eseti projekt</option>
+                      </select>
+                    </td>
+                  )}
+                  {isVisible("payment") && (
+                    <td>
+                      <select
+                        value={r.paymentMethodId}
+                        disabled={isDeleted}
+                        onChange={(e) =>
+                          update(r.id, { paymentMethodId: e.target.value })
+                        }
+                        className={cn(ctrl, "appearance-none")}
+                      >
+                        <option value="">—</option>
+                        {paymentMethods.map((pm) => (
+                          <option key={pm.id} value={pm.id}>
+                            {pm.name}
+                          </option>
+                        ))}
+                      </select>
+                    </td>
+                  )}
                   {showPerson && (
                     <td>
                       <select

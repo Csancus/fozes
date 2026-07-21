@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ColumnToggle, useColumnVisibility, type ColumnDef } from "@/components/ui/ColumnToggle";
 import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
@@ -88,6 +89,26 @@ export function BatchEntry({
   kind?: ExpenseKind;
 }) {
   const income = kind === "income";
+
+  const allColumns: ColumnDef[] = useMemo(() => {
+    const cols: ColumnDef[] = [
+      { key: "amount", label: "Összeg", alwaysOn: true },
+      { key: "merchant", label: income ? "Forrás" : "Bolt / kinek", alwaysOn: true },
+      { key: "category", label: "Kategória" },
+    ];
+    if (!income) cols.push({ key: "nature", label: "Jelleg" });
+    if (!income) cols.push({ key: "payment", label: "Fizetés" });
+    if (persons.length) cols.push({ key: "person", label: income ? "Kinek" : "Ki" });
+    if (!income && projects.length) cols.push({ key: "project", label: "Projekt" });
+    cols.push({ key: "date", label: "Dátum" });
+    return cols;
+  }, [income, persons.length, projects.length]);
+
+  const { isVisible, hidden, toggle } = useColumnVisibility(
+    `cols:gyors-${kind}`,
+    allColumns
+  );
+
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [rows, setRows] = useState<Row[]>(() => [
     emptyRow(),
@@ -155,17 +176,31 @@ export function BatchEntry({
     }))
   );
 
-  const showPerson = persons.length > 0;
-  const showProject = !income && projects.length > 0;
+  const showPerson = persons.length > 0 && isVisible("person");
+  const showProject = !income && projects.length > 0 && isVisible("project");
 
-  const minW = income
-    ? 620 + (showPerson ? 120 : 0)
-    : 900 + (showPerson ? 120 : 0) + (showProject ? 140 : 0);
+  const COL_W: Record<string, number> = {
+    amount: 110,
+    merchant: 180,
+    category: 160,
+    nature: 130,
+    payment: 150,
+    person: 120,
+    project: 130,
+    date: 150,
+  };
+  const minW =
+    64 +
+    allColumns.reduce((s, c) => s + (isVisible(c.key) ? COL_W[c.key] ?? 120 : 0), 0);
 
   return (
     <form action={action} className="mt-5">
       <input type="hidden" name="rows" value={payload} />
       <input type="hidden" name="kind" value={kind} />
+
+      <div className="flex justify-end mb-2">
+        <ColumnToggle columns={allColumns} hidden={hidden} onToggle={toggle} />
+      </div>
 
       <datalist id="batch-merchants">
         {knownMerchants.map((m) => (
@@ -183,14 +218,14 @@ export function BatchEntry({
               <th className="font-semibold w-7" />
               <th className="font-semibold px-1 w-28">Összeg</th>
               <th className="font-semibold px-1">{income ? "Forrás" : "Bolt / kinek"}</th>
-              <th className="font-semibold px-1 w-40">Kategória</th>
-              {!income && <th className="font-semibold px-1 w-32">Jelleg</th>}
-              {!income && <th className="font-semibold px-1 w-36">Fizetés</th>}
+              {isVisible("category") && <th className="font-semibold px-1 w-40">Kategória</th>}
+              {!income && isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
+              {!income && isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
               {showPerson && (
                 <th className="font-semibold px-1 w-28">{income ? "Kinek" : "Ki"}</th>
               )}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
-              <th className="font-semibold px-1 w-36">Dátum</th>
+              {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
               <th className="w-7" />
             </tr>
           </thead>
@@ -218,16 +253,18 @@ export function BatchEntry({
                     className={ctrl}
                   />
                 </td>
-                <td>
-                  <CategorySelect
-                    categories={catList}
-                    value={r.categoryId}
-                    onChange={(id) => update(r.key, { categoryId: id })}
-                    onCreated={(c) => setCatList((cur) => [...cur, c])}
-                    className={cn(ctrl, "appearance-none")}
-                  />
-                </td>
-                {!income && (
+                {isVisible("category") && (
+                  <td>
+                    <CategorySelect
+                      categories={catList}
+                      value={r.categoryId}
+                      onChange={(id) => update(r.key, { categoryId: id })}
+                      onCreated={(c) => setCatList((cur) => [...cur, c])}
+                      className={cn(ctrl, "appearance-none")}
+                    />
+                  </td>
+                )}
+                {!income && isVisible("nature") && (
                   <td>
                     <select
                       value={r.nature}
@@ -239,7 +276,7 @@ export function BatchEntry({
                     </select>
                   </td>
                 )}
-                {!income && (
+                {!income && isVisible("payment") && (
                   <td>
                     <select
                       value={r.paymentMethodId}
@@ -287,14 +324,16 @@ export function BatchEntry({
                     </select>
                   </td>
                 )}
-                <td>
-                  <input
-                    type="date"
-                    value={r.spentAt}
-                    onChange={(e) => update(r.key, { spentAt: e.target.value })}
-                    className={ctrl}
-                  />
-                </td>
+                {isVisible("date") && (
+                  <td>
+                    <input
+                      type="date"
+                      value={r.spentAt}
+                      onChange={(e) => update(r.key, { spentAt: e.target.value })}
+                      className={ctrl}
+                    />
+                  </td>
+                )}
                 <td className="pt-0.5">
                   <button
                     type="button"
