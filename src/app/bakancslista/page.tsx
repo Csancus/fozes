@@ -3,7 +3,8 @@ import { listSavedItems } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Bookmark, Plus } from "lucide-react";
+import { Bookmark, Plus, Table2 } from "lucide-react";
+import Link from "next/link";
 import { SavedListClient } from "./SavedListClient";
 
 export default async function BakancslistaPage() {
@@ -17,13 +18,22 @@ export default async function BakancslistaPage() {
         subtitle="Amit egyszer meg akarsz csinálni"
         back="/"
         action={
-          <Button
-            href="/bakancslista/uj"
-            size="sm"
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            Új
-          </Button>
+          <div className="flex items-center gap-2">
+            <Link
+              href="/bakancslista/gyors"
+              aria-label="Táblázatos felvitel"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+            >
+              <Table2 className="w-5 h-5" />
+            </Link>
+            <Button
+              href="/bakancslista/uj"
+              size="sm"
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              Új
+            </Button>
+          </div>
         }
       />
 
@@ -39,6 +49,15 @@ export default async function BakancslistaPage() {
               </Button>
             }
           />
+          <p className="mt-4 text-center text-sm text-[var(--color-muted-foreground)]">
+            vagy{" "}
+            <Link
+              href="/bakancslista/gyors"
+              className="text-[var(--color-primary)] font-medium"
+            >
+              vigyél fel többet egyszerre táblázatban
+            </Link>
+          </p>
         </div>
       ) : (
         <SavedListClient items={items} />

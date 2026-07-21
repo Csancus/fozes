@@ -303,16 +303,49 @@ export type Merchant = {
   createdAt: number;
 };
 
-// Ismétlődő (havi) költség-szabály. A hónap megadott napján automatikusan
+// Kiadás vagy bevétel — közös tétel-modell egy kapcsolóval.
+export type ExpenseKind = "expense" | "income";
+// Egy kiadás jellege: havi átlagos (rendszeres) vagy eseti projekt (nagy egyszeri).
+export type ExpenseNature = "avg" | "project";
+
+export const EXPENSE_NATURE_LABEL: Record<ExpenseNature, string> = {
+  avg: "Havi átlagos",
+  project: "Eseti projekt",
+};
+
+// Bevétel-kategória (pl. Fizetés, Bónusz) — külön a kiadás-kategóriáktól.
+export type IncomeCategory = {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+  createdAt: number;
+};
+
+export const DEFAULT_INCOME_CATEGORIES: Omit<
+  IncomeCategory,
+  "id" | "createdAt"
+>[] = [
+  { name: "Fizetés", color: "emerald", icon: "savings" },
+  { name: "Bónusz / Prémium", color: "amber", icon: "gift" },
+  { name: "Vállalkozás", color: "indigo", icon: "tool" },
+  { name: "Ajándék", color: "pink", icon: "gift" },
+  { name: "Kamat / Hozam", color: "cyan", icon: "savings" },
+  { name: "Egyéb", color: "zinc", icon: "tag" },
+];
+
+// Ismétlődő (havi) tétel-szabály. A hónap megadott napján automatikusan
 // létrejön belőle egy valódi Expense (megnyitáskori pótlással, cron nélkül).
 export type RecurringExpense = {
   id: string;
+  kind: ExpenseKind;
   amount: number;
   merchant: string;
   categoryId: string | null;
   paymentMethodId: string | null;
   personId: string | null;
   projectId: string | null;
+  nature: ExpenseNature;
   note: string;
   dayOfMonth: number; // 1–31, generáláskor a hónap hosszához igazítva
   active: boolean;
@@ -322,12 +355,14 @@ export type RecurringExpense = {
 
 export type Expense = {
   id: string;
-  amount: number;                 // Ft
-  merchant: string;               // "Lidl", payee / store
-  categoryId: string | null;      // ExpenseCategory.id
+  kind: ExpenseKind;              // kiadás vagy bevétel
+  amount: number;                 // Ft (mindig pozitív, az irányt a kind adja)
+  merchant: string;               // kiadásnál bolt/kinek, bevételnél forrás
+  categoryId: string | null;      // ExpenseCategory.id (kiadás) v. IncomeCategory.id (bevétel)
   paymentMethodId: string | null; // PaymentMethod.id
-  personId: string | null;        // Person.id — ki költötte
+  personId: string | null;        // Person.id — ki költötte / kinek jött
   projectId: string | null;       // Project.id — melyik projekthez
+  nature: ExpenseNature;          // havi átlagos / eseti projekt (kiadásnál értelmezett)
   note: string;
   spentAt: number;                // ms since epoch (day granularity)
   createdAt: number;

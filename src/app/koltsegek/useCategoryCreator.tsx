@@ -9,7 +9,10 @@ import type { ExpenseCategory } from "@/lib/types";
 // Szép saját modál az "Új kategória" bevitelhez a natív window.prompt helyett.
 // Használat: const { open, modal } = useCategoryCreator();
 //   const cat = await open(); ... és rendereld a {modal}-t a komponensben.
-export function useCategoryCreator() {
+// A createFn cserélhető (pl. bevétel-kategória létrehozásához).
+export function useCategoryCreator(
+  createFn: (name: string) => Promise<ExpenseCategory | null> = createCategoryInline
+) {
   const [visible, setVisible] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
@@ -41,12 +44,12 @@ export function useCategoryCreator() {
     }
     setBusy(true);
     try {
-      const cat = await createCategoryInline(n);
+      const cat = await createFn(n);
       finish(cat ?? null);
     } catch {
       finish(null);
     }
-  }, [name, finish]);
+  }, [name, finish, createFn]);
 
   const modal = visible ? (
     <div

@@ -23,9 +23,12 @@ import {
   createRecurring,
   updateRecurring,
   deleteRecurring,
+  createIncomeCategory,
+  updateIncomeCategory,
+  deleteIncomeCategory,
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
-import type { PaymentKind } from "@/lib/types";
+import type { PaymentKind, ExpenseKind, ExpenseNature } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -43,6 +46,10 @@ function parseAmount(v: string): number {
 export async function saveExpenseAction(fd: FormData) {
   const me = await requireUser();
   const id = String(fd.get("id") ?? "") || undefined;
+  const kind: ExpenseKind =
+    String(fd.get("kind") ?? "expense") === "income" ? "income" : "expense";
+  const nature: ExpenseNature =
+    String(fd.get("nature") ?? "avg") === "project" ? "project" : "avg";
   const amount = parseAmount(String(fd.get("amount") ?? ""));
   const merchant = String(fd.get("merchant") ?? "").trim();
   let categoryId = String(fd.get("categoryId") ?? "").trim() || null;
@@ -54,20 +61,22 @@ export async function saveExpenseAction(fd: FormData) {
 
   if (amount <= 0 || !merchant) return;
 
-  // Ha nincs kézzel választva kategória, próbáljuk a tanult bolt→kategória párost.
-  if (!categoryId) {
+  // Kiadásnál: ha nincs kézzel választva kategória, próbáljuk a tanult bolt→kategória párost.
+  if (kind === "expense" && !categoryId) {
     const map = await getMerchantMap(me.householdId);
     categoryId = map[slug(merchant)] ?? null;
   }
 
   await saveExpense(me.householdId, {
     id,
+    kind,
     amount,
     merchant,
     categoryId,
     paymentMethodId,
     personId,
     projectId,
+    nature,
     note,
     spentAt,
   });
@@ -80,12 +89,14 @@ export async function saveExpenseAction(fd: FormData) {
     const dayOfMonth = Number.isFinite(rawDay) ? rawDay : d.getDate();
     const period = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
     await createRecurring(me.householdId, {
+      kind,
       amount,
       merchant,
       categoryId,
       paymentMethodId,
       personId,
       projectId,
+      nature,
       note,
       dayOfMonth,
       active: true,
@@ -95,8 +106,9 @@ export async function saveExpenseAction(fd: FormData) {
   }
 
   revalidatePath("/koltsegek");
+  revalidatePath("/koltsegek/bevetel");
   revalidatePath("/");
-  redirect("/koltsegek");
+  redirect(kind === "income" ? "/koltsegek?nezet=bevetel" : "/koltsegek");
 }
 
 export async function deleteExpenseAction(fd: FormData) {
@@ -154,6 +166,54 @@ export async function deleteCategoryAction(fd: FormData) {
   const id = String(fd.get("id") ?? "");
   if (!id) return;
   await deleteExpenseCategory(me.householdId, id);
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
+// ============ BEVÉTEL-KATEGÓRIÁK ============
+
+export async function createIncomeCategoryInline(name: string) {
+  const me = await requireUser();
+  const n = name.trim();
+  if (!n) return null;
+  const cat = await createIncomeCategory(me.householdId, {
+    name: n,
+    color: "emerald",
+    icon: "savings",
+  });
+  revalidatePath("/koltsegek");
+  revalidatePath("/koltsegek/beallitasok");
+  return cat;
+}
+
+export async function createIncomeCategoryAction(fd: FormData) {
+  const me = await requireUser();
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "emerald").trim();
+  const icon = String(fd.get("icon") ?? "savings").trim();
+  if (!name) return;
+  await createIncomeCategory(me.householdId, { name, color, icon });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
+export async function updateIncomeCategoryAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "emerald").trim();
+  const icon = String(fd.get("icon") ?? "savings").trim();
+  if (!id || !name) return;
+  await updateIncomeCategory(me.householdId, id, { name, color, icon });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
+export async function deleteIncomeCategoryAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await deleteIncomeCategory(me.householdId, id);
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
 }
@@ -452,6 +512,7 @@ type EditRow = {
   paymentMethodId: unknown;
   personId: unknown;
   projectId: unknown;
+  nature: unknown;
   spentAt: unknown;
   note: unknown;
 };
@@ -490,6 +551,8 @@ export async function updateExpensesBatchAction(fd: FormData) {
     const paymentMethodId = String(r.paymentMethodId ?? "").trim() || null;
     const personId = String(r.personId ?? "").trim() || null;
     const projectId = String(r.projectId ?? "").trim() || null;
+    const nature: ExpenseNature =
+      String(r.nature ?? "avg") === "project" ? "project" : "avg";
     const spentAt = parseDate(String(r.spentAt ?? ""));
     const note = String(r.note ?? "");
 
@@ -501,6 +564,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
       paymentMethodId,
       personId,
       projectId,
+      nature,
       note,
       spentAt,
     });

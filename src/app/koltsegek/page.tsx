@@ -3,6 +3,8 @@ import {
   listExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
+  listIncomeCategories,
+  ensureDefaultIncomeCategories,
   listPaymentMethods,
   ensureDefaultPaymentMethods,
   listPersons,
@@ -13,18 +15,20 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat } from "lucide-react";
+import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, TrendingUp } from "lucide-react";
 import { ExpensesDashboard } from "./ExpensesDashboard";
 
 export default async function KoltsegekPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
+  await ensureDefaultIncomeCategories(me.householdId);
   await runDueRecurring(me.householdId);
-  const [expenses, categories, paymentMethods, persons, projects] =
+  const [expenses, categories, incomeCategories, paymentMethods, persons, projects] =
     await Promise.all([
       listExpenses(me.householdId),
       listExpenseCategories(me.householdId),
+      listIncomeCategories(me.householdId),
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listProjects(me.householdId),
@@ -52,14 +56,25 @@ export default async function KoltsegekPage() {
           Új kiadás
         </Button>
         <Button
-          href="/koltsegek/gyors"
+          href="/koltsegek/bevetel"
           size="lg"
           variant="secondary"
-          leftIcon={<Table2 className="w-4 h-4" />}
+          leftIcon={<TrendingUp className="w-4 h-4" />}
         >
-          Gyors táblázat
+          Bevétel
         </Button>
       </div>
+
+      <Button
+        href="/koltsegek/gyors"
+        size="lg"
+        variant="secondary"
+        fullWidth
+        className="mt-3"
+        leftIcon={<Table2 className="w-4 h-4" />}
+      >
+        Gyors táblázat (több kiadás)
+      </Button>
 
       {expenses.length > 0 && (
         <Link
@@ -108,6 +123,7 @@ export default async function KoltsegekPage() {
         <ExpensesDashboard
           expenses={expenses}
           categories={categories}
+          incomeCategories={incomeCategories}
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}

@@ -7,6 +7,8 @@ import {
   listPersons,
   listProjects,
   listMerchants,
+  listIncomeCategories,
+  ensureDefaultIncomeCategories,
   ensureMerchantsFromHistory,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -28,16 +30,21 @@ import {
   createMerchantAction,
   updateMerchantAction,
   deleteMerchantAction,
+  createIncomeCategoryAction,
+  updateIncomeCategoryAction,
+  deleteIncomeCategoryAction,
 } from "../actions";
 
 export default async function BeallitasokPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
+  await ensureDefaultIncomeCategories(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);
-  const [categories, paymentMethods, persons, projects, merchants] =
+  const [categories, incomeCategories, paymentMethods, persons, projects, merchants] =
     await Promise.all([
       listExpenseCategories(me.householdId),
+      listIncomeCategories(me.householdId),
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listProjects(me.householdId),
@@ -60,6 +67,16 @@ export default async function BeallitasokPage() {
             createAction={createCategoryAction}
             updateAction={updateCategoryAction}
             deleteAction={deleteCategoryAction}
+          />
+        </CollapsiblePanel>
+
+        <CollapsiblePanel title="Bevétel-kategóriák" count={incomeCategories.length}>
+          <EntityManager
+            variant="category"
+            items={incomeCategories}
+            createAction={createIncomeCategoryAction}
+            updateAction={updateIncomeCategoryAction}
+            deleteAction={deleteIncomeCategoryAction}
           />
         </CollapsiblePanel>
 

@@ -4,10 +4,11 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { SlidersHorizontal, ChevronRight, Search, Wallet } from "lucide-react";
+import { SlidersHorizontal, ChevronRight, Search, Wallet, TrendingUp } from "lucide-react";
 import type {
   Expense,
   ExpenseCategory,
+  ExpenseNature,
   PaymentMethod,
   Person,
   Project,
@@ -44,18 +45,33 @@ function monthKeyToDate(k: string): Date {
 type ChipItem = { id: string; label: string; color: string };
 
 export function ExpensesDashboard({
-  expenses,
+  expenses: allItems,
   categories,
+  incomeCategories = [],
   paymentMethods,
   persons,
   projects,
 }: {
   expenses: Expense[];
   categories: ExpenseCategory[];
+  incomeCategories?: ExpenseCategory[];
   paymentMethods: PaymentMethod[];
   persons: Person[];
   projects: Project[];
 }) {
+  // Kiadás / bevétel szétválasztása.
+  const expenses = useMemo(
+    () => allItems.filter((e) => (e.kind ?? "expense") !== "income"),
+    [allItems]
+  );
+  const incomes = useMemo(
+    () => allItems.filter((e) => (e.kind ?? "expense") === "income"),
+    [allItems]
+  );
+  const incomeCatById = useMemo(
+    () => new Map(incomeCategories.map((c) => [c.id, c])),
+    [incomeCategories]
+  );
   const catById = useMemo(
     () => new Map(categories.map((c) => [c.id, c])),
     [categories]
@@ -74,6 +90,7 @@ export function ExpensesDashboard({
   );
 
   const [month, setMonth] = useState<string>("all");
+  const [nature, setNature] = useState<ExpenseNature | "all">("all");
   const [cats, setCats] = useState<Set<string>>(new Set());
   const [pays, setPays] = useState<Set<string>>(new Set());
   const [people, setPeople] = useState<Set<string>>(new Set());
@@ -83,14 +100,15 @@ export function ExpensesDashboard({
 
   const months = useMemo(() => {
     const set = new Set<string>();
-    expenses.forEach((e) => set.add(monthKey(e.spentAt)));
+    allItems.forEach((e) => set.add(monthKey(e.spentAt)));
     return [...set].sort().reverse();
-  }, [expenses]);
+  }, [allItems]);
 
-  // Kategória/kártya/személy/kereső szűrés (hónap NÉLKÜL) — a trend-charthoz
+  // Kategória/kártya/személy/kereső/jelleg szűrés (hónap NÉLKÜL) — a trend-charthoz
   const base = useMemo(() => {
     const q = search.trim().toLowerCase();
     return expenses.filter((e) => {
+      if (nature !== "all" && (e.nature ?? "avg") !== nature) return false;
       if (cats.size && !(e.categoryId && cats.has(e.categoryId))) return false;
       if (pays.size && !(e.paymentMethodId && pays.has(e.paymentMethodId)))
         return false;
@@ -99,7 +117,14 @@ export function ExpensesDashboard({
       if (q && !e.merchant.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [expenses, cats, pays, people, projs, search]);
+  }, [expenses, nature, cats, pays, people, projs, search]);
+
+  // Bevételek a kiválasztott hónapra (a kiadás-szűrők nem vonatkoznak rájuk).
+  const incomeScoped = useMemo(
+    () => (month === "all" ? incomes : incomes.filter((e) => monthKey(e.spentAt) === month)),
+    [incomes, month]
+  );
+  const incomeTotal = incomeScoped.reduce((s, e) => s + e.amount, 0);
 
   const monthly = useMemo(() => {
     const m = new Map<string, number>();
@@ -206,16 +231,50 @@ export function ExpensesDashboard({
         ))}
       </div>
 
-      {/* Összesítő kártya */}
+      {/* Egyenleg kártya */}
       <section className="mt-4 rounded-2xl brand-gradient text-white p-5 shadow-sm">
         <p className="text-xs opacity-80 uppercase tracking-wider">
-          {month === "all" ? "Összes kiadás" : monthLongFmt.format(monthKeyToDate(month))}
+          {month === "all" ? "Egyenleg (összes)" : monthLongFmt.format(monthKeyToDate(month))}
         </p>
-        <p className="mt-1 text-3xl font-bold tabular-nums">{fmtFt(total)}</p>
-        <p className="text-xs opacity-80 mt-1">
-          {scoped.length} tétel{activeFilters > 0 ? " · szűrve" : ""}
+        <p className="mt-1 text-3xl font-bold tabular-nums">
+          {incomeTotal - total >= 0 ? "+" : ""}
+          {fmtFt(incomeTotal - total)}
         </p>
+        <div className="mt-3 flex gap-4 text-xs">
+          <span className="flex flex-col">
+            <span className="opacity-80">Bevétel</span>
+            <span className="font-semibold tabular-nums text-emerald-100">
+              +{fmtFt(incomeTotal)}
+            </span>
+          </span>
+          <span className="flex flex-col">
+            <span className="opacity-80">Kiadás</span>
+            <span className="font-semibold tabular-nums">
+              −{fmtFt(total)}
+            </span>
+          </span>
+          <span className="flex flex-col">
+            <span className="opacity-80">Tételek</span>
+            <span className="font-semibold tabular-nums">
+              {scoped.length}
+              {activeFilters > 0 || nature !== "all" ? " · szűrve" : ""}
+            </span>
+          </span>
+        </div>
       </section>
+
+      {/* Jelleg szűrő */}
+      <div className="mt-4 flex gap-2">
+        <NatureChip active={nature === "all"} onClick={() => setNature("all")}>
+          Mind
+        </NatureChip>
+        <NatureChip active={nature === "avg"} onClick={() => setNature("avg")}>
+          Havi átlagos
+        </NatureChip>
+        <NatureChip active={nature === "project"} onClick={() => setNature("project")}>
+          Eseti projekt
+        </NatureChip>
+      </div>
 
       {/* Szűrők nyitó */}
       <button
@@ -472,7 +531,79 @@ export function ExpensesDashboard({
           </ul>
         )}
       </section>
+
+      {/* Bevételek */}
+      {incomeScoped.length > 0 && (
+        <section className="mt-8">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1 flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+            Bevételek · {fmtFt(incomeTotal)}
+          </h2>
+          <ul className="space-y-2">
+            {incomeScoped.map((e) => {
+              const cat = e.categoryId ? incomeCatById.get(e.categoryId) : null;
+              const person = e.personId ? personById.get(e.personId) : null;
+              const col = catColor(cat?.color ?? "emerald");
+              const Icon = catIcon(cat?.icon ?? "savings");
+              return (
+                <li key={e.id}>
+                  <Link
+                    href={`/koltsegek/${e.id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-sm transition hover:border-emerald-500/40 active:scale-[0.99]"
+                  >
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[15px] truncate">{e.merchant}</p>
+                      <p className="text-xs text-[var(--color-muted-foreground)] truncate flex items-center gap-1.5">
+                        <span>{cat?.name ?? "Bevétel"}</span>
+                        <span>· {dayFmt.format(new Date(e.spentAt))}</span>
+                        {person && (
+                          <span className="inline-flex items-center gap-0.5">
+                            · <span className={cn("w-2 h-2 rounded-full", catColor(person.color).dot)} />
+                            {person.name}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <p className="font-semibold tabular-nums shrink-0 text-emerald-600 dark:text-emerald-400">
+                      +{fmtFt(e.amount)}
+                    </p>
+                    <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
     </div>
+  );
+}
+
+function NatureChip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex-1 h-9 rounded-full text-[13px] font-medium border transition",
+        active
+          ? "bg-[var(--color-primary)] text-white border-transparent"
+          : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+      )}
+    >
+      {children}
+    </button>
   );
 }
 

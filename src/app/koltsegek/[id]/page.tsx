@@ -3,7 +3,9 @@ import {
   getExpense,
   listExpenses,
   listExpenseCategories,
+  listIncomeCategories,
   ensureDefaultExpenseCategories,
+  ensureDefaultIncomeCategories,
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
@@ -26,11 +28,13 @@ export default async function EditExpensePage({
   const { id } = await params;
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
+  await ensureDefaultIncomeCategories(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);
 
   const [
     expense,
-    categories,
+    expenseCategories,
+    incomeCategories,
     paymentMethods,
     persons,
     projects,
@@ -39,6 +43,7 @@ export default async function EditExpensePage({
   ] = await Promise.all([
     getExpense(me.householdId, id),
     listExpenseCategories(me.householdId),
+    listIncomeCategories(me.householdId),
     ensureDefaultPaymentMethods(me.householdId),
     listPersons(me.householdId),
     listProjects(me.householdId),
@@ -47,21 +52,31 @@ export default async function EditExpensePage({
   ]);
   if (!expense) notFound();
 
-  const knownMerchants = [...new Set(expenses.map((e) => e.merchant))]
+  const income = expense.kind === "income";
+  const categories = income ? incomeCategories : expenseCategories;
+  const knownMerchants = [
+    ...new Set(
+      expenses.filter((e) => e.kind === expense.kind).map((e) => e.merchant)
+    ),
+  ]
     .filter(Boolean)
     .sort((a, b) => a.localeCompare(b, "hu"));
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
-      <PageHeader title="Kiadás szerkesztése" back="/koltsegek" />
+      <PageHeader
+        title={income ? "Bevétel szerkesztése" : "Kiadás szerkesztése"}
+        back="/koltsegek"
+      />
       <Card className="mt-6 p-5">
         <ExpenseForm
+          kind={expense.kind}
           action={saveExpenseAction}
           categories={categories}
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}
-          merchantMap={merchantMap}
+          merchantMap={income ? {} : merchantMap}
           knownMerchants={knownMerchants}
           initial={expense}
         />
@@ -76,7 +91,7 @@ export default async function EditExpensePage({
           className="text-red-600 hover:text-red-700"
           leftIcon={<Trash2 className="w-4 h-4" />}
         >
-          Kiadás törlése
+          {income ? "Bevétel törlése" : "Kiadás törlése"}
         </Button>
       </form>
     </main>

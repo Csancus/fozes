@@ -114,6 +114,68 @@ export async function saveSavedAction(fd: FormData) {
   redirect(`/bakancslista/${id}`);
 }
 
+type BatchRow = {
+  title?: string;
+  kind?: string;
+  location?: string;
+  tags?: string;
+  note?: string;
+};
+
+export async function saveSavedBatchAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+
+  let rows: BatchRow[] = [];
+  try {
+    const parsed = JSON.parse(String(fd.get("rows") ?? "[]"));
+    if (Array.isArray(parsed)) rows = parsed;
+  } catch {
+    rows = [];
+  }
+
+  const now = Date.now();
+  let saved = 0;
+
+  for (const r of rows) {
+    const title = String(r.title ?? "").trim();
+    if (!title) continue;
+
+    const kindRaw = String(r.kind ?? "egyeb") as SavedKind;
+    const kind = SAVED_KINDS.includes(kindRaw) ? kindRaw : "egyeb";
+    const location = String(r.location ?? "").trim();
+    const note = String(r.note ?? "").trim();
+    const tags = String(r.tags ?? "")
+      .split(",")
+      .map((t) => t.trim())
+      .filter(Boolean);
+
+    const item: SavedItem = {
+      id: newId(),
+      title,
+      kind,
+      note,
+      location,
+      imageUrl: null,
+      links: [],
+      files: [],
+      tags,
+      done: false,
+      doneAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await saveSavedItem(hh, item);
+    saved++;
+  }
+
+  if (saved > 0) {
+    revalidatePath("/bakancslista");
+    revalidatePath("/");
+  }
+  redirect("/bakancslista");
+}
+
 export async function toggleDoneAction(fd: FormData) {
   const me = await requireUser();
   const id = String(fd.get("id") ?? "");

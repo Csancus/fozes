@@ -7,11 +7,14 @@ import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { Check, Sparkles, Plus, AlertTriangle, Repeat } from "lucide-react";
+import { Check, Sparkles, Plus, AlertTriangle, Repeat, CalendarClock, FolderKanban } from "lucide-react";
 import { useCategoryCreator } from "./useCategoryCreator";
+import { createCategoryInline, createIncomeCategoryInline } from "./actions";
 import type {
   Expense,
   ExpenseCategory,
+  ExpenseKind,
+  ExpenseNature,
   PaymentMethod,
   Person,
   Project,
@@ -43,6 +46,7 @@ export function ExpenseForm({
   knownMerchants,
   initial,
   existing = [],
+  kind = "expense",
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
@@ -53,8 +57,11 @@ export function ExpenseForm({
   knownMerchants: string[];
   initial?: Expense | null;
   existing?: { slug: string; amount: number; day: string }[];
+  kind?: ExpenseKind;
 }) {
+  const income = kind === "income";
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
+  const [nature, setNature] = useState<ExpenseNature>(initial?.nature ?? "avg");
   const [merchant, setMerchant] = useState(initial?.merchant ?? "");
   const [categoryId, setCategoryId] = useState<string | null>(
     initial?.categoryId ?? null
@@ -70,7 +77,9 @@ export function ExpenseForm({
   );
   const [autoApplied, setAutoApplied] = useState(false);
   const manual = useRef(!!initial?.categoryId);
-  const { open: openCatModal, modal: catModal } = useCategoryCreator();
+  const { open: openCatModal, modal: catModal } = useCategoryCreator(
+    income ? createIncomeCategoryInline : createCategoryInline
+  );
 
   const [dupWarn, setDupWarn] = useState(false);
   const confirmedRef = useRef(false);
@@ -92,7 +101,7 @@ export function ExpenseForm({
   }
 
   function onSubmit(e: React.FormEvent<HTMLFormElement>) {
-    if (initial || confirmedRef.current) return; // szerkesztésnél / megerősítés után nincs check
+    if (initial || income || confirmedRef.current) return; // szerkesztésnél / bevételnél / megerősítés után nincs check
     const fd = new FormData(e.currentTarget);
     const amt = Math.round(
       Number(String(fd.get("amount") ?? "").replace(/\s/g, "").replace(",", "."))
@@ -141,6 +150,8 @@ export function ExpenseForm({
     <form ref={formRef} action={action} onSubmit={onSubmit} className="space-y-5">
       {catModal}
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
+      <input type="hidden" name="kind" value={kind} />
+      <input type="hidden" name="nature" value={nature} />
       <input type="hidden" name="categoryId" value={categoryId ?? ""} />
       <input type="hidden" name="paymentMethodId" value={paymentMethodId ?? ""} />
       <input type="hidden" name="personId" value={personId ?? ""} />
@@ -158,14 +169,18 @@ export function ExpenseForm({
         />
       </Field>
 
-      <Field label="Hol / kinek" required hint="pl. Lidl, Shell, Spotify">
+      <Field
+        label={income ? "Forrás" : "Hol / kinek"}
+        required
+        hint={income ? "pl. Munkahely, Ügyfél" : "pl. Lidl, Shell, Spotify"}
+      >
         <Input
           name="merchant"
           required
           value={merchant}
           onChange={(e) => onMerchantChange(e.target.value)}
           list="known-merchants"
-          placeholder="Bolt vagy szolgáltató neve"
+          placeholder={income ? "Honnan jött a bevétel" : "Bolt vagy szolgáltató neve"}
         />
         <datalist id="known-merchants">
           {knownMerchants.map((m) => (
@@ -217,6 +232,7 @@ export function ExpenseForm({
         </div>
       </div>
 
+      {!income && (
       <div>
         <span className="block text-sm font-medium mb-2">Miből fizetted</span>
         <div className="flex flex-wrap gap-2">
@@ -250,9 +266,12 @@ export function ExpenseForm({
           <AddLink href="/koltsegek/beallitasok" label="Kártya" />
         </div>
       </div>
+      )}
 
       <div>
-        <span className="block text-sm font-medium mb-2">Ki költötte</span>
+        <span className="block text-sm font-medium mb-2">
+          {income ? "Kinek jött" : "Ki költötte"}
+        </span>
         <div className="flex flex-wrap gap-2">
           {persons.map((p) => {
             const col = catColor(p.color);
@@ -282,6 +301,7 @@ export function ExpenseForm({
         </div>
       </div>
 
+      {!income && (
       <div>
         <span className="block text-sm font-medium mb-2">Projekt</span>
         <div className="flex flex-wrap gap-2">
@@ -312,6 +332,29 @@ export function ExpenseForm({
           />
         </div>
       </div>
+      )}
+
+      {!income && (
+        <div>
+          <span className="block text-sm font-medium mb-2">A költés jellege</span>
+          <div className="grid grid-cols-2 gap-2">
+            <NatureBtn
+              active={nature === "avg"}
+              onClick={() => setNature("avg")}
+              icon={<CalendarClock className="w-4 h-4" />}
+              title="Havi átlagos"
+              desc="Rendszeres, mindennapi költés"
+            />
+            <NatureBtn
+              active={nature === "project"}
+              onClick={() => setNature("project")}
+              icon={<FolderKanban className="w-4 h-4" />}
+              title="Eseti projekt"
+              desc="Nagy, egyszeri (autó, nyaralás)"
+            />
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-2 gap-3">
         <Field label="Dátum">
@@ -330,7 +373,7 @@ export function ExpenseForm({
             />
             <span className="text-sm font-medium flex items-center gap-1.5">
               <Repeat className="w-4 h-4 text-[var(--color-muted-foreground)]" />
-              Ismétlődő havonta
+              {income ? "Ismétlődő havonta (pl. fizetés)" : "Ismétlődő havonta"}
             </span>
           </label>
           {recurring && (
@@ -393,9 +436,47 @@ export function ExpenseForm({
       )}
 
       <SubmitButton size="lg" fullWidth pendingText={initial ? "Mentés…" : "Rögzítés…"}>
-        {initial ? "Mentés" : "Kiadás rögzítése"}
+        {initial ? "Mentés" : income ? "Bevétel rögzítése" : "Kiadás rögzítése"}
       </SubmitButton>
     </form>
+  );
+}
+
+function NatureBtn({
+  active,
+  onClick,
+  icon,
+  title,
+  desc,
+}: {
+  active: boolean;
+  onClick: () => void;
+  icon: React.ReactNode;
+  title: string;
+  desc: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "flex flex-col items-start gap-0.5 rounded-xl border p-3 text-left transition",
+        active
+          ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)] ring-1 ring-[var(--color-primary)]/40"
+          : "border-[var(--color-border)] hover:bg-[var(--color-muted)]"
+      )}
+    >
+      <span
+        className={cn(
+          "flex items-center gap-1.5 text-sm font-medium",
+          active ? "text-[var(--color-primary)]" : "text-[var(--color-foreground)]"
+        )}
+      >
+        {icon}
+        {title}
+      </span>
+      <span className="text-[11px] text-[var(--color-muted-foreground)]">{desc}</span>
+    </button>
   );
 }
 

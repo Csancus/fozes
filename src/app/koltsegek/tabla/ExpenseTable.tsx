@@ -54,6 +54,7 @@ type Row = {
   paymentMethodId: string;
   personId: string;
   projectId: string;
+  nature: string;
   spentAt: string;
   note: string;
 };
@@ -67,6 +68,7 @@ function toRow(e: Expense): Row {
     paymentMethodId: e.paymentMethodId ?? "",
     personId: e.personId ?? "",
     projectId: e.projectId ?? "",
+    nature: e.nature ?? "avg",
     spentAt: tsToDay(e.spentAt),
     note: e.note ?? "",
   };
@@ -80,6 +82,7 @@ function serialize(r: Row): string {
     r.paymentMethodId,
     r.personId,
     r.projectId,
+    r.nature,
     r.spentAt,
   ]);
 }
@@ -106,17 +109,21 @@ export function ExpenseTable({
   merchantMap: Record<string, string>;
   knownMerchants: string[];
 }) {
+  const expenseItems = useMemo(
+    () => expenses.filter((e) => (e.kind ?? "expense") !== "income"),
+    [expenses]
+  );
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
-  const [rows, setRows] = useState<Row[]>(() => expenses.map(toRow));
+  const [rows, setRows] = useState<Row[]>(() => expenseItems.map(toRow));
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
   const [month, setMonth] = useState<string>("all");
   const [search, setSearch] = useState("");
 
   const original = useMemo(() => {
     const m = new Map<string, string>();
-    expenses.forEach((e) => m.set(e.id, serialize(toRow(e))));
+    expenseItems.forEach((e) => m.set(e.id, serialize(toRow(e))));
     return m;
-  }, [expenses]);
+  }, [expenseItems]);
 
   const months = useMemo(() => {
     const set = new Set<string>();
@@ -175,6 +182,7 @@ export function ExpenseTable({
       paymentMethodId: r.paymentMethodId,
       personId: r.personId,
       projectId: r.projectId,
+      nature: r.nature,
       spentAt: r.spentAt,
       note: r.note,
     }))
@@ -183,7 +191,7 @@ export function ExpenseTable({
 
   const showPerson = persons.length > 0;
   const showProject = projects.length > 0;
-  const minW = 820 + (showPerson ? 120 : 0) + (showProject ? 140 : 0);
+  const minW = 960 + (showPerson ? 120 : 0) + (showProject ? 140 : 0);
 
   const visibleTotal = visible
     .filter((r) => !deleted.has(r.id))
@@ -234,6 +242,7 @@ export function ExpenseTable({
               <th className="font-semibold px-1 w-28">Összeg</th>
               <th className="font-semibold px-1">Bolt / kinek</th>
               <th className="font-semibold px-1 w-40">Kategória</th>
+              <th className="font-semibold px-1 w-32">Jelleg</th>
               <th className="font-semibold px-1 w-36">Fizetés</th>
               {showPerson && <th className="font-semibold px-1 w-28">Ki</th>}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
@@ -289,6 +298,17 @@ export function ExpenseTable({
                       onCreated={(c) => setCatList((cur) => [...cur, c])}
                       className={cn(ctrl, "appearance-none", isDeleted && "pointer-events-none")}
                     />
+                  </td>
+                  <td>
+                    <select
+                      value={r.nature}
+                      disabled={isDeleted}
+                      onChange={(e) => update(r.id, { nature: e.target.value })}
+                      className={cn(ctrl, "appearance-none")}
+                    >
+                      <option value="avg">Havi átlagos</option>
+                      <option value="project">Eseti projekt</option>
+                    </select>
                   </td>
                   <td>
                     <select

@@ -14,9 +14,16 @@ import type {
   Project,
   Merchant,
   RecurringExpense,
+  IncomeCategory,
+  ExpenseKind,
+  ExpenseNature,
   SavedItem,
 } from "./types";
-import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_PAYMENT_METHODS } from "./types";
+import {
+  DEFAULT_EXPENSE_CATEGORIES,
+  DEFAULT_PAYMENT_METHODS,
+  DEFAULT_INCOME_CATEGORIES,
+} from "./types";
 
 // ============ LOCATIONS ============
 
@@ -441,6 +448,69 @@ export async function ensureDefaultExpenseCategories(
   return listExpenseCategories(hh);
 }
 
+// ============ INCOME CATEGORIES (bevétel-kategóriák) ============
+
+export async function listIncomeCategories(
+  hh: string
+): Promise<IncomeCategory[]> {
+  const ids = await redis.smembers(key.incomeCategories(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<IncomeCategory>(key.incomeCategory(hh, id)))
+  );
+  return items
+    .filter((c): c is IncomeCategory => !!c)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getIncomeCategory(hh: string, id: string) {
+  return redis.get<IncomeCategory>(key.incomeCategory(hh, id));
+}
+
+export async function createIncomeCategory(
+  hh: string,
+  input: Pick<IncomeCategory, "name" | "color" | "icon">
+): Promise<IncomeCategory> {
+  const cat: IncomeCategory = {
+    id: newId(),
+    name: input.name.trim(),
+    color: input.color,
+    icon: input.icon,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.incomeCategory(hh, cat.id), cat);
+  await redis.sadd(key.incomeCategories(hh), cat.id);
+  return cat;
+}
+
+export async function updateIncomeCategory(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<IncomeCategory, "name" | "color" | "icon">>
+) {
+  const cur = await getIncomeCategory(hh, id);
+  if (!cur) return null;
+  const next = { ...cur, ...patch };
+  await redis.set(key.incomeCategory(hh, id), next);
+  return next;
+}
+
+export async function deleteIncomeCategory(hh: string, id: string) {
+  await redis.del(key.incomeCategory(hh, id));
+  await redis.srem(key.incomeCategories(hh), id);
+}
+
+export async function ensureDefaultIncomeCategories(
+  hh: string
+): Promise<IncomeCategory[]> {
+  const existing = await listIncomeCategories(hh);
+  if (existing.length > 0) return existing;
+  for (const c of DEFAULT_INCOME_CATEGORIES) {
+    await createIncomeCategory(hh, c);
+  }
+  return listIncomeCategories(hh);
+}
+
 // ============ MERCHANT → CATEGORY MEMORY ============
 
 // ============ MERCHANTS (boltok / kinek) ============
@@ -724,35 +794,50 @@ export async function listExpenses(hh: string): Promise<Expense[]> {
   );
   return items
     .filter((e): e is Expense => !!e)
+    .map((e) => ({
+      ...e,
+      // Régi rekordokban nincs kind/nature → alapértelmezés.
+      kind: e.kind ?? "expense",
+      nature: e.nature ?? "avg",
+    }))
     .sort((a, b) => b.spentAt - a.spentAt || b.createdAt - a.createdAt);
 }
 
 export async function getExpense(hh: string, id: string) {
-  return redis.get<Expense>(key.expense(hh, id));
+  const e = await redis.get<Expense>(key.expense(hh, id));
+  if (!e) return null;
+  return { ...e, kind: e.kind ?? "expense", nature: e.nature ?? "avg" };
 }
 
 export async function saveExpense(
   hh: string,
-  input: Omit<Expense, "id" | "createdAt"> & { id?: string }
+  input: Omit<Expense, "id" | "createdAt" | "kind" | "nature"> & {
+    id?: string;
+    kind?: ExpenseKind;
+    nature?: ExpenseNature;
+  }
 ): Promise<Expense> {
   const id = input.id ?? newId();
   const existing = input.id ? await getExpense(hh, input.id) : null;
+  const kind: ExpenseKind = input.kind ?? existing?.kind ?? "expense";
   const e: Expense = {
     id,
+    kind,
     amount: input.amount,
     merchant: input.merchant.trim(),
     categoryId: input.categoryId,
     paymentMethodId: input.paymentMethodId ?? null,
     personId: input.personId ?? null,
     projectId: input.projectId ?? null,
+    nature: input.nature ?? existing?.nature ?? "avg",
     note: input.note.trim(),
     spentAt: input.spentAt,
     createdAt: existing?.createdAt ?? Date.now(),
   };
   await redis.set(key.expense(hh, id), e);
   await redis.sadd(key.expenses(hh), id);
-  // A boltot mindig felvesszük a kezelt listába (dropdown), és megjegyezzük a kategóriát.
-  if (e.merchant) {
+  // Csak kiadásnál tanulunk boltot/kategóriát (a bevétel forrása ne kerüljön a bolt-listába).
+  if (e.kind === "expense" && e.merchant) {
     await ensureMerchant(hh, e.merchant, e.categoryId);
   }
   return e;
@@ -773,25 +858,34 @@ export async function listRecurrings(hh: string): Promise<RecurringExpense[]> {
   );
   return items
     .filter((r): r is RecurringExpense => !!r)
+    .map((r) => ({ ...r, kind: r.kind ?? "expense", nature: r.nature ?? "avg" }))
     .sort((a, b) => a.dayOfMonth - b.dayOfMonth || a.createdAt - b.createdAt);
 }
 
 export async function getRecurring(hh: string, id: string) {
-  return redis.get<RecurringExpense>(key.recurring(hh, id));
+  const r = await redis.get<RecurringExpense>(key.recurring(hh, id));
+  if (!r) return null;
+  return { ...r, kind: r.kind ?? "expense", nature: r.nature ?? "avg" };
 }
 
 export async function createRecurring(
   hh: string,
-  input: Omit<RecurringExpense, "id" | "createdAt">
+  input: Omit<RecurringExpense, "id" | "createdAt" | "kind" | "nature"> & {
+    kind?: ExpenseKind;
+    nature?: ExpenseNature;
+  }
 ): Promise<RecurringExpense> {
+  const kind: ExpenseKind = input.kind ?? "expense";
   const r: RecurringExpense = {
     id: newId(),
+    kind,
     amount: input.amount,
     merchant: input.merchant.trim(),
     categoryId: input.categoryId,
     paymentMethodId: input.paymentMethodId ?? null,
     personId: input.personId ?? null,
     projectId: input.projectId ?? null,
+    nature: input.nature ?? "avg",
     note: input.note.trim(),
     dayOfMonth: Math.min(31, Math.max(1, Math.round(input.dayOfMonth) || 1)),
     active: input.active,
@@ -800,7 +894,9 @@ export async function createRecurring(
   };
   await redis.set(key.recurring(hh, r.id), r);
   await redis.sadd(key.recurrings(hh), r.id);
-  if (r.merchant) await ensureMerchant(hh, r.merchant, r.categoryId);
+  if (kind === "expense" && r.merchant) {
+    await ensureMerchant(hh, r.merchant, r.categoryId);
+  }
   return r;
 }
 
@@ -869,12 +965,14 @@ export async function runDueRecurring(hh: string): Promise<number> {
       if (due.getTime() > nowMs) break; // jövőbeli esedékesség → itt megállunk
 
       await saveExpense(hh, {
+        kind: rule.kind ?? "expense",
         amount: rule.amount,
         merchant: rule.merchant,
         categoryId: rule.categoryId,
         paymentMethodId: rule.paymentMethodId,
         personId: rule.personId,
         projectId: rule.projectId,
+        nature: rule.nature ?? "avg",
         note: rule.note,
         spentAt: due.getTime(),
       });
