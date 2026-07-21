@@ -96,7 +96,7 @@ export function GroupsView({
   return (
     <div className="mt-5">
       {/* Csoportváltó */}
-      <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      <div className="flex gap-2 overflow-x-auto py-1.5 -mx-1 px-1">
         {groups.map((g) => {
           const col = catColor(g.color);
           const active = selected === g.id;
