@@ -13,6 +13,7 @@ import {
   createSavedType,
 } from "@/lib/data";
 import { getSession } from "@/lib/session";
+import { offloadImage } from "@/lib/r2";
 import { newId } from "@/lib/redis";
 import type {
   SavedItem,
@@ -100,7 +101,7 @@ export async function saveOcrDraftsAction(fd: FormData) {
           }))
           .filter((l) => l.url)
       : [];
-    const imageUrl = String(d.imageUrl ?? "").trim() || null;
+    const imageUrl = await offloadImage(d.imageUrl, `bakancslista/${hh}`);
     const surpriseFor = String(d.surpriseFor ?? "").trim() || null;
 
     const item: SavedItem = {
@@ -140,7 +141,10 @@ export async function saveSavedAction(fd: FormData) {
   const kind = String(fd.get("kind") ?? "").trim() || "egyeb";
   const note = String(fd.get("note") ?? "").trim();
   const location = String(fd.get("location") ?? "").trim();
-  const imageUrl = String(fd.get("imageUrl") ?? "").trim() || null;
+  const imageUrl = await offloadImage(
+    String(fd.get("imageUrl") ?? ""),
+    `bakancslista/${hh}`
+  );
   const tags = String(fd.get("tags") ?? "")
     .split(",")
     .map((t) => t.trim())

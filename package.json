@@ -8,6 +8,7 @@
     "start": "next start"
   },
   "dependencies": {
+    "@aws-sdk/client-s3": "^3.1092.0",
     "@types/bcryptjs": "^2.4.6",
     "@types/pdf-parse": "^1.1.5",
     "@upstash/redis": "^1.38.0",
