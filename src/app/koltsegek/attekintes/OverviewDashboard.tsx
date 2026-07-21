@@ -711,8 +711,12 @@ function PieCard({ title, segments }: { title: string; segments: Seg[] }) {
                   <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.color }} />
                   <span className="truncate">{a.label}</span>
                 </span>
-                <span className="tabular-nums text-[var(--color-muted-foreground)] shrink-0">
-                  {Math.round((a.value / total) * 100)}%
+                <span className="tabular-nums shrink-0 text-right">
+                  <span className="font-medium">{fmtFt(a.value)}</span>
+                  <span className="text-[var(--color-muted-foreground)]">
+                    {" "}
+                    · {Math.round((a.value / total) * 100)}%
+                  </span>
                 </span>
               </li>
             ))}
