@@ -39,6 +39,35 @@ function monthKeyToDate(k: string): Date {
   return new Date(y, (m || 1) - 1, 1);
 }
 
+// Szín-tokenek hex értékei (pie chartokhoz, ahol Tailwind class nem használható).
+const HEX: Record<string, string> = {
+  emerald: "#10b981",
+  orange: "#f97316",
+  sky: "#0ea5e9",
+  indigo: "#6366f1",
+  rose: "#f43f5e",
+  violet: "#8b5cf6",
+  pink: "#ec4899",
+  cyan: "#06b6d4",
+  amber: "#f59e0b",
+  zinc: "#a1a1aa",
+};
+const PALETTE = ["sky", "violet", "orange", "emerald", "rose", "cyan", "amber", "pink", "indigo", "zinc"];
+function hexOf(token: string | null | undefined, i: number): string {
+  if (token && HEX[token]) return HEX[token];
+  return HEX[PALETTE[i % PALETTE.length]];
+}
+
+type Seg = { label: string; value: number; color: string };
+// Top 6 szegmens + "Egyéb" összevonva.
+function toSegments(rows: Seg[]): Seg[] {
+  const clean = rows.filter((r) => r.value > 0);
+  if (clean.length <= 7) return clean;
+  const top = clean.slice(0, 6);
+  const rest = clean.slice(6).reduce((s, r) => s + r.value, 0);
+  return [...top, { label: "Egyéb", value: rest, color: HEX.zinc }];
+}
+
 export function OverviewDashboard({
   expenses: allItems,
   categories,
@@ -162,6 +191,80 @@ export function OverviewDashboard({
     () => [...scopedExpense].sort((a, b) => b.amount - a.amount).slice(0, 8),
     [scopedExpense]
   );
+
+  // Boltok / kinek szerinti bontás.
+  const byMerchant = useMemo(() => {
+    const m = new Map<string, number>();
+    scopedExpense.forEach((e) => {
+      const k = e.merchant || "—";
+      m.set(k, (m.get(k) ?? 0) + e.amount);
+    });
+    return [...m.entries()]
+      .map(([name, amount]) => ({ name, amount }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [scopedExpense]);
+
+  // Projekt szerinti bontás.
+  const byProject = useMemo(() => {
+    const m = new Map<string, number>();
+    scopedExpense.forEach((e) => {
+      const k = e.projectId ?? "__none";
+      m.set(k, (m.get(k) ?? 0) + e.amount);
+    });
+    return [...m.entries()]
+      .map(([k, amount]) => ({
+        project: k === "__none" ? null : projectById.get(k) ?? null,
+        amount,
+      }))
+      .sort((a, b) => b.amount - a.amount);
+  }, [scopedExpense, projectById]);
+
+  // Pie-szegmensek a 4 dimenzióra (top 6 + Egyéb).
+  const pieCategory = useMemo(
+    () =>
+      toSegments(
+        topCategories.map((c, i) => ({
+          label: c.cat?.name ?? "Nincs kategória",
+          value: c.amount,
+          color: hexOf(c.cat?.color, i),
+        }))
+      ),
+    [topCategories]
+  );
+  const pieExpense = useMemo(
+    () =>
+      toSegments(
+        scopedExpense
+          .slice()
+          .sort((a, b) => b.amount - a.amount)
+          .map((e, i) => ({ label: e.merchant || "—", value: e.amount, color: hexOf(null, i) }))
+      ),
+    [scopedExpense]
+  );
+  const pieMerchant = useMemo(
+    () =>
+      toSegments(byMerchant.map((m, i) => ({ label: m.name, value: m.amount, color: hexOf(null, i) }))),
+    [byMerchant]
+  );
+  const pieProject = useMemo(
+    () =>
+      toSegments(
+        byProject.map((p, i) => ({
+          label: p.project?.name ?? "Projekt nélkül",
+          value: p.amount,
+          color: hexOf(p.project?.color, i),
+        }))
+      ),
+    [byProject]
+  );
+
+  // Top 3 az adott időszakra (kategória / egyedi kiadás / bolt / projekt).
+  const top3 = {
+    category: topCategories.slice(0, 3).map((c) => ({ label: c.cat?.name ?? "Nincs kategória", amount: c.amount, color: c.cat?.color ?? "zinc" })),
+    expense: biggest.slice(0, 3).map((e) => ({ label: e.merchant || "—", amount: e.amount, color: "sky" })),
+    merchant: byMerchant.slice(0, 3).map((m) => ({ label: m.name, amount: m.amount, color: "violet" })),
+    project: byProject.filter((p) => p.project).slice(0, 3).map((p) => ({ label: p.project!.name, amount: p.amount, color: p.project!.color })),
+  };
 
   const activeFilters =
     cats.size + pays.size + people.size + projs.size + (search ? 1 : 0);
@@ -355,6 +458,36 @@ export function OverviewDashboard({
         </div>
       </section>
 
+      {/* Top 3 az adott időszakra */}
+      {totalExpense > 0 && (
+        <section className="mt-6">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
+            Top 3 · {month === "all" ? "12 hó" : monthLongFmt.format(monthKeyToDate(month))}
+          </h2>
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Top3Card title="Kategória" rows={top3.category} total={totalExpense} />
+            <Top3Card title="Legnagyobb kiadás" rows={top3.expense} total={totalExpense} />
+            <Top3Card title="Bolt / kinek" rows={top3.merchant} total={totalExpense} />
+            <Top3Card title="Projekt" rows={top3.project} total={totalExpense} />
+          </div>
+        </section>
+      )}
+
+      {/* Megoszlás — pie chartok */}
+      {totalExpense > 0 && (
+        <section className="mt-6">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
+            Megoszlás · {month === "all" ? "12 hó" : monthLongFmt.format(monthKeyToDate(month))}
+          </h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <PieCard title="Kategóriánként" segments={pieCategory} />
+            <PieCard title="Kiadásonként" segments={pieExpense} />
+            <PieCard title="Bolt / kinek szerint" segments={pieMerchant} />
+            <PieCard title="Projektenként" segments={pieProject} />
+          </div>
+        </section>
+      )}
+
       {/* Legnagyobb kategóriák */}
       {topCategories.length > 0 && (
         <section className="mt-6">
@@ -388,6 +521,31 @@ export function OverviewDashboard({
             })}
           </div>
         </section>
+      )}
+
+      {/* Boltok / kinek szerint */}
+      {byMerchant.length > 0 && (
+        <BarBreakdown
+          title="Boltok / kinek szerint"
+          rows={byMerchant.slice(0, 8).map((m, i) => ({
+            label: m.name,
+            amount: m.amount,
+            color: PALETTE[i % PALETTE.length],
+          }))}
+          total={totalExpense}
+        />
+      )}
+
+      {/* Projektek szerint */}
+      {byProject.some((p) => p.project) && (
+        <BarBreakdown
+          title="Projektek szerint"
+          rows={byProject
+            .filter((p) => p.project)
+            .slice(0, 8)
+            .map((p) => ({ label: p.project!.name, amount: p.amount, color: p.project!.color }))}
+          total={totalExpense}
+        />
       )}
 
       {/* Legnagyobb egyedi kiadások */}
@@ -462,6 +620,144 @@ export function OverviewDashboard({
         </div>
       )}
     </div>
+  );
+}
+
+function Top3Card({
+  title,
+  rows,
+  total,
+}: {
+  title: string;
+  rows: { label: string; amount: number; color: string }[];
+  total: number;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.amount));
+  return (
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3.5">
+      <p className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider mb-2">
+        {title}
+      </p>
+      {rows.length === 0 ? (
+        <p className="text-xs text-[var(--color-muted-foreground)] py-2">—</p>
+      ) : (
+        <ol className="space-y-2">
+          {rows.map((r, i) => {
+            const col = catColor(r.color);
+            return (
+              <li key={i}>
+                <div className="flex items-center justify-between text-[13px] mb-0.5 gap-2">
+                  <span className="flex items-center gap-1.5 min-w-0">
+                    <span className="text-[var(--color-muted-foreground)] tabular-nums">{i + 1}.</span>
+                    <span className="truncate">{r.label}</span>
+                  </span>
+                  <span className="tabular-nums font-medium shrink-0">{fmtFt(r.amount)}</span>
+                </div>
+                <div className="h-1.5 rounded-full bg-[var(--color-muted)] overflow-hidden">
+                  <div className={cn("h-full rounded-full", col.dot)} style={{ width: `${(r.amount / max) * 100}%` }} />
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+      )}
+    </div>
+  );
+}
+
+function PieCard({ title, segments }: { title: string; segments: Seg[] }) {
+  const total = segments.reduce((s, x) => s + x.value, 0);
+  const r = 42;
+  const C = 2 * Math.PI * r;
+  let acc = 0;
+  const arcs = segments.map((s) => {
+    const dash = total ? (s.value / total) * C : 0;
+    const arc = { ...s, dash, offset: acc };
+    acc += dash;
+    return arc;
+  });
+  return (
+    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+      <p className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider mb-3">
+        {title}
+      </p>
+      {total === 0 ? (
+        <p className="text-xs text-[var(--color-muted-foreground)] py-4 text-center">Nincs adat.</p>
+      ) : (
+        <div className="flex items-center gap-4">
+          <svg viewBox="0 0 100 100" className="w-24 h-24 shrink-0 -rotate-90">
+            <circle cx="50" cy="50" r={r} fill="none" stroke="var(--color-muted)" strokeWidth="16" />
+            {arcs.map((a, i) => (
+              <circle
+                key={i}
+                cx="50"
+                cy="50"
+                r={r}
+                fill="none"
+                stroke={a.color}
+                strokeWidth="16"
+                strokeDasharray={`${a.dash} ${C - a.dash}`}
+                strokeDashoffset={-a.offset}
+              />
+            ))}
+          </svg>
+          <ul className="flex-1 min-w-0 space-y-1 text-xs">
+            {arcs.map((a, i) => (
+              <li key={i} className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ background: a.color }} />
+                  <span className="truncate">{a.label}</span>
+                </span>
+                <span className="tabular-nums text-[var(--color-muted-foreground)] shrink-0">
+                  {Math.round((a.value / total) * 100)}%
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function BarBreakdown({
+  title,
+  rows,
+  total,
+}: {
+  title: string;
+  rows: { label: string; amount: number; color: string }[];
+  total: number;
+}) {
+  return (
+    <section className="mt-6">
+      <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
+        {title}
+      </h2>
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 space-y-3">
+        {rows.map((row, i) => {
+          const col = catColor(row.color);
+          const pct = total ? (row.amount / total) * 100 : 0;
+          return (
+            <div key={i}>
+              <div className="flex items-center justify-between text-sm mb-1 gap-2">
+                <span className="flex items-center gap-2 min-w-0">
+                  <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", col.dot)} />
+                  <span className="truncate">{row.label}</span>
+                </span>
+                <span className="tabular-nums font-medium shrink-0">
+                  {fmtFt(row.amount)}
+                  <span className="text-[var(--color-muted-foreground)] font-normal"> · {Math.round(pct)}%</span>
+                </span>
+              </div>
+              <div className="h-2 rounded-full bg-[var(--color-muted)] overflow-hidden">
+                <div className={cn("h-full rounded-full", col.dot)} style={{ width: `${pct}%` }} />
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
