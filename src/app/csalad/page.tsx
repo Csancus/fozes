@@ -6,7 +6,9 @@ import { Section } from "@/components/ui/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
 import { headers } from "next/headers";
+import { hasSurprisePassword } from "@/lib/data";
 import { InviteLink } from "./InviteLink";
+import { SurprisePasswordForm } from "./SurprisePasswordForm";
 
 function initialsOf(name: string): string {
   return name
@@ -19,10 +21,11 @@ function initialsOf(name: string): string {
 
 export default async function CsaladPage() {
   const me = await requireUser();
-  const [memberIds, hh, h] = await Promise.all([
+  const [memberIds, hh, h, hasSurprisePw] = await Promise.all([
     redis.smembers(key.householdMembers(me.householdId)),
     redis.get<Household>(key.household(me.householdId)),
     headers(),
+    hasSurprisePassword(me.householdId),
   ]);
   const members = (
     await Promise.all(memberIds.map((id) => redis.get<User>(key.user(id))))
@@ -69,6 +72,14 @@ export default async function CsaladPage() {
           <Card>
             <div className="p-4">
               <InviteLink url={inviteUrl} householdName={hh?.name ?? "háztartás"} />
+            </div>
+          </Card>
+        </Section>
+
+        <Section title="Meglepetés-jelszó">
+          <Card>
+            <div className="p-4">
+              <SurprisePasswordForm hasPw={hasSurprisePw} />
             </div>
           </Card>
         </Section>

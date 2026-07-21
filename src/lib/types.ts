@@ -422,6 +422,7 @@ export type SavedItem = {
   tags: string[];
   done: boolean;            // visited / read / watched
   doneAt: number | null;
+  surpriseFor: string | null; // userId who must NOT see it (grey "Meglepetés" + password)
   createdAt: number;
   updatedAt: number;
 };

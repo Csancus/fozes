@@ -1,8 +1,11 @@
 import { requireUser } from "@/lib/auth";
-import { getSavedItem, getSavedFile } from "@/lib/data";
+import { getSavedItem, getSavedFile, hasSurprisePassword } from "@/lib/data";
+import { getSession } from "@/lib/session";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
+import { SurpriseUnlock } from "../SurpriseUnlock";
+import { unlockSurpriseAction } from "../actions";
 import { Button } from "@/components/ui/Button";
 import { catColor } from "@/lib/expense-visuals";
 import { KIND_VISUAL, linkKind } from "@/lib/saved-visuals";
@@ -39,6 +42,21 @@ export default async function SavedDetailPage({
   const me = await requireUser();
   const item = await getSavedItem(me.householdId, id);
   if (!item) notFound();
+
+  // Meglepetés: az érintett tag csak feloldás után látja a tartalmat.
+  const session = await getSession();
+  if (item.surpriseFor === me.userId && !session.surpriseUnlocked) {
+    const hasSurprisePw = await hasSurprisePassword(me.householdId);
+    return (
+      <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
+        <PageHeader title="Meglepetés" back="/bakancslista" />
+        <SurpriseUnlock
+          hasSurprisePw={hasSurprisePw}
+          unlockAction={unlockSurpriseAction}
+        />
+      </main>
+    );
+  }
 
   const blobs = await Promise.all(
     item.files.map(async (f) => ({

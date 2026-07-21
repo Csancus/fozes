@@ -1,15 +1,52 @@
 import { requireUser } from "@/lib/auth";
-import { listSavedItems } from "@/lib/data";
+import {
+  listSavedItems,
+  listHouseholdMembers,
+  hasSurprisePassword,
+} from "@/lib/data";
+import { getSession } from "@/lib/session";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { Bookmark, Plus, Table2, ScanText } from "lucide-react";
 import Link from "next/link";
 import { SavedListClient } from "./SavedListClient";
+import {
+  setSurpriseBatchAction,
+  unlockSurpriseAction,
+} from "./actions";
 
 export default async function BakancslistaPage() {
   const me = await requireUser();
-  const items = await listSavedItems(me.householdId);
+  const [items, members, hasSurprisePw, session] = await Promise.all([
+    listSavedItems(me.householdId),
+    listHouseholdMembers(me.householdId),
+    hasSurprisePassword(me.householdId),
+    getSession(),
+  ]);
+  const unlocked = !!session.surpriseUnlocked;
+
+  const nameOf = (id: string) =>
+    members.find((m) => m.id === id)?.name ?? "valaki";
+
+  // Nekem szánt meglepetések: feloldásig rejtve.
+  const lockedForMe = unlocked
+    ? []
+    : items.filter((i) => i.surpriseFor === me.userId);
+  const lockedCount = lockedForMe.length;
+
+  // A látható tételek + jelölés, ha én rejtettem el valaki elől.
+  const visible = items
+    .filter((i) => !(i.surpriseFor === me.userId && !unlocked))
+    .map((i) => ({
+      ...i,
+      surpriseForName:
+        i.surpriseFor && i.surpriseFor !== me.userId
+          ? nameOf(i.surpriseFor)
+          : null,
+    }));
+
+  const otherMembers = members.filter((m) => m.id !== me.userId);
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-4xl mx-auto">
@@ -44,7 +81,7 @@ export default async function BakancslistaPage() {
         }
       />
 
-      {items.length === 0 ? (
+      {visible.length === 0 && lockedCount === 0 ? (
         <div className="mt-6">
           <EmptyState
             icon={Bookmark}
@@ -73,7 +110,14 @@ export default async function BakancslistaPage() {
           </p>
         </div>
       ) : (
-        <SavedListClient items={items} />
+        <SavedListClient
+          items={visible}
+          lockedCount={lockedCount}
+          hasSurprisePw={hasSurprisePw}
+          members={otherMembers}
+          unlockAction={unlockSurpriseAction}
+          setSurpriseBatchAction={setSurpriseBatchAction}
+        />
       )}
     </main>
   );

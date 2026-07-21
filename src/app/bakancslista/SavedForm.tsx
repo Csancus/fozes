@@ -20,7 +20,9 @@ import {
   FileText,
   Music,
   File as FileIcon,
+  Gift,
 } from "lucide-react";
+import Link from "next/link";
 
 const MAX_DIM = 1200;
 const COVER_QUALITY = 0.82;
@@ -94,11 +96,22 @@ function fileIcon(mime: string) {
 export function SavedForm({
   action,
   initial,
+  members = [],
+  myId,
+  hasSurprisePw = false,
 }: {
   action: (fd: FormData) => void | Promise<void>;
   initial?: SavedItem | null;
+  members?: { id: string; name: string }[];
+  myId?: string;
+  hasSurprisePw?: boolean;
 }) {
   const [kind, setKind] = useState<SavedKind>(initial?.kind ?? "etterem");
+  const [surpriseFor, setSurpriseFor] = useState<string>(
+    initial?.surpriseFor ?? ""
+  );
+  // Csak a többi tag közül lehet választani (magamat nincs értelme kizárni).
+  const otherMembers = members.filter((m) => m.id !== myId);
   const [cover, setCover] = useState<string | null>(initial?.imageUrl ?? null);
   const [coverBusy, setCoverBusy] = useState(false);
   const [links, setLinks] = useState<LinkEntry[]>(initial?.links ?? []);
@@ -171,6 +184,7 @@ export function SavedForm({
         value={JSON.stringify(links.filter((l) => l.url.trim()))}
       />
       <input type="hidden" name="files" value={JSON.stringify(files)} />
+      <input type="hidden" name="surpriseFor" value={surpriseFor} />
 
       {/* Típus */}
       <div>
@@ -400,6 +414,59 @@ export function SavedForm({
           placeholder="pl. hétvége, olcsó, randi"
         />
       </Field>
+
+      {/* Meglepetés */}
+      {otherMembers.length > 0 && (
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/30 p-4">
+          <label className="flex items-start gap-3 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={!!surpriseFor}
+              onChange={(e) =>
+                setSurpriseFor(
+                  e.target.checked ? otherMembers[0].id : ""
+                )
+              }
+              className="mt-0.5 h-4 w-4 accent-[var(--color-primary)]"
+            />
+            <span>
+              <span className="flex items-center gap-1.5 text-sm font-medium">
+                <Gift className="w-4 h-4 text-[var(--color-primary)]" />
+                Meglepetés — rejtsd el valaki elől
+              </span>
+              <span className="mt-0.5 block text-xs text-[var(--color-muted-foreground)]">
+                A kiválasztott tag csak egy szürke „Meglepetés" kártyát lát, a
+                tartalmat a közös jelszóval tudja feloldani.
+              </span>
+            </span>
+          </label>
+
+          {surpriseFor && (
+            <div className="mt-3 pl-7 space-y-2">
+              <select
+                value={surpriseFor}
+                onChange={(e) => setSurpriseFor(e.target.value)}
+                className="h-10 w-full rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+              >
+                {otherMembers.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} elől
+                  </option>
+                ))}
+              </select>
+              {!hasSurprisePw && (
+                <p className="text-xs text-amber-600">
+                  Még nincs Meglepetés-jelszó beállítva.{" "}
+                  <Link href="/csalad" className="font-medium underline">
+                    Állítsd be a Család oldalon
+                  </Link>
+                  , különben nem lehet feloldani.
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+      )}
 
       <Button type="submit" size="lg" fullWidth>
         {initial ? "Mentés" : "Hozzáadás a listához"}

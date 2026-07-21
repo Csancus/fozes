@@ -7,7 +7,11 @@ import {
   deleteSavedItem,
   setSavedFile,
   deleteSavedFile,
+  setSurprisePassword,
+  verifySurprisePassword,
+  setSurpriseForItems,
 } from "@/lib/data";
+import { getSession } from "@/lib/session";
 import { newId } from "@/lib/redis";
 import type {
   SavedItem,
@@ -71,6 +75,7 @@ export async function saveSavedAction(fd: FormData) {
     .filter(Boolean);
   const links = parseLinks(String(fd.get("links") ?? "[]"));
   const incoming = parseFiles(String(fd.get("files") ?? "[]"));
+  const surpriseFor = String(fd.get("surpriseFor") ?? "").trim() || null;
 
   if (!title) return;
 
@@ -105,6 +110,7 @@ export async function saveSavedAction(fd: FormData) {
     tags,
     done: existing?.done ?? false,
     doneAt: existing?.doneAt ?? null,
+    surpriseFor,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };
@@ -162,6 +168,7 @@ export async function saveSavedBatchAction(fd: FormData) {
       tags,
       done: false,
       doneAt: null,
+      surpriseFor: null,
       createdAt: now,
       updatedAt: now,
     };
@@ -202,4 +209,51 @@ export async function deleteSavedAction(fd: FormData) {
   revalidatePath("/bakancslista");
   revalidatePath("/");
   redirect("/bakancslista");
+}
+
+// ---- Meglepetés ----
+
+// Közös háztartás-szintű Meglepetés-jelszó beállítása (Család oldal).
+export async function setSurprisePasswordAction(fd: FormData) {
+  const me = await requireUser();
+  const pw = String(fd.get("password") ?? "");
+  await setSurprisePassword(me.householdId, pw);
+  revalidatePath("/csalad");
+  revalidatePath("/bakancslista");
+}
+
+// A rejtett tételek feloldása erre a munkamenetre (helyes jelszó esetén).
+export async function unlockSurpriseAction(
+  _prev: { ok: boolean; error?: string } | undefined,
+  fd: FormData
+): Promise<{ ok: boolean; error?: string }> {
+  const me = await requireUser();
+  const pw = String(fd.get("password") ?? "");
+  const ok = await verifySurprisePassword(me.householdId, pw);
+  if (!ok) return { ok: false, error: "Hibás jelszó." };
+  const session = await getSession();
+  session.surpriseUnlocked = true;
+  await session.save();
+  revalidatePath("/bakancslista");
+  revalidatePath("/", "layout");
+  return { ok: true };
+}
+
+// Több tétel egyszerre elrejtése / láthatóvá tétele egy tag elől.
+export async function setSurpriseBatchAction(fd: FormData) {
+  const me = await requireUser();
+  let ids: string[] = [];
+  try {
+    const parsed = JSON.parse(String(fd.get("ids") ?? "[]"));
+    if (Array.isArray(parsed)) ids = parsed.map((x) => String(x)).filter(Boolean);
+  } catch {
+    ids = [];
+  }
+  const forRaw = String(fd.get("surpriseFor") ?? "").trim();
+  const userId = forRaw || null;
+  if (ids.length > 0) {
+    await setSurpriseForItems(me.householdId, ids, userId);
+    revalidatePath("/bakancslista");
+    revalidatePath("/");
+  }
 }

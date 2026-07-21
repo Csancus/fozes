@@ -18,7 +18,9 @@ import type {
   ExpenseKind,
   ExpenseNature,
   SavedItem,
+  User,
 } from "./types";
+import bcrypt from "bcryptjs";
 import {
   DEFAULT_EXPENSE_CATEGORIES,
   DEFAULT_PAYMENT_METHODS,
@@ -1010,6 +1012,59 @@ export async function listSavedItems(hh: string): Promise<SavedItem[]> {
 
 export async function getSavedItem(hh: string, id: string) {
   return redis.get<SavedItem>(key.savedItem(hh, id));
+}
+
+// ---- Meglepetés (rejtett tételek egy háztartás-tag elől) ----
+
+export async function listHouseholdMembers(
+  hh: string
+): Promise<{ id: string; name: string }[]> {
+  const ids = await redis.smembers(key.householdMembers(hh));
+  if (ids.length === 0) return [];
+  const users = await Promise.all(ids.map((id) => redis.get<User>(key.user(id))));
+  return users
+    .filter((u): u is User => !!u)
+    .map((u) => ({ id: u.id, name: u.name }));
+}
+
+export async function hasSurprisePassword(hh: string): Promise<boolean> {
+  return Boolean(await redis.get<string>(key.surprisePassword(hh)));
+}
+
+export async function setSurprisePassword(hh: string, plain: string) {
+  const pw = plain.trim();
+  if (!pw) {
+    await redis.del(key.surprisePassword(hh));
+    return;
+  }
+  await redis.set(key.surprisePassword(hh), await bcrypt.hash(pw, 10));
+}
+
+export async function verifySurprisePassword(
+  hh: string,
+  plain: string
+): Promise<boolean> {
+  const hash = await redis.get<string>(key.surprisePassword(hh));
+  if (!hash) return false;
+  return bcrypt.compare(plain, hash);
+}
+
+// Több tétel egyszerre elrejtése/láthatóvá tétele egy tag elől (userId | null).
+export async function setSurpriseForItems(
+  hh: string,
+  ids: string[],
+  userId: string | null
+) {
+  const now = Date.now();
+  for (const id of ids) {
+    const item = await getSavedItem(hh, id);
+    if (!item) continue;
+    await redis.set(key.savedItem(hh, id), {
+      ...item,
+      surpriseFor: userId,
+      updatedAt: now,
+    });
+  }
 }
 
 export async function saveSavedItem(hh: string, item: SavedItem) {

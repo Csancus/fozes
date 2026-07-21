@@ -76,6 +76,7 @@ export const key = {
   savedItem: (hh: string, id: string) => `hh:${hh}:saved:${id}`,
   savedFile: (hh: string, itemId: string, fileId: string) =>
     `hh:${hh}:saved:${itemId}:file:${fileId}`,
+  surprisePassword: (hh: string) => `hh:${hh}:surprise-pw`,
 };
 
 export function newId(): string {

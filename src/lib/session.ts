@@ -6,6 +6,7 @@ export type SessionData = {
   householdId?: string;
   email?: string;
   name?: string;
+  surpriseUnlocked?: boolean; // e böngésző-munkamenetben feloldotta-e a Meglepetéseket
 };
 
 const sessionOptions: SessionOptions = {

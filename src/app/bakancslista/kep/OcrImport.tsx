@@ -145,8 +145,14 @@ function guessFromText(raw: string): {
 
 export function OcrImport({
   action,
+  members = [],
+  myId,
+  hasSurprisePw = false,
 }: {
   action: (fd: FormData) => void | Promise<void>;
+  members?: { id: string; name: string }[];
+  myId?: string;
+  hasSurprisePw?: boolean;
 }) {
   const [phase, setPhase] = useState<"idle" | "running" | "done" | "error">(
     "idle"
@@ -198,6 +204,7 @@ export function OcrImport({
         tags: [],
         done: false,
         doneAt: null,
+        surpriseFor: null,
         createdAt: now,
         updatedAt: now,
       });
@@ -319,6 +326,9 @@ export function OcrImport({
                 key={draft.createdAt}
                 action={action}
                 initial={draft}
+                members={members}
+                myId={myId}
+                hasSurprisePw={hasSurprisePw}
               />
             </div>
           </div>
