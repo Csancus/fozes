@@ -454,11 +454,14 @@ type BatchRow = {
   paymentMethodId: unknown;
   personId: unknown;
   projectId: unknown;
+  nature: unknown;
   spentAt: unknown;
 };
 
 export async function saveExpensesBatchAction(fd: FormData) {
   const me = await requireUser();
+  const kind: ExpenseKind =
+    String(fd.get("kind") ?? "expense") === "income" ? "income" : "expense";
   let rows: BatchRow[] = [];
   try {
     const parsed = JSON.parse(String(fd.get("rows") ?? "[]"));
@@ -467,7 +470,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
     rows = [];
   }
 
-  const map = await getMerchantMap(me.householdId);
+  const map = kind === "expense" ? await getMerchantMap(me.householdId) : {};
   let saved = 0;
 
   for (const r of rows) {
@@ -476,19 +479,23 @@ export async function saveExpensesBatchAction(fd: FormData) {
     if (amount <= 0 || !merchant) continue;
 
     let categoryId = String(r.categoryId ?? "").trim() || null;
-    if (!categoryId) categoryId = map[slug(merchant)] ?? null;
+    if (kind === "expense" && !categoryId) categoryId = map[slug(merchant)] ?? null;
     const paymentMethodId = String(r.paymentMethodId ?? "").trim() || null;
     const personId = String(r.personId ?? "").trim() || null;
     const projectId = String(r.projectId ?? "").trim() || null;
+    const nature: ExpenseNature =
+      String(r.nature ?? "avg") === "project" ? "project" : "avg";
     const spentAt = parseDate(String(r.spentAt ?? ""));
 
     await saveExpense(me.householdId, {
+      kind,
       amount,
       merchant,
       categoryId,
       paymentMethodId,
       personId,
       projectId,
+      nature,
       note: "",
       spentAt,
     });
@@ -497,9 +504,10 @@ export async function saveExpensesBatchAction(fd: FormData) {
 
   if (saved > 0) {
     revalidatePath("/koltsegek");
+    revalidatePath("/koltsegek/attekintes");
     revalidatePath("/");
   }
-  redirect("/koltsegek");
+  redirect(kind === "income" ? "/koltsegek?nezet=bevetel" : "/koltsegek");
 }
 
 // ============ MEGLÉVŐK SZERKESZTÉSE (táblázat) ============

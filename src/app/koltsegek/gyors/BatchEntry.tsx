@@ -7,6 +7,7 @@ import { Plus, X, CopyPlus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
 import type {
   ExpenseCategory,
+  ExpenseKind,
   PaymentMethod,
   Person,
   Project,
@@ -44,6 +45,7 @@ type Row = {
   paymentMethodId: string;
   personId: string;
   projectId: string;
+  nature: string;
   spentAt: string;
 };
 
@@ -58,6 +60,7 @@ function emptyRow(): Row {
     paymentMethodId: "",
     personId: "",
     projectId: "",
+    nature: "avg",
     spentAt: todayStr(),
   };
 }
@@ -73,6 +76,7 @@ export function BatchEntry({
   projects,
   merchantMap,
   knownMerchants,
+  kind = "expense",
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
@@ -81,7 +85,9 @@ export function BatchEntry({
   projects: Project[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
+  kind?: ExpenseKind;
 }) {
+  const income = kind === "income";
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [rows, setRows] = useState<Row[]>(() => [
     emptyRow(),
@@ -96,7 +102,7 @@ export function BatchEntry({
       cur.map((r) => {
         if (r.key !== key) return r;
         const next = { ...r, ...patch };
-        if (patch.merchant !== undefined && !next.categoryId) {
+        if (!income && patch.merchant !== undefined && !next.categoryId) {
           const mapped = merchantMap[slugify(patch.merchant)];
           if (mapped && catList.some((c) => c.id === mapped)) {
             next.categoryId = mapped;
@@ -124,6 +130,7 @@ export function BatchEntry({
         r.paymentMethodId = last.paymentMethodId;
         r.personId = last.personId;
         r.projectId = last.projectId;
+        r.nature = last.nature;
       }
       return [...cur, r];
     });
@@ -140,23 +147,25 @@ export function BatchEntry({
       amount: r.amount,
       merchant: r.merchant,
       categoryId: r.categoryId,
-      paymentMethodId: r.paymentMethodId,
+      paymentMethodId: income ? "" : r.paymentMethodId,
       personId: r.personId,
-      projectId: r.projectId,
+      projectId: income ? "" : r.projectId,
+      nature: income ? "avg" : r.nature,
       spentAt: r.spentAt,
     }))
   );
 
   const showPerson = persons.length > 0;
-  const showProject = projects.length > 0;
+  const showProject = !income && projects.length > 0;
 
-  // A táblázat minimális szélessége az aktív oszlopoktól függ (desktopon elfér, mobilon görgethető)
-  const minW =
-    760 + (showPerson ? 120 : 0) + (showProject ? 140 : 0);
+  const minW = income
+    ? 620 + (showPerson ? 120 : 0)
+    : 900 + (showPerson ? 120 : 0) + (showProject ? 140 : 0);
 
   return (
     <form action={action} className="mt-5">
       <input type="hidden" name="rows" value={payload} />
+      <input type="hidden" name="kind" value={kind} />
 
       <datalist id="batch-merchants">
         {knownMerchants.map((m) => (
@@ -173,10 +182,13 @@ export function BatchEntry({
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
               <th className="font-semibold w-7" />
               <th className="font-semibold px-1 w-28">Összeg</th>
-              <th className="font-semibold px-1">Bolt / kinek</th>
+              <th className="font-semibold px-1">{income ? "Forrás" : "Bolt / kinek"}</th>
               <th className="font-semibold px-1 w-40">Kategória</th>
-              <th className="font-semibold px-1 w-36">Fizetés</th>
-              {showPerson && <th className="font-semibold px-1 w-28">Ki</th>}
+              {!income && <th className="font-semibold px-1 w-32">Jelleg</th>}
+              {!income && <th className="font-semibold px-1 w-36">Fizetés</th>}
+              {showPerson && (
+                <th className="font-semibold px-1 w-28">{income ? "Kinek" : "Ki"}</th>
+              )}
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
               <th className="font-semibold px-1 w-36">Dátum</th>
               <th className="w-7" />
@@ -202,7 +214,7 @@ export function BatchEntry({
                     value={r.merchant}
                     onChange={(e) => update(r.key, { merchant: e.target.value })}
                     list="batch-merchants"
-                    placeholder="pl. Lidl"
+                    placeholder={income ? "pl. Munkahely" : "pl. Lidl"}
                     className={ctrl}
                   />
                 </td>
@@ -215,20 +227,34 @@ export function BatchEntry({
                     className={cn(ctrl, "appearance-none")}
                   />
                 </td>
-                <td>
-                  <select
-                    value={r.paymentMethodId}
-                    onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
-                    className={cn(ctrl, "appearance-none")}
-                  >
-                    <option value="">—</option>
-                    {paymentMethods.map((pm) => (
-                      <option key={pm.id} value={pm.id}>
-                        {pm.name}
-                      </option>
-                    ))}
-                  </select>
-                </td>
+                {!income && (
+                  <td>
+                    <select
+                      value={r.nature}
+                      onChange={(e) => update(r.key, { nature: e.target.value })}
+                      className={cn(ctrl, "appearance-none")}
+                    >
+                      <option value="avg">Havi átlagos</option>
+                      <option value="project">Eseti projekt</option>
+                    </select>
+                  </td>
+                )}
+                {!income && (
+                  <td>
+                    <select
+                      value={r.paymentMethodId}
+                      onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
+                      className={cn(ctrl, "appearance-none")}
+                    >
+                      <option value="">—</option>
+                      {paymentMethods.map((pm) => (
+                        <option key={pm.id} value={pm.id}>
+                          {pm.name}
+                        </option>
+                      ))}
+                    </select>
+                  </td>
+                )}
                 {showPerson && (
                   <td>
                     <select
@@ -297,7 +323,7 @@ export function BatchEntry({
           type="button"
           onClick={addRowLikeLast}
           className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
-          title="Új sor az előző sor dátumával, kártyájával, személyével és projektjével"
+          title="Új sor az előző sor adataival"
         >
           <CopyPlus className="w-4 h-4" /> Sor az előző adataival
         </button>

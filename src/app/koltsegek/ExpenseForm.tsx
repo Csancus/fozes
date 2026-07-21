@@ -336,21 +336,23 @@ export function ExpenseForm({
 
       {!income && (
         <div>
-          <span className="block text-sm font-medium mb-2">A költés jellege</span>
+          <span className="block text-sm font-medium mb-2">
+            Beleszámít a havi kiadásokba?
+          </span>
           <div className="grid grid-cols-2 gap-2">
             <NatureBtn
               active={nature === "avg"}
               onClick={() => setNature("avg")}
               icon={<CalendarClock className="w-4 h-4" />}
               title="Havi átlagos"
-              desc="Rendszeres, mindennapi költés"
+              desc="Igen — beleszámít a havi átlagba"
             />
             <NatureBtn
               active={nature === "project"}
               onClick={() => setNature("project")}
               icon={<FolderKanban className="w-4 h-4" />}
               title="Eseti projekt"
-              desc="Nagy, egyszeri (autó, nyaralás)"
+              desc="Nem — kimarad (autó, nyaralás)"
             />
           </div>
         </div>
