@@ -242,9 +242,9 @@ export function BatchEntry({
       amount: r.amount,
       merchant: r.merchant,
       categoryId: r.categoryId,
-      paymentMethodId: r.kind === "income" ? "" : r.paymentMethodId,
+      paymentMethodId: r.paymentMethodId,
       personId: r.personId,
-      projectId: r.kind === "income" ? "" : r.projectId,
+      projectId: r.projectId,
       nature: r.kind === "income" ? "avg" : r.nature,
       review: r.review,
       recurring: r.recurring,
@@ -378,22 +378,18 @@ export function BatchEntry({
                   )}
                   {isVisible("payment") && (
                     <td>
-                      {inc ? (
-                        <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
-                      ) : (
-                        <select
-                          value={r.paymentMethodId}
-                          onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
-                          className={cn(ctrl, "appearance-none")}
-                        >
-                          <option value="">—</option>
-                          {paymentMethods.map((pm) => (
-                            <option key={pm.id} value={pm.id}>
-                              {pm.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
+                      <select
+                        value={r.paymentMethodId}
+                        onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
+                        className={cn(ctrl, "appearance-none")}
+                      >
+                        <option value="">—</option>
+                        {paymentMethods.map((pm) => (
+                          <option key={pm.id} value={pm.id}>
+                            {pm.name}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                   )}
                   {showPerson && (
@@ -414,22 +410,18 @@ export function BatchEntry({
                   )}
                   {showProject && (
                     <td>
-                      {inc ? (
-                        <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
-                      ) : (
-                        <select
-                          value={r.projectId}
-                          onChange={(e) => update(r.key, { projectId: e.target.value })}
-                          className={cn(ctrl, "appearance-none")}
-                        >
-                          <option value="">—</option>
-                          {projects.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {p.name}
-                            </option>
-                          ))}
-                        </select>
-                      )}
+                      <select
+                        value={r.projectId}
+                        onChange={(e) => update(r.key, { projectId: e.target.value })}
+                        className={cn(ctrl, "appearance-none")}
+                      >
+                        <option value="">—</option>
+                        {projects.map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      </select>
                     </td>
                   )}
                   {showGroup && (

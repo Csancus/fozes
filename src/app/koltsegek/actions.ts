@@ -537,11 +537,9 @@ export async function saveExpensesBatchAction(fd: FormData) {
 
     let categoryId = String(r.categoryId ?? "").trim() || null;
     if (kind === "expense" && !categoryId) categoryId = map[slug(merchant)] ?? null;
-    const paymentMethodId =
-      kind === "income" ? null : String(r.paymentMethodId ?? "").trim() || null;
+    const paymentMethodId = String(r.paymentMethodId ?? "").trim() || null;
     const personId = String(r.personId ?? "").trim() || null;
-    const projectId =
-      kind === "income" ? null : String(r.projectId ?? "").trim() || null;
+    const projectId = String(r.projectId ?? "").trim() || null;
     const groupId = String(r.groupId ?? "").trim() || null;
     const nature: ExpenseNature =
       kind === "income"
