@@ -293,9 +293,10 @@ export function ExpenseForm({
         </div>
       </div>
 
-      {!income && (
       <div>
-        <span className="block text-sm font-medium mb-2">Miből fizetted</span>
+        <span className="block text-sm font-medium mb-2">
+          {income ? "Hová érkezett" : "Miből fizetted"}
+        </span>
         <div className="flex flex-wrap gap-2">
           {paymentMethods.map((pm) => {
             const col = catColor(pm.color);
@@ -327,7 +328,6 @@ export function ExpenseForm({
           <AddLink href="/koltsegek/beallitasok" label="Kártya" />
         </div>
       </div>
-      )}
 
       <div>
         <span className="block text-sm font-medium mb-2">
@@ -362,7 +362,6 @@ export function ExpenseForm({
         </div>
       </div>
 
-      {!income && (
       <div>
         <span className="block text-sm font-medium mb-2">Projekt</span>
         <div className="flex flex-wrap gap-2">
@@ -393,7 +392,6 @@ export function ExpenseForm({
           />
         </div>
       </div>
-      )}
 
       {!income && (
         <div>
