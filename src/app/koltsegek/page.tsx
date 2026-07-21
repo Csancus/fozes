@@ -15,7 +15,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, BarChart3 } from "lucide-react";
+import { Wallet, Plus, Table2, SlidersHorizontal, PencilLine, Repeat, BarChart3, ListChecks } from "lucide-react";
 import { ExpensesDashboard } from "./ExpensesDashboard";
 
 export default async function KoltsegekPage() {
@@ -74,6 +74,21 @@ export default async function KoltsegekPage() {
           Gyors táblázat
         </Button>
       </div>
+
+      {expenses.filter((e) => e.review).length > 0 && (
+        <Link
+          href="/koltsegek/teendok"
+          className="mt-3 flex items-center justify-between rounded-xl border border-amber-400/60 bg-amber-50 dark:bg-amber-500/10 px-4 h-11 text-sm font-medium text-amber-900 dark:text-amber-200 hover:border-amber-400 transition"
+        >
+          <span className="flex items-center gap-2">
+            <ListChecks className="w-4 h-4 text-amber-500" />
+            Felülvizsgálatra váró tételek
+          </span>
+          <span className="inline-flex items-center justify-center min-w-6 h-6 px-1.5 rounded-full bg-amber-500 text-white text-xs font-semibold tabular-nums">
+            {expenses.filter((e) => e.review).length}
+          </span>
+        </Link>
+      )}
 
       {expenses.length > 0 && (
         <Link

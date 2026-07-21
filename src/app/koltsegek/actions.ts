@@ -4,6 +4,7 @@ import { requireUser } from "@/lib/auth";
 import {
   saveExpense,
   deleteExpense,
+  setExpenseReview,
   getMerchantMap,
   createExpenseCategory,
   updateExpenseCategory,
@@ -50,6 +51,7 @@ export async function saveExpenseAction(fd: FormData) {
     String(fd.get("kind") ?? "expense") === "income" ? "income" : "expense";
   const nature: ExpenseNature =
     String(fd.get("nature") ?? "avg") === "project" ? "project" : "avg";
+  const review = String(fd.get("review") ?? "") === "on";
   const amount = parseAmount(String(fd.get("amount") ?? ""));
   const merchant = String(fd.get("merchant") ?? "").trim();
   let categoryId = String(fd.get("categoryId") ?? "").trim() || null;
@@ -77,6 +79,7 @@ export async function saveExpenseAction(fd: FormData) {
     personId,
     projectId,
     nature,
+    review,
     note,
     spentAt,
   });
@@ -119,6 +122,17 @@ export async function deleteExpenseAction(fd: FormData) {
   revalidatePath("/koltsegek");
   revalidatePath("/");
   redirect("/koltsegek");
+}
+
+// Felülvizsgálat-jelölés váltása (Teendők oldalról, nincs redirect).
+export async function setExpenseReviewAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  const review = String(fd.get("review") ?? "") === "on";
+  await setExpenseReview(me.householdId, id, review);
+  revalidatePath("/koltsegek/teendok");
+  revalidatePath("/koltsegek");
 }
 
 // ============ KATEGÓRIÁK ============
@@ -456,6 +470,7 @@ type BatchRow = {
   personId: unknown;
   projectId: unknown;
   nature: unknown;
+  review: unknown;
   spentAt: unknown;
   note: unknown;
 };
@@ -495,6 +510,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
           : "avg";
     const spentAt = parseDate(String(r.spentAt ?? ""));
     const note = String(r.note ?? "").trim();
+    const review = r.review === true;
 
     await saveExpense(me.householdId, {
       kind,
@@ -505,6 +521,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
       personId,
       projectId,
       nature,
+      review,
       note,
       spentAt,
     });
@@ -530,6 +547,7 @@ type EditRow = {
   personId: unknown;
   projectId: unknown;
   nature: unknown;
+  review: unknown;
   spentAt: unknown;
   note: unknown;
 };
@@ -570,6 +588,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
     const projectId = String(r.projectId ?? "").trim() || null;
     const nature: ExpenseNature =
       String(r.nature ?? "avg") === "project" ? "project" : "avg";
+    const review = r.review === true;
     const spentAt = parseDate(String(r.spentAt ?? ""));
     const note = String(r.note ?? "");
 
@@ -582,6 +601,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
       personId,
       projectId,
       nature,
+      review,
       note,
       spentAt,
     });

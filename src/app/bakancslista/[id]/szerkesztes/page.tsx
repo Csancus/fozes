@@ -3,6 +3,7 @@ import {
   getSavedItem,
   listHouseholdMembers,
   hasSurprisePassword,
+  ensureDefaultSavedTypes,
 } from "@/lib/data";
 import { getSession } from "@/lib/session";
 import { notFound, redirect } from "next/navigation";
@@ -27,9 +28,10 @@ export default async function EditSavedPage({
     redirect(`/bakancslista/${id}`);
   }
 
-  const [members, hasSurprisePw] = await Promise.all([
+  const [members, hasSurprisePw, types] = await Promise.all([
     listHouseholdMembers(me.householdId),
     hasSurprisePassword(me.householdId),
+    ensureDefaultSavedTypes(me.householdId),
   ]);
 
   return (
@@ -39,6 +41,7 @@ export default async function EditSavedPage({
         <SavedForm
           action={saveSavedAction}
           initial={item}
+          types={types}
           members={members}
           myId={me.userId}
           hasSurprisePw={hasSurprisePw}

@@ -10,16 +10,15 @@ import {
   setSurprisePassword,
   verifySurprisePassword,
   setSurpriseForItems,
+  createSavedType,
 } from "@/lib/data";
 import { getSession } from "@/lib/session";
 import { newId } from "@/lib/redis";
 import type {
   SavedItem,
-  SavedKind,
   SavedLink,
   SavedFileMeta,
 } from "@/lib/types";
-import { SAVED_KINDS } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -64,8 +63,8 @@ export async function saveSavedAction(fd: FormData) {
 
   const inputId = String(fd.get("id") ?? "").trim() || undefined;
   const title = String(fd.get("title") ?? "").trim();
-  const kindRaw = String(fd.get("kind") ?? "egyeb") as SavedKind;
-  const kind = SAVED_KINDS.includes(kindRaw) ? kindRaw : "egyeb";
+  // A kind mostantól típus-id (beépített vagy egyedi) — szabad szöveg, fallback "egyeb".
+  const kind = String(fd.get("kind") ?? "").trim() || "egyeb";
   const note = String(fd.get("note") ?? "").trim();
   const location = String(fd.get("location") ?? "").trim();
   const imageUrl = String(fd.get("imageUrl") ?? "").trim() || null;
@@ -147,8 +146,7 @@ export async function saveSavedBatchAction(fd: FormData) {
     const title = String(r.title ?? "").trim();
     if (!title) continue;
 
-    const kindRaw = String(r.kind ?? "egyeb") as SavedKind;
-    const kind = SAVED_KINDS.includes(kindRaw) ? kindRaw : "egyeb";
+    const kind = String(r.kind ?? "").trim() || "egyeb";
     const location = String(r.location ?? "").trim();
     const note = String(r.note ?? "").trim();
     const tags = String(r.tags ?? "")
@@ -209,6 +207,24 @@ export async function deleteSavedAction(fd: FormData) {
   revalidatePath("/bakancslista");
   revalidatePath("/");
   redirect("/bakancslista");
+}
+
+// Új bakancslista-típus létrehozása a dropdownból (név + ikon + szín).
+export async function createSavedTypeInline(input: {
+  name: string;
+  icon: string;
+  color: string;
+}) {
+  const me = await requireUser();
+  const name = input.name.trim();
+  if (!name) return null;
+  const type = await createSavedType(me.householdId, {
+    name,
+    icon: input.icon,
+    color: input.color,
+  });
+  revalidatePath("/bakancslista");
+  return type;
 }
 
 // ---- Meglepetés ----

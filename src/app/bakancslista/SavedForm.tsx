@@ -4,9 +4,9 @@ import { useRef, useState } from "react";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { catColor } from "@/lib/expense-visuals";
-import { KIND_VISUAL, linkKind } from "@/lib/saved-visuals";
-import { SAVED_KINDS, SAVED_KIND_LABEL } from "@/lib/types";
-import type { SavedItem, SavedKind } from "@/lib/types";
+import { savedIcon, linkKind } from "@/lib/saved-visuals";
+import type { SavedItem, SavedType } from "@/lib/types";
+import { useTypeCreator } from "./useTypeCreator";
 import { cn } from "@/lib/cn";
 import {
   Image as ImageIcon,
@@ -96,17 +96,23 @@ function fileIcon(mime: string) {
 export function SavedForm({
   action,
   initial,
+  types = [],
   members = [],
   myId,
   hasSurprisePw = false,
 }: {
   action: (fd: FormData) => void | Promise<void>;
   initial?: SavedItem | null;
+  types?: SavedType[];
   members?: { id: string; name: string }[];
   myId?: string;
   hasSurprisePw?: boolean;
 }) {
-  const [kind, setKind] = useState<SavedKind>(initial?.kind ?? "etterem");
+  const [typeList, setTypeList] = useState<SavedType[]>(types);
+  const [kind, setKind] = useState<string>(
+    initial?.kind ?? types[0]?.id ?? "etterem"
+  );
+  const { open: openTypeCreator, modal: typeModal } = useTypeCreator();
   const [surpriseFor, setSurpriseFor] = useState<string>(
     initial?.surpriseFor ?? ""
   );
@@ -187,19 +193,19 @@ export function SavedForm({
       <input type="hidden" name="surpriseFor" value={surpriseFor} />
 
       {/* Típus */}
+      {typeModal}
       <div>
         <span className="block text-sm font-medium mb-2">Típus</span>
         <div className="flex flex-wrap gap-2">
-          {SAVED_KINDS.map((k) => {
-            const vis = KIND_VISUAL[k];
-            const col = catColor(vis.color);
-            const Icon = vis.icon;
-            const active = kind === k;
+          {typeList.map((t) => {
+            const col = catColor(t.color);
+            const Icon = savedIcon(t.icon);
+            const active = kind === t.id;
             return (
               <button
                 type="button"
-                key={k}
-                onClick={() => setKind(k)}
+                key={t.id}
+                onClick={() => setKind(t.id)}
                 className={cn(
                   "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
                   active
@@ -213,10 +219,23 @@ export function SavedForm({
                     active ? col.text : "text-[var(--color-muted-foreground)]"
                   )}
                 />
-                {SAVED_KIND_LABEL[k]}
+                {t.name}
               </button>
             );
           })}
+          <button
+            type="button"
+            onClick={async () => {
+              const t = await openTypeCreator();
+              if (t) {
+                setTypeList((cur) => [...cur, t]);
+                setKind(t.id);
+              }
+            }}
+            className="inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border border-dashed border-[var(--color-primary)]/40 text-[var(--color-primary)] hover:bg-[var(--color-primary-soft)] transition"
+          >
+            <Plus className="w-4 h-4" /> Új típus
+          </button>
         </div>
       </div>
 

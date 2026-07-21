@@ -145,11 +145,13 @@ function guessFromText(raw: string): {
 
 export function OcrImport({
   action,
+  types = [],
   members = [],
   myId,
   hasSurprisePw = false,
 }: {
   action: (fd: FormData) => void | Promise<void>;
+  types?: import("@/lib/types").SavedType[];
   members?: { id: string; name: string }[];
   myId?: string;
   hasSurprisePw?: boolean;
@@ -326,6 +328,7 @@ export function OcrImport({
                 key={draft.createdAt}
                 action={action}
                 initial={draft}
+                types={types}
                 members={members}
                 myId={myId}
                 hasSurprisePw={hasSurprisePw}

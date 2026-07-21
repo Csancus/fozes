@@ -3,6 +3,7 @@ import {
   listSavedItems,
   listHouseholdMembers,
   hasSurprisePassword,
+  ensureDefaultSavedTypes,
 } from "@/lib/data";
 import { getSession } from "@/lib/session";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -18,10 +19,11 @@ import {
 
 export default async function BakancslistaPage() {
   const me = await requireUser();
-  const [items, members, hasSurprisePw, session] = await Promise.all([
+  const [items, members, hasSurprisePw, types, session] = await Promise.all([
     listSavedItems(me.householdId),
     listHouseholdMembers(me.householdId),
     hasSurprisePassword(me.householdId),
+    ensureDefaultSavedTypes(me.householdId),
     getSession(),
   ]);
   const unlocked = !!session.surpriseUnlocked;
@@ -63,13 +65,6 @@ export default async function BakancslistaPage() {
             >
               <ScanText className="w-5 h-5" />
             </Link>
-            <Link
-              href="/bakancslista/gyors"
-              aria-label="Táblázatos felvitel"
-              className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
-            >
-              <Table2 className="w-5 h-5" />
-            </Link>
             <Button
               href="/bakancslista/uj"
               size="sm"
@@ -80,6 +75,17 @@ export default async function BakancslistaPage() {
           </div>
         }
       />
+
+      <Button
+        href="/bakancslista/gyors"
+        size="lg"
+        variant="secondary"
+        fullWidth
+        className="mt-3"
+        leftIcon={<Table2 className="w-4 h-4" />}
+      >
+        Gyors táblázat (több elem)
+      </Button>
 
       {visible.length === 0 && lockedCount === 0 ? (
         <div className="mt-6">
@@ -112,6 +118,7 @@ export default async function BakancslistaPage() {
       ) : (
         <SavedListClient
           items={visible}
+          types={types}
           lockedCount={lockedCount}
           hasSurprisePw={hasSurprisePw}
           members={otherMembers}

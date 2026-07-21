@@ -19,6 +19,7 @@ import {
   LayoutDashboard,
   Table2,
   SlidersHorizontal,
+  ListChecks,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
@@ -57,8 +58,10 @@ const cooking: NavItem[] = [
 ];
 
 const costs: NavItem[] = [
-  { href: "/koltsegek", label: "Áttekintés", icon: LayoutDashboard },
+  { href: "/koltsegek", label: "Költségkezelés", icon: Wallet },
+  { href: "/koltsegek/attekintes", label: "Áttekintés", icon: LayoutDashboard },
   { href: "/koltsegek/gyors", label: "Gyors rögzítés", icon: Table2 },
+  { href: "/koltsegek/teendok", label: "Teendők", icon: ListChecks },
   { href: "/koltsegek/beallitasok", label: "Beállítások", icon: SlidersHorizontal },
 ];
 

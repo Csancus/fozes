@@ -4,22 +4,20 @@ import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
-import { catColor } from "@/lib/expense-visuals";
-import { KIND_VISUAL } from "@/lib/saved-visuals";
-import { SAVED_KINDS, SAVED_KIND_LABEL } from "@/lib/types";
-import type { SavedKind } from "@/lib/types";
+import type { SavedType } from "@/lib/types";
+import { KindSelect } from "../KindSelect";
 
 type Row = {
   key: string;
   title: string;
-  kind: SavedKind;
+  kind: string;
   location: string;
   tags: string;
   note: string;
 };
 
 let counter = 0;
-function emptyRow(kind: SavedKind = "etterem"): Row {
+function emptyRow(kind: string): Row {
   counter += 1;
   return {
     key: `r${counter}`,
@@ -36,15 +34,19 @@ const ctrl =
 
 export function SavedBatchEntry({
   action,
+  types = [],
 }: {
   action: (fd: FormData) => void | Promise<void>;
+  types?: SavedType[];
 }) {
+  const [typeList, setTypeList] = useState<SavedType[]>(types);
+  const defaultKind = types[0]?.id ?? "etterem";
   const [rows, setRows] = useState<Row[]>(() => [
-    emptyRow(),
-    emptyRow(),
-    emptyRow(),
-    emptyRow(),
-    emptyRow(),
+    emptyRow(defaultKind),
+    emptyRow(defaultKind),
+    emptyRow(defaultKind),
+    emptyRow(defaultKind),
+    emptyRow(defaultKind),
   ]);
 
   function update(key: string, patch: Partial<Row>) {
@@ -54,18 +56,24 @@ export function SavedBatchEntry({
     setRows((cur) => (cur.length > 1 ? cur.filter((r) => r.key !== key) : cur));
   }
   function addRow() {
-    setRows((cur) => [...cur, emptyRow(cur[cur.length - 1]?.kind ?? "etterem")]);
+    setRows((cur) => [
+      ...cur,
+      emptyRow(cur[cur.length - 1]?.kind ?? defaultKind),
+    ]);
   }
   function addRowLikeLast() {
     setRows((cur) => {
       const last = cur[cur.length - 1];
-      const r = emptyRow(last?.kind ?? "etterem");
+      const r = emptyRow(last?.kind ?? defaultKind);
       if (last) {
         r.location = last.location;
         r.tags = last.tags;
       }
       return [...cur, r];
     });
+  }
+  function onTypeCreated(t: SavedType) {
+    setTypeList((cur) => (cur.some((x) => x.id === t.id) ? cur : [...cur, t]));
   }
 
   const valid = useMemo(() => rows.filter((r) => r.title.trim()), [rows]);
@@ -101,38 +109,19 @@ export function SavedBatchEntry({
           </thead>
           <tbody>
             {rows.map((r, i) => {
-              const vis = KIND_VISUAL[r.kind];
-              const col = catColor(vis.color);
-              const Icon = vis.icon;
               return (
                 <tr key={r.key} className="align-top">
                   <td className="text-xs text-[var(--color-muted-foreground)] tabular-nums pt-2">
                     {i + 1}.
                   </td>
                   <td>
-                    <div className="relative">
-                      <span
-                        className={cn(
-                          "pointer-events-none absolute left-2 top-1/2 -translate-y-1/2",
-                          col.text
-                        )}
-                      >
-                        <Icon className="w-4 h-4" />
-                      </span>
-                      <select
-                        value={r.kind}
-                        onChange={(e) =>
-                          update(r.key, { kind: e.target.value as SavedKind })
-                        }
-                        className={cn(ctrl, "appearance-none pl-8")}
-                      >
-                        {SAVED_KINDS.map((k) => (
-                          <option key={k} value={k}>
-                            {SAVED_KIND_LABEL[k]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
+                    <KindSelect
+                      types={typeList}
+                      value={r.kind}
+                      onChange={(id) => update(r.key, { kind: id })}
+                      onCreated={onTypeCreated}
+                      className={cn(ctrl, "text-left")}
+                    />
                   </td>
                   <td>
                     <input

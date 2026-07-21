@@ -1,5 +1,10 @@
 import { requireUser } from "@/lib/auth";
-import { getSavedItem, getSavedFile, hasSurprisePassword } from "@/lib/data";
+import {
+  getSavedItem,
+  getSavedFile,
+  hasSurprisePassword,
+  ensureDefaultSavedTypes,
+} from "@/lib/data";
 import { getSession } from "@/lib/session";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -8,8 +13,7 @@ import { SurpriseUnlock } from "../SurpriseUnlock";
 import { unlockSurpriseAction } from "../actions";
 import { Button } from "@/components/ui/Button";
 import { catColor } from "@/lib/expense-visuals";
-import { KIND_VISUAL, linkKind } from "@/lib/saved-visuals";
-import { SAVED_KIND_LABEL } from "@/lib/types";
+import { savedIcon, resolveType, linkKind } from "@/lib/saved-visuals";
 import { cn } from "@/lib/cn";
 import {
   Pencil,
@@ -65,16 +69,17 @@ export default async function SavedDetailPage({
     }))
   );
 
-  const vis = KIND_VISUAL[item.kind];
+  const types = await ensureDefaultSavedTypes(me.householdId);
+  const vis = resolveType(types, item.kind);
   const col = catColor(vis.color);
-  const KindIcon = vis.icon;
+  const KindIcon = savedIcon(vis.icon);
 
   const mapsQuery = item.location || item.title;
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader
-        title={SAVED_KIND_LABEL[item.kind]}
+        title={vis.name}
         back="/bakancslista"
         action={
           <Link

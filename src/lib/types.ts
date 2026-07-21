@@ -363,6 +363,7 @@ export type Expense = {
   personId: string | null;        // Person.id — ki költötte / kinek jött
   projectId: string | null;       // Project.id — melyik projekthez
   nature: ExpenseNature;          // havi átlagos / eseti projekt (kiadásnál értelmezett)
+  review: boolean;                // felülvizsgálat: ellenőrizni kell → Teendők
   note: string;
   spentAt: number;                // ms since epoch (day granularity)
   createdAt: number;
@@ -402,6 +403,27 @@ export const SAVED_KIND_LABEL: Record<SavedKind, string> = {
   egyeb: "Egyéb",
 };
 
+// Bakancslista-típus (kezelt, bővíthető lista). A beépített típusok id-je a régi
+// SavedKind érték, így a meglévő tételek kind mezője változtatás nélkül illeszkedik.
+export type SavedType = {
+  id: string;
+  name: string;
+  icon: string;  // kulcs a saved-visuals SAVED_ICONS-ban
+  color: string; // szín token (expense-visuals CAT_COLORS)
+  createdAt: number;
+};
+
+export const DEFAULT_SAVED_TYPES: Omit<SavedType, "createdAt">[] = [
+  { id: "etterem", name: "Étterem", icon: "utensils", color: "orange" },
+  { id: "utazas", name: "Utazás", icon: "plane", color: "sky" },
+  { id: "helyszin", name: "Helyszín", icon: "pin", color: "emerald" },
+  { id: "konyv", name: "Könyv", icon: "book", color: "amber" },
+  { id: "cikk", name: "Cikk", icon: "news", color: "violet" },
+  { id: "video", name: "Videó", icon: "play", color: "rose" },
+  { id: "film", name: "Film / sorozat", icon: "film", color: "indigo" },
+  { id: "egyeb", name: "Egyéb", icon: "bookmark", color: "zinc" },
+];
+
 export type SavedLink = { url: string; label: string };
 export type SavedFileMeta = {
   id: string;
@@ -413,7 +435,7 @@ export type SavedFileMeta = {
 export type SavedItem = {
   id: string;
   title: string;
-  kind: SavedKind;
+  kind: string; // SavedType id (beépített SavedKind vagy egyedi típus id-je)
   note: string;
   location: string;         // place / address / "hol" text
   imageUrl: string | null;  // small inline cover (client-compressed)

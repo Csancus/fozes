@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { Check, Sparkles, Plus, AlertTriangle, Repeat, CalendarClock, FolderKanban } from "lucide-react";
+import { Check, Sparkles, Plus, AlertTriangle, Repeat, CalendarClock, FolderKanban, ClipboardCheck } from "lucide-react";
 import { useCategoryCreator } from "./useCategoryCreator";
 import { createCategoryInline, createIncomeCategoryInline } from "./actions";
 import type {
@@ -112,6 +112,7 @@ export function ExpenseForm({
   const [recurringDay, setRecurringDay] = useState<string>(
     String(new Date(initial?.spentAt ?? Date.now()).getDate())
   );
+  const [review, setReview] = useState(initial?.review ?? false);
 
   async function addCategoryInline() {
     const cat = await openCatModal();
@@ -176,6 +177,7 @@ export function ExpenseForm({
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="kind" value={kind} />
       <input type="hidden" name="nature" value={nature} />
+      <input type="hidden" name="review" value={review ? "on" : ""} />
       <input type="hidden" name="categoryId" value={categoryId ?? ""} />
       <input type="hidden" name="paymentMethodId" value={paymentMethodId ?? ""} />
       <input type="hidden" name="personId" value={personId ?? ""} />
@@ -448,6 +450,26 @@ export function ExpenseForm({
           <input type="hidden" name="recurringDay" value={recurringDay} />
         </div>
       )}
+
+      <label
+        className={cn(
+          "flex items-center gap-2.5 cursor-pointer rounded-xl border p-3.5 transition",
+          review
+            ? "border-amber-400/70 bg-amber-50 dark:bg-amber-500/10"
+            : "border-[var(--color-border)]"
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={review}
+          onChange={(e) => setReview(e.target.checked)}
+          className="w-4 h-4 accent-amber-500"
+        />
+        <span className="text-sm font-medium flex items-center gap-1.5">
+          <ClipboardCheck className="w-4 h-4 text-amber-500" />
+          Felülvizsgálat — ezt még ellenőrizni kell
+        </span>
+      </label>
 
       <Field label="Megjegyzés">
         <Textarea

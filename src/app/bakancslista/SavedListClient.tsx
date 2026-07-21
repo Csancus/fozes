@@ -9,9 +9,8 @@ import {
 } from "react";
 import Link from "next/link";
 import { catColor } from "@/lib/expense-visuals";
-import { KIND_VISUAL } from "@/lib/saved-visuals";
-import { SAVED_KIND_LABEL } from "@/lib/types";
-import type { SavedItem, SavedKind } from "@/lib/types";
+import { savedIcon, resolveType } from "@/lib/saved-visuals";
+import type { SavedItem, SavedType } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import {
   Link2,
@@ -29,12 +28,13 @@ import {
 } from "lucide-react";
 
 type Entry = SavedItem & { surpriseForName?: string | null };
-type KindFilter = "all" | SavedKind;
+type KindFilter = "all" | string;
 
 type UnlockState = { ok: boolean; error?: string } | undefined;
 
 export function SavedListClient({
   items,
+  types,
   lockedCount,
   hasSurprisePw,
   members,
@@ -42,6 +42,7 @@ export function SavedListClient({
   setSurpriseBatchAction,
 }: {
   items: Entry[];
+  types: SavedType[];
   lockedCount: number;
   hasSurprisePw: boolean;
   members: { id: string; name: string }[];
@@ -62,7 +63,7 @@ export function SavedListClient({
   const pool = useMemo(() => items.filter((i) => i.done === done), [items, done]);
 
   const kindsInPool = useMemo(() => {
-    const set = new Set<SavedKind>();
+    const set = new Set<string>();
     pool.forEach((i) => set.add(i.kind));
     return set;
   }, [pool]);
@@ -160,11 +161,15 @@ export function SavedListClient({
         <FilterChip active={kind === "all"} onClick={() => setKind("all")}>
           Mind ({pool.length})
         </FilterChip>
-        {(Object.keys(KIND_VISUAL) as SavedKind[])
-          .filter((k) => kindsInPool.has(k))
-          .map((k) => (
-            <FilterChip key={k} active={kind === k} onClick={() => setKind(k)}>
-              {SAVED_KIND_LABEL[k]}
+        {types
+          .filter((t) => kindsInPool.has(t.id))
+          .map((t) => (
+            <FilterChip
+              key={t.id}
+              active={kind === t.id}
+              onClick={() => setKind(t.id)}
+            >
+              {t.name}
             </FilterChip>
           ))}
       </div>
@@ -184,6 +189,7 @@ export function SavedListClient({
             <SavedCard
               key={item.id}
               item={item}
+              types={types}
               selectMode={selectMode}
               selected={selected.has(item.id)}
               onToggle={() => toggleSelect(item.id)}
@@ -410,18 +416,20 @@ function FilterChip({
 
 function SavedCard({
   item,
+  types,
   selectMode,
   selected,
   onToggle,
 }: {
   item: Entry;
+  types: SavedType[];
   selectMode: boolean;
   selected: boolean;
   onToggle: () => void;
 }) {
-  const vis = KIND_VISUAL[item.kind];
+  const vis = resolveType(types, item.kind);
   const col = catColor(vis.color);
-  const Icon = vis.icon;
+  const Icon = savedIcon(vis.icon);
   const attachments = item.links.length + item.files.length;
 
   const inner = (
@@ -448,7 +456,7 @@ function SavedCard({
           )}
         >
           <Icon className="w-3 h-3" />
-          {SAVED_KIND_LABEL[item.kind]}
+          {vis.name}
         </span>
         {item.done && (
           <span className="absolute top-2 right-2 w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center">

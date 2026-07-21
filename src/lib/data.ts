@@ -18,6 +18,7 @@ import type {
   ExpenseKind,
   ExpenseNature,
   SavedItem,
+  SavedType,
   User,
 } from "./types";
 import bcrypt from "bcryptjs";
@@ -25,6 +26,7 @@ import {
   DEFAULT_EXPENSE_CATEGORIES,
   DEFAULT_PAYMENT_METHODS,
   DEFAULT_INCOME_CATEGORIES,
+  DEFAULT_SAVED_TYPES,
 } from "./types";
 
 // ============ LOCATIONS ============
@@ -798,9 +800,10 @@ export async function listExpenses(hh: string): Promise<Expense[]> {
     .filter((e): e is Expense => !!e)
     .map((e) => ({
       ...e,
-      // Régi rekordokban nincs kind/nature → alapértelmezés.
+      // Régi rekordokban nincs kind/nature/review → alapértelmezés.
       kind: e.kind ?? "expense",
       nature: e.nature ?? "avg",
+      review: e.review ?? false,
     }))
     .sort((a, b) => b.spentAt - a.spentAt || b.createdAt - a.createdAt);
 }
@@ -808,15 +811,21 @@ export async function listExpenses(hh: string): Promise<Expense[]> {
 export async function getExpense(hh: string, id: string) {
   const e = await redis.get<Expense>(key.expense(hh, id));
   if (!e) return null;
-  return { ...e, kind: e.kind ?? "expense", nature: e.nature ?? "avg" };
+  return {
+    ...e,
+    kind: e.kind ?? "expense",
+    nature: e.nature ?? "avg",
+    review: e.review ?? false,
+  };
 }
 
 export async function saveExpense(
   hh: string,
-  input: Omit<Expense, "id" | "createdAt" | "kind" | "nature"> & {
+  input: Omit<Expense, "id" | "createdAt" | "kind" | "nature" | "review"> & {
     id?: string;
     kind?: ExpenseKind;
     nature?: ExpenseNature;
+    review?: boolean;
   }
 ): Promise<Expense> {
   const id = input.id ?? newId();
@@ -832,6 +841,7 @@ export async function saveExpense(
     personId: input.personId ?? null,
     projectId: input.projectId ?? null,
     nature: input.nature ?? existing?.nature ?? "avg",
+    review: input.review ?? existing?.review ?? false,
     note: input.note.trim(),
     spentAt: input.spentAt,
     createdAt: existing?.createdAt ?? Date.now(),
@@ -848,6 +858,15 @@ export async function saveExpense(
 export async function deleteExpense(hh: string, id: string) {
   await redis.del(key.expense(hh, id));
   await redis.srem(key.expenses(hh), id);
+}
+
+// Gyors felülvizsgálat-jelölés váltása (Teendők oldalról).
+export async function setExpenseReview(hh: string, id: string, review: boolean) {
+  const e = await getExpense(hh, id);
+  if (!e) return null;
+  const next: Expense = { ...e, review };
+  await redis.set(key.expense(hh, id), next);
+  return next;
 }
 
 // ============ ISMÉTLŐDŐ KÖLTSÉGEK (recurring) ============
@@ -1012,6 +1031,53 @@ export async function listSavedItems(hh: string): Promise<SavedItem[]> {
 
 export async function getSavedItem(hh: string, id: string) {
   return redis.get<SavedItem>(key.savedItem(hh, id));
+}
+
+// ---- Bakancslista-típusok (bővíthető, saját ikonnal/színnel) ----
+
+export async function listSavedTypes(hh: string): Promise<SavedType[]> {
+  const ids = await redis.smembers(key.savedTypes(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<SavedType>(key.savedType(hh, id)))
+  );
+  return items
+    .filter((t): t is SavedType => !!t)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+// Beépített típusok seedelése (egyszeri, idempotens). A beépített id-k a régi
+// SavedKind értékek, így a meglévő tételek illeszkednek.
+export async function ensureDefaultSavedTypes(hh: string): Promise<SavedType[]> {
+  const existing = await listSavedTypes(hh);
+  if (existing.length > 0) return existing;
+  const base = Date.now();
+  await Promise.all(
+    DEFAULT_SAVED_TYPES.map((t, i) => {
+      const type: SavedType = { ...t, createdAt: base + i };
+      return Promise.all([
+        redis.set(key.savedType(hh, type.id), type),
+        redis.sadd(key.savedTypes(hh), type.id),
+      ]);
+    })
+  );
+  return listSavedTypes(hh);
+}
+
+export async function createSavedType(
+  hh: string,
+  input: { name: string; icon: string; color: string }
+): Promise<SavedType> {
+  const type: SavedType = {
+    id: newId(),
+    name: input.name.trim() || "Új típus",
+    icon: input.icon || "bookmark",
+    color: input.color || "zinc",
+    createdAt: Date.now(),
+  };
+  await redis.set(key.savedType(hh, type.id), type);
+  await redis.sadd(key.savedTypes(hh), type.id);
+  return type;
 }
 
 // ---- Meglepetés (rejtett tételek egy háztartás-tag elől) ----
