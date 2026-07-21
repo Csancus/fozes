@@ -467,7 +467,7 @@ export function OverviewDashboard({
           <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
             Top 3 · {month === "all" ? "12 hó" : monthLongFmt.format(monthKeyToDate(month))}
           </h2>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             <Top3Card title="Kategória" rows={top3.category} total={totalExpense} />
             <Top3Card title="Legnagyobb kiadás" rows={top3.expense} total={totalExpense} />
             <Top3Card title="Bolt / kinek" rows={top3.merchant} total={totalExpense} />
