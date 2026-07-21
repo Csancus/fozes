@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ColumnToggle, useColumnVisibility, type ColumnDef } from "@/components/ui/ColumnToggle";
 import { cn } from "@/lib/cn";
-import { X, Search, Undo2, Trash2 } from "lucide-react";
+import { catColor } from "@/lib/expense-visuals";
+import { X, Search, Undo2, Trash2, SlidersHorizontal } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
 import { createIncomeCategoryInline } from "../actions";
 import type {
@@ -174,6 +175,31 @@ export function ExpenseTable({
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
   const [month, setMonth] = useState<string>("all");
   const [search, setSearch] = useState("");
+  const [showFilters, setShowFilters] = useState(false);
+  const [kindF, setKindF] = useState<ExpenseKind | "all">("all");
+  const [natureF, setNatureF] = useState<"all" | "avg" | "project">("all");
+  const [reviewF, setReviewF] = useState(false);
+  const [cats, setCats] = useState<Set<string>>(new Set());
+  const [pays, setPays] = useState<Set<string>>(new Set());
+  const [people, setPeople] = useState<Set<string>>(new Set());
+  const [projs, setProjs] = useState<Set<string>>(new Set());
+  const [grps, setGrps] = useState<Set<string>>(new Set());
+
+  function toggleSet(set: Set<string>, setter: (s: Set<string>) => void, id: string) {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    setter(next);
+  }
+  const filterCount =
+    (kindF !== "all" ? 1 : 0) +
+    (natureF !== "all" ? 1 : 0) +
+    (reviewF ? 1 : 0) +
+    cats.size +
+    pays.size +
+    people.size +
+    projs.size +
+    grps.size;
 
   const original = useMemo(() => {
     const m = new Map<string, string>();
@@ -222,6 +248,14 @@ export function ExpenseTable({
   const q = search.trim().toLowerCase();
   const visible = rows.filter((r) => {
     if (month !== "all" && r.spentAt.slice(0, 7) !== month) return false;
+    if (kindF !== "all" && (r.kind ?? "expense") !== kindF) return false;
+    if (natureF !== "all" && !((r.kind ?? "expense") === "expense" && r.nature === natureF)) return false;
+    if (reviewF && !r.review) return false;
+    if (cats.size && !(r.categoryId && cats.has(r.categoryId))) return false;
+    if (pays.size && !(r.paymentMethodId && pays.has(r.paymentMethodId))) return false;
+    if (people.size && !(r.personId && people.has(r.personId))) return false;
+    if (projs.size && !(r.projectId && projs.has(r.projectId))) return false;
+    if (grps.size && !(r.groupId && grps.has(r.groupId))) return false;
     if (q && !r.merchant.toLowerCase().includes(q)) return false;
     return true;
   });
@@ -280,27 +314,131 @@ export function ExpenseTable({
 
       {/* Szűrők */}
       <div className="flex flex-wrap items-center gap-2">
-        <div className="relative flex-1 min-w-[180px]">
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className="shrink-0 inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-muted)] transition"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Szűrők
+          {filterCount > 0 && (
+            <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[var(--color-primary)] text-white text-[11px]">
+              {filterCount}
+            </span>
+          )}
+        </button>
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
           <input
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            placeholder="Bolt keresése…"
+            placeholder="Keresés (megnevezés)…"
             className="w-full h-10 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto pb-1">
-          <MonthChip active={month === "all"} onClick={() => setMonth("all")}>
-            Összes
-          </MonthChip>
-          {months.map((m) => (
-            <MonthChip key={m} active={month === m} onClick={() => setMonth(m)}>
-              {monthLabelFmt.format(monthKeyToDate(m))}
-            </MonthChip>
-          ))}
-        </div>
         <ColumnToggle columns={allColumns} hidden={hidden} onToggle={toggle} />
       </div>
+
+      <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
+        <MonthChip active={month === "all"} onClick={() => setMonth("all")}>
+          Összes
+        </MonthChip>
+        {months.map((m) => (
+          <MonthChip key={m} active={month === m} onClick={() => setMonth(m)}>
+            {monthLabelFmt.format(monthKeyToDate(m))}
+          </MonthChip>
+        ))}
+      </div>
+
+      {showFilters && (
+        <div className="mt-3 space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+          <TChipGroup label="Típus">
+            {(["all", "expense", "income"] as const).map((k) => (
+              <TChip key={k} active={kindF === k} onClick={() => setKindF(k)}>
+                {k === "all" ? "Mind" : k === "expense" ? "Kiadás" : "Bevétel"}
+              </TChip>
+            ))}
+          </TChipGroup>
+          <TChipGroup label="Jelleg">
+            {(["all", "avg", "project"] as const).map((n) => (
+              <TChip key={n} active={natureF === n} onClick={() => setNatureF(n)}>
+                {n === "all" ? "Mind" : n === "avg" ? "Havi átlagos" : "Eseti projekt"}
+              </TChip>
+            ))}
+          </TChipGroup>
+          <TChipGroup label="Felülvizsgálat">
+            <TChip active={!reviewF} onClick={() => setReviewF(false)}>
+              Mind
+            </TChip>
+            <TChip active={reviewF} onClick={() => setReviewF(true)}>
+              Csak felülvizsgálandó
+            </TChip>
+          </TChipGroup>
+          {(categories.length > 0 || incomeCategories.length > 0) && (
+            <TChipGroup label="Kategória">
+              {[...categories, ...incomeCategories].map((c) => (
+                <DotChip key={c.id} color={c.color} active={cats.has(c.id)} onClick={() => toggleSet(cats, setCats, c.id)}>
+                  {c.name}
+                </DotChip>
+              ))}
+            </TChipGroup>
+          )}
+          {paymentMethods.length > 0 && (
+            <TChipGroup label="Fizetés">
+              {paymentMethods.map((p) => (
+                <DotChip key={p.id} color={p.color} active={pays.has(p.id)} onClick={() => toggleSet(pays, setPays, p.id)}>
+                  {p.name}
+                </DotChip>
+              ))}
+            </TChipGroup>
+          )}
+          {persons.length > 0 && (
+            <TChipGroup label="Ki(nek)">
+              {persons.map((p) => (
+                <DotChip key={p.id} color={p.color} active={people.has(p.id)} onClick={() => toggleSet(people, setPeople, p.id)}>
+                  {p.name}
+                </DotChip>
+              ))}
+            </TChipGroup>
+          )}
+          {projects.length > 0 && (
+            <TChipGroup label="Projekt">
+              {projects.map((p) => (
+                <DotChip key={p.id} color={p.color} active={projs.has(p.id)} onClick={() => toggleSet(projs, setProjs, p.id)}>
+                  {p.name}
+                </DotChip>
+              ))}
+            </TChipGroup>
+          )}
+          {groups.length > 0 && (
+            <TChipGroup label="Csoport">
+              {groups.map((g) => (
+                <DotChip key={g.id} color={g.color} active={grps.has(g.id)} onClick={() => toggleSet(grps, setGrps, g.id)}>
+                  {g.name}
+                </DotChip>
+              ))}
+            </TChipGroup>
+          )}
+          {filterCount > 0 && (
+            <button
+              type="button"
+              onClick={() => {
+                setKindF("all");
+                setNatureF("all");
+                setReviewF(false);
+                setCats(new Set());
+                setPays(new Set());
+                setPeople(new Set());
+                setProjs(new Set());
+                setGrps(new Set());
+              }}
+              className="text-sm text-[var(--color-primary)] font-medium"
+            >
+              Szűrők törlése
+            </button>
+          )}
+        </div>
+      )}
 
       <div className="mt-4 overflow-x-auto -mx-5 px-5">
         <table
@@ -605,6 +743,61 @@ function MonthChip({
           : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
       )}
     >
+      {children}
+    </button>
+  );
+}
+
+function TChipGroup({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <p className="text-xs font-medium text-[var(--color-muted-foreground)] mb-1.5">{label}</p>
+      <div className="flex flex-wrap gap-1.5">{children}</div>
+    </div>
+  );
+}
+
+function TChip({ active, onClick, children }: { active: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "h-8 px-3 rounded-full text-[13px] font-medium border transition",
+        active
+          ? "bg-[var(--color-primary)] text-white border-transparent"
+          : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function DotChip({
+  color,
+  active,
+  onClick,
+  children,
+}: {
+  color: string;
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  const col = catColor(color);
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn(
+        "inline-flex items-center gap-1.5 rounded-full pl-2 pr-2.5 h-8 text-[13px] font-medium border transition",
+        active
+          ? cn(col.soft, col.text, "border-transparent ring-1", col.ring)
+          : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+      )}
+    >
+      <span className={cn("w-2 h-2 rounded-full", col.dot)} />
       {children}
     </button>
   );
