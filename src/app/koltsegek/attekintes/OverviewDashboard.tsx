@@ -234,6 +234,8 @@ export function OverviewDashboard({
         : totalIncome - totalExpense;
   const headlineWord =
     kindF === "expense" ? "Kiadás" : kindF === "income" ? "Bevétel" : "Egyenleg";
+  const natureLabel =
+    nature === "all" ? "Mind" : nature === "avg" ? "Havi átlagos" : "Eseti projekt";
   const monthsCount = month === "all" ? 12 : 1;
   const avgPerMonth = totalExpense / monthsCount;
 
@@ -377,7 +379,7 @@ export function OverviewDashboard({
             <span className="font-semibold tabular-nums text-emerald-100">+{fmtFt(totalIncome)}</span>
           </span>
           <span className="flex flex-col">
-            <span className="opacity-80">Kiadás</span>
+            <span className="opacity-80">Kiadás · {natureLabel}</span>
             <span className="font-semibold tabular-nums">−{fmtFt(totalExpense)}</span>
           </span>
           <span className="flex flex-col">

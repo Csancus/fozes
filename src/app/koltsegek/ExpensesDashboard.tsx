@@ -190,6 +190,8 @@ export function ExpensesDashboard({
     kindF === "expense" ? -total : kindF === "income" ? incomeTotal : incomeTotal - total;
   const headlineWord =
     kindF === "expense" ? "Kiadás" : kindF === "income" ? "Bevétel" : "Egyenleg";
+  const natureLabel =
+    nature === "all" ? "Mind" : nature === "avg" ? "Havi átlagos" : "Eseti projekt";
 
   // A tétel-lista a Típus-szűrő szerint (kiadás/bevétel/mind) + rendezve.
   const listItems = useMemo(
@@ -314,7 +316,7 @@ export function ExpensesDashboard({
             </span>
           </span>
           <span className="flex flex-col">
-            <span className="opacity-80">Kiadás</span>
+            <span className="opacity-80">Kiadás · {natureLabel}</span>
             <span className="font-semibold tabular-nums">
               −{fmtFt(total)}
             </span>
@@ -322,8 +324,10 @@ export function ExpensesDashboard({
           <span className="flex flex-col">
             <span className="opacity-80">Tételek</span>
             <span className="font-semibold tabular-nums">
-              {scoped.length}
-              {activeFilters > 0 || nature !== "all" ? " · szűrve" : ""}
+              {listItems.length}
+              {activeFilters > 0 || nature !== "all" || kindF !== "all"
+                ? " · szűrve"
+                : ""}
             </span>
           </span>
         </div>
