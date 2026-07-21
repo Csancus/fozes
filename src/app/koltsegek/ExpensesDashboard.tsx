@@ -51,6 +51,7 @@ export function ExpensesDashboard({
   paymentMethods,
   persons,
   projects,
+  compact = false,
 }: {
   expenses: Expense[];
   categories: ExpenseCategory[];
@@ -58,6 +59,7 @@ export function ExpensesDashboard({
   paymentMethods: PaymentMethod[];
   persons: Person[];
   projects: Project[];
+  compact?: boolean;
 }) {
   // Kiadás / bevétel szétválasztása.
   const expenses = useMemo(
@@ -378,7 +380,7 @@ export function ExpensesDashboard({
       )}
 
       {/* Havi trend */}
-      {monthly.length > 1 && (
+      {!compact && monthly.length > 1 && (
         <section className="mt-6">
           <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
             Havi trend
@@ -420,7 +422,7 @@ export function ExpensesDashboard({
       )}
 
       {/* Kategória bontás */}
-      {byCat.length > 0 && (
+      {!compact && byCat.length > 0 && (
         <section className="mt-6">
           <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
             Kategóriák szerint
@@ -455,17 +457,19 @@ export function ExpensesDashboard({
       )}
 
       {/* Fizetési mód + személy mini bontás */}
-      <div className="mt-6 grid gap-4 sm:grid-cols-2">
-        {byPay.length > 0 && (
-          <MiniBreakdown title="Fizetési mód" rows={byPay} total={total} noneLabel="Nincs megadva" />
-        )}
-        {byPerson.some((b) => b.item) && (
-          <MiniBreakdown title="Ki költötte" rows={byPerson} total={total} noneLabel="Nincs megadva" />
-        )}
-        {byProject.some((b) => b.item) && (
-          <MiniBreakdown title="Projektek" rows={byProject} total={total} noneLabel="Projekt nélkül" />
-        )}
-      </div>
+      {!compact && (
+        <div className="mt-6 grid gap-4 sm:grid-cols-2">
+          {byPay.length > 0 && (
+            <MiniBreakdown title="Fizetési mód" rows={byPay} total={total} noneLabel="Nincs megadva" />
+          )}
+          {byPerson.some((b) => b.item) && (
+            <MiniBreakdown title="Ki költötte" rows={byPerson} total={total} noneLabel="Nincs megadva" />
+          )}
+          {byProject.some((b) => b.item) && (
+            <MiniBreakdown title="Projektek" rows={byProject} total={total} noneLabel="Projekt nélkül" />
+          )}
+        </div>
+      )}
 
       {/* Lista */}
       <section className="mt-8">
