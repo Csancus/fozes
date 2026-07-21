@@ -9,6 +9,7 @@ import {
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
+  listGroups,
   runDueRecurring,
 } from "@/lib/data";
 import Link from "next/link";
@@ -24,7 +25,7 @@ export default async function KoltsegekPage() {
   await ensureDefaultPaymentMethods(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   await runDueRecurring(me.householdId);
-  const [expenses, categories, incomeCategories, paymentMethods, persons, projects] =
+  const [expenses, categories, incomeCategories, paymentMethods, persons, projects, groups] =
     await Promise.all([
       listExpenses(me.householdId),
       listExpenseCategories(me.householdId),
@@ -32,6 +33,7 @@ export default async function KoltsegekPage() {
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listProjects(me.householdId),
+      listGroups(me.householdId),
     ]);
 
   return (
@@ -142,6 +144,7 @@ export default async function KoltsegekPage() {
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}
+          groups={groups}
           compact
         />
       )}

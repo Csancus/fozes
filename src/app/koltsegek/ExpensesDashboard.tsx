@@ -9,10 +9,14 @@ import type {
   Expense,
   ExpenseCategory,
   ExpenseNature,
+  ExpenseKind,
   PaymentMethod,
   Person,
   Project,
+  ExpenseGroup,
 } from "@/lib/types";
+
+type SortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "abc";
 
 function fmtFt(n: number): string {
   return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
@@ -51,6 +55,7 @@ export function ExpensesDashboard({
   paymentMethods,
   persons,
   projects,
+  groups = [],
   compact = false,
 }: {
   expenses: Expense[];
@@ -59,6 +64,7 @@ export function ExpensesDashboard({
   paymentMethods: PaymentMethod[];
   persons: Person[];
   projects: Project[];
+  groups?: ExpenseGroup[];
   compact?: boolean;
 }) {
   // Kiadás / bevétel szétválasztása.
@@ -90,18 +96,41 @@ export function ExpensesDashboard({
     () => new Map(projects.map((p) => [p.id, p])),
     [projects]
   );
+  const groupById = useMemo(
+    () => new Map(groups.map((g) => [g.id, g])),
+    [groups]
+  );
 
   const [month, setMonth] = useState<string>(() => {
     const d = new Date();
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   });
   const [nature, setNature] = useState<ExpenseNature | "all">("avg");
+  const [kindF, setKindF] = useState<ExpenseKind | "all">("all");
   const [cats, setCats] = useState<Set<string>>(new Set());
   const [pays, setPays] = useState<Set<string>>(new Set());
   const [people, setPeople] = useState<Set<string>>(new Set());
   const [projs, setProjs] = useState<Set<string>>(new Set());
+  const [grps, setGrps] = useState<Set<string>>(new Set());
   const [search, setSearch] = useState("");
+  const [sort, setSort] = useState<SortKey>("date_desc");
   const [showFilters, setShowFilters] = useState(false);
+
+  function sortItems(list: Expense[]): Expense[] {
+    const arr = [...list];
+    switch (sort) {
+      case "date_asc":
+        return arr.sort((a, b) => a.spentAt - b.spentAt);
+      case "amount_desc":
+        return arr.sort((a, b) => b.amount - a.amount);
+      case "amount_asc":
+        return arr.sort((a, b) => a.amount - b.amount);
+      case "abc":
+        return arr.sort((a, b) => a.merchant.localeCompare(b.merchant, "hu"));
+      default:
+        return arr.sort((a, b) => b.spentAt - a.spentAt);
+    }
+  }
 
   const months = useMemo(() => {
     const set = new Set<string>();
@@ -119,16 +148,23 @@ export function ExpensesDashboard({
         return false;
       if (people.size && !(e.personId && people.has(e.personId))) return false;
       if (projs.size && !(e.projectId && projs.has(e.projectId))) return false;
+      if (grps.size && !(e.groupId && grps.has(e.groupId))) return false;
       if (q && !e.merchant.toLowerCase().includes(q)) return false;
       return true;
     });
-  }, [expenses, nature, cats, pays, people, projs, search]);
+  }, [expenses, nature, cats, pays, people, projs, grps, search]);
 
-  // Bevételek a kiválasztott hónapra (a kiadás-szűrők nem vonatkoznak rájuk).
-  const incomeScoped = useMemo(
-    () => (month === "all" ? incomes : incomes.filter((e) => monthKey(e.spentAt) === month)),
-    [incomes, month]
-  );
+  // Bevételek a kiválasztott hónapra (személy/csoport/kereső szűrővel).
+  const incomeScoped = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return incomes.filter((e) => {
+      if (month !== "all" && monthKey(e.spentAt) !== month) return false;
+      if (people.size && !(e.personId && people.has(e.personId))) return false;
+      if (grps.size && !(e.groupId && grps.has(e.groupId))) return false;
+      if (q && !e.merchant.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [incomes, month, people, grps, search]);
   const incomeTotal = incomeScoped.reduce((s, e) => s + e.amount, 0);
 
   const monthly = useMemo(() => {
@@ -148,6 +184,17 @@ export function ExpensesDashboard({
     [base, month]
   );
   const total = scoped.reduce((s, e) => s + e.amount, 0);
+
+  // A tétel-lista a Típus-szűrő szerint (kiadás/bevétel/mind) + rendezve.
+  const listItems = useMemo(
+    () =>
+      sortItems([
+        ...(kindF === "income" ? [] : scoped),
+        ...(kindF === "expense" ? [] : incomeScoped),
+      ]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [kindF, scoped, incomeScoped, sort]
+  );
 
   function group(
     getId: (e: Expense) => string | null,
@@ -213,7 +260,13 @@ export function ExpensesDashboard({
 
   const maxMonthly = Math.max(1, ...monthly.map((m) => m.total));
   const activeFilters =
-    cats.size + pays.size + people.size + projs.size + (search ? 1 : 0);
+    cats.size +
+    pays.size +
+    people.size +
+    projs.size +
+    grps.size +
+    (kindF !== "all" ? 1 : 0) +
+    (search ? 1 : 0);
 
   function toggle(set: Set<string>, setter: (s: Set<string>) => void, id: string) {
     const next = new Set(set);
@@ -281,8 +334,8 @@ export function ExpensesDashboard({
         </NatureChip>
       </div>
 
-      {/* Szűrők nyitó + szabadszavas kereső */}
-      <div className="mt-4 flex items-center gap-2">
+      {/* Szűrők nyitó + szabadszavas kereső + rendezés */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
         <button
           type="button"
           onClick={() => setShowFilters((v) => !v)}
@@ -296,7 +349,7 @@ export function ExpensesDashboard({
             </span>
           )}
         </button>
-        <div className="relative flex-1 min-w-0">
+        <div className="relative flex-1 min-w-[160px]">
           <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
           <input
             value={search}
@@ -305,10 +358,58 @@ export function ExpensesDashboard({
             className="w-full h-10 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
           />
         </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortKey)}
+          aria-label="Rendezés"
+          className="shrink-0 h-10 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+        >
+          <option value="date_desc">Legújabb elöl</option>
+          <option value="date_asc">Legrégebbi elöl</option>
+          <option value="amount_desc">Összeg ↓</option>
+          <option value="amount_asc">Összeg ↑</option>
+          <option value="abc">ABC</option>
+        </select>
       </div>
 
       {showFilters && (
         <div className="mt-3 space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
+          <div>
+            <p className="text-xs font-medium text-[var(--color-muted-foreground)] mb-1.5">Típus</p>
+            <div className="flex gap-2">
+              {(["all", "expense", "income"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setKindF(k)}
+                  className={cn(
+                    "flex-1 h-9 rounded-full text-[13px] font-medium border transition",
+                    kindF === k
+                      ? "bg-[var(--color-primary)] text-white border-transparent"
+                      : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                  )}
+                >
+                  {k === "all" ? "Mind" : k === "expense" ? "Kiadás" : "Bevétel"}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {groups.length > 0 && (
+            <FilterGroup label="Csoport">
+              {groups.map((g) => (
+                <MiniChip
+                  key={g.id}
+                  color={g.color}
+                  active={grps.has(g.id)}
+                  onClick={() => toggle(grps, setGrps, g.id)}
+                >
+                  {g.name}
+                </MiniChip>
+              ))}
+            </FilterGroup>
+          )}
+
           <FilterGroup label="Kategória">
             {categories.map((c) => (
               <MiniChip
@@ -373,6 +474,8 @@ export function ExpensesDashboard({
                 setPays(new Set());
                 setPeople(new Set());
                 setProjs(new Set());
+                setGrps(new Set());
+                setKindF("all");
                 setSearch("");
               }}
               className="text-sm text-[var(--color-primary)] font-medium"
@@ -478,22 +581,25 @@ export function ExpensesDashboard({
       {/* Lista */}
       <section className="mt-8">
         <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
-          Tételek ({scoped.length})
+          Tételek ({listItems.length})
         </h2>
-        {scoped.length === 0 ? (
+        {listItems.length === 0 ? (
           <div className="flex flex-col items-center text-center py-12 text-[var(--color-muted-foreground)]">
             <Wallet className="w-8 h-8 mb-2" />
             <p className="text-sm">Nincs a szűrőnek megfelelő tétel.</p>
           </div>
         ) : (
           <ul className="space-y-2">
-            {scoped.map((e) => {
-              const cat = e.categoryId ? catById.get(e.categoryId) : null;
+            {listItems.map((e) => {
+              const inc = (e.kind ?? "expense") === "income";
+              const cat = e.categoryId
+                ? (inc ? incomeCatById : catById).get(e.categoryId)
+                : null;
               const pay = e.paymentMethodId ? payById.get(e.paymentMethodId) : null;
               const person = e.personId ? personById.get(e.personId) : null;
               const project = e.projectId ? projectById.get(e.projectId) : null;
-              const col = catColor(cat?.color ?? "zinc");
-              const Icon = catIcon(cat?.icon ?? "tag");
+              const col = catColor(cat?.color ?? (inc ? "emerald" : "zinc"));
+              const Icon = catIcon(cat?.icon ?? (inc ? "savings" : "tag"));
               const PayIcon = pay ? payIcon(pay.kind) : null;
               return (
                 <li key={e.id}>
@@ -515,7 +621,7 @@ export function ExpensesDashboard({
                         )}
                       </div>
                       <p className="text-xs text-[var(--color-muted-foreground)] truncate flex items-center gap-1.5">
-                        <span>{cat?.name ?? "Nincs kategória"}</span>
+                        <span>{cat?.name ?? (inc ? "Bevétel" : "Nincs kategória")}</span>
                         <span>· {dayFmt.format(new Date(e.spentAt))}</span>
                         {PayIcon && (
                           <span className="inline-flex items-center gap-0.5">
@@ -530,7 +636,10 @@ export function ExpensesDashboard({
                         )}
                       </p>
                     </div>
-                    <p className="font-semibold tabular-nums shrink-0">{fmtFt(e.amount)}</p>
+                    <p className={cn("font-semibold tabular-nums shrink-0", inc && "text-emerald-600 dark:text-emerald-400")}>
+                      {inc ? "+" : ""}
+                      {fmtFt(e.amount)}
+                    </p>
                     <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
                   </Link>
                 </li>
@@ -540,8 +649,8 @@ export function ExpensesDashboard({
         )}
       </section>
 
-      {/* Bevételek */}
-      {incomeScoped.length > 0 && (
+      {/* Bevételek — külön szekció csak kiadás-szűrésnél (különben a lista már tartalmazza) */}
+      {kindF === "expense" && incomeScoped.length > 0 && (
         <section className="mt-8">
           <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1 flex items-center gap-1.5">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />

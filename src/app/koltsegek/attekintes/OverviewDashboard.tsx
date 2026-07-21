@@ -9,10 +9,14 @@ import type {
   Expense,
   ExpenseCategory,
   ExpenseNature,
+  ExpenseKind,
   PaymentMethod,
   Person,
   Project,
+  ExpenseGroup,
 } from "@/lib/types";
+
+type SortKey = "date_desc" | "date_asc" | "amount_desc" | "amount_asc" | "abc";
 
 function fmtFt(n: number): string {
   return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
@@ -75,6 +79,7 @@ export function OverviewDashboard({
   paymentMethods,
   persons,
   projects,
+  groups = [],
 }: {
   expenses: Expense[];
   categories: ExpenseCategory[];
@@ -82,6 +87,7 @@ export function OverviewDashboard({
   paymentMethods: PaymentMethod[];
   persons: Person[];
   projects: Project[];
+  groups?: ExpenseGroup[];
 }) {
   const expensesAll = useMemo(
     () => allItems.filter((e) => (e.kind ?? "expense") !== "income"),
@@ -109,11 +115,32 @@ export function OverviewDashboard({
     return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
   }); // alapból az aktuális hónap ("all" = teljes 12 hó)
   const [nature, setNature] = useState<ExpenseNature | "all">("avg");
+  const [kindF, setKindF] = useState<ExpenseKind | "all">("all");
   const [cats, setCats] = useState<Set<string>>(new Set());
   const [pays, setPays] = useState<Set<string>>(new Set());
   const [people, setPeople] = useState<Set<string>>(new Set());
   const [projs, setProjs] = useState<Set<string>>(new Set());
+  const [grps, setGrps] = useState<Set<string>>(new Set());
+  const [sort, setSort] = useState<SortKey>("date_desc");
   const [search, setSearch] = useState("");
+  const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
+  void groupById;
+
+  function sortItems(list: Expense[]): Expense[] {
+    const arr = [...list];
+    switch (sort) {
+      case "date_asc":
+        return arr.sort((a, b) => a.spentAt - b.spentAt);
+      case "amount_desc":
+        return arr.sort((a, b) => b.amount - a.amount);
+      case "amount_asc":
+        return arr.sort((a, b) => a.amount - b.amount);
+      case "abc":
+        return arr.sort((a, b) => a.merchant.localeCompare(b.merchant, "hu"));
+      default:
+        return arr.sort((a, b) => b.spentAt - a.spentAt);
+    }
+  }
   const [showFilters, setShowFilters] = useState(false);
 
   // Elmúlt 12 hónap kulcsai (a mostani hónaptól visszafelé).
@@ -142,6 +169,7 @@ export function OverviewDashboard({
     if (pays.size && !(e.paymentMethodId && pays.has(e.paymentMethodId))) return false;
     if (people.size && !(e.personId && people.has(e.personId))) return false;
     if (projs.size && !(e.projectId && projs.has(e.projectId))) return false;
+    if (grps.size && !(e.groupId && grps.has(e.groupId))) return false;
     if (q && !e.merchant.toLowerCase().includes(q)) return false;
     return true;
   }
@@ -150,12 +178,18 @@ export function OverviewDashboard({
   const expenseWindow = useMemo(
     () => expensesAll.filter((e) => windowSet.has(monthKey(e.spentAt)) && matchExpenseFilters(e)),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [expensesAll, windowSet, nature, cats, pays, people, projs, search]
+    [expensesAll, windowSet, nature, cats, pays, people, projs, grps, search]
   );
-  const incomeWindow = useMemo(
-    () => incomesAll.filter((e) => windowSet.has(monthKey(e.spentAt))),
-    [incomesAll, windowSet]
-  );
+  const incomeWindow = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return incomesAll.filter((e) => {
+      if (!windowSet.has(monthKey(e.spentAt))) return false;
+      if (people.size && !(e.personId && people.has(e.personId))) return false;
+      if (grps.size && !(e.groupId && grps.has(e.groupId))) return false;
+      if (q && !e.merchant.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [incomesAll, windowSet, people, grps, search]);
 
   // Havi bontás (12 vödör).
   const monthly = useMemo(() => {
@@ -176,6 +210,17 @@ export function OverviewDashboard({
   const scopedIncome = useMemo(
     () => (month === "all" ? incomeWindow : incomeWindow.filter((e) => monthKey(e.spentAt) === month)),
     [incomeWindow, month]
+  );
+
+  // Tétel-lista a Típus-szűrő szerint + rendezve.
+  const listItems = useMemo(
+    () =>
+      sortItems([
+        ...(kindF === "income" ? [] : scopedExpense),
+        ...(kindF === "expense" ? [] : scopedIncome),
+      ]),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [kindF, scopedExpense, scopedIncome, sort]
   );
 
   const totalExpense = scopedExpense.reduce((s, e) => s + e.amount, 0);
@@ -277,7 +322,13 @@ export function OverviewDashboard({
   };
 
   const activeFilters =
-    cats.size + pays.size + people.size + projs.size + (search ? 1 : 0);
+    cats.size +
+    pays.size +
+    people.size +
+    projs.size +
+    grps.size +
+    (kindF !== "all" ? 1 : 0) +
+    (search ? 1 : 0);
 
   function toggle(set: Set<string>, setter: (s: Set<string>) => void, id: string) {
     const next = new Set(set);
@@ -338,32 +389,75 @@ export function OverviewDashboard({
         </NatureChip>
       </div>
 
-      {/* Szűrők */}
-      <button
-        type="button"
-        onClick={() => setShowFilters((v) => !v)}
-        className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[var(--color-foreground)]"
-      >
-        <SlidersHorizontal className="w-4 h-4" />
-        Szűrők
-        {activeFilters > 0 && (
-          <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[var(--color-primary)] text-white text-[11px]">
-            {activeFilters}
-          </span>
-        )}
-      </button>
+      {/* Szűrők nyitó + kereső + rendezés egy sorban */}
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className="shrink-0 inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-[var(--color-border)] text-sm font-medium text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Szűrők
+          {activeFilters > 0 && (
+            <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[var(--color-primary)] text-white text-[11px]">
+              {activeFilters}
+            </span>
+          )}
+        </button>
+        <div className="relative flex-1 min-w-[160px]">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Keresés (bolt / kinek)…"
+            className="w-full h-10 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+          />
+        </div>
+        <select
+          value={sort}
+          onChange={(e) => setSort(e.target.value as SortKey)}
+          aria-label="Rendezés"
+          className="shrink-0 h-10 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] px-2 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+        >
+          <option value="date_desc">Legújabb elöl</option>
+          <option value="date_asc">Legrégebbi elöl</option>
+          <option value="amount_desc">Összeg ↓</option>
+          <option value="amount_asc">Összeg ↑</option>
+          <option value="abc">ABC</option>
+        </select>
+      </div>
 
       {showFilters && (
         <div className="mt-3 space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Bolt keresése…"
-              className="w-full h-10 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
-            />
+          <div>
+            <p className="text-xs font-medium text-[var(--color-muted-foreground)] mb-1.5">Típus</p>
+            <div className="flex gap-2">
+              {(["all", "expense", "income"] as const).map((k) => (
+                <button
+                  key={k}
+                  type="button"
+                  onClick={() => setKindF(k)}
+                  className={cn(
+                    "flex-1 h-9 rounded-full text-[13px] font-medium border transition",
+                    kindF === k
+                      ? "bg-[var(--color-primary)] text-white border-transparent"
+                      : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                  )}
+                >
+                  {k === "all" ? "Mind" : k === "expense" ? "Kiadás" : "Bevétel"}
+                </button>
+              ))}
+            </div>
           </div>
+          {groups.length > 0 && (
+            <FilterGroup label="Csoport">
+              {groups.map((g) => (
+                <MiniChip key={g.id} color={g.color} active={grps.has(g.id)} onClick={() => toggle(grps, setGrps, g.id)}>
+                  {g.name}
+                </MiniChip>
+              ))}
+            </FilterGroup>
+          )}
           <FilterGroup label="Kategória">
             {categories.map((c) => (
               <MiniChip key={c.id} color={c.color} active={cats.has(c.id)} onClick={() => toggle(cats, setCats, c.id)}>
@@ -404,6 +498,8 @@ export function OverviewDashboard({
                 setPays(new Set());
                 setPeople(new Set());
                 setProjs(new Set());
+                setGrps(new Set());
+                setKindF("all");
                 setSearch("");
               }}
               className="text-sm text-[var(--color-primary)] font-medium"
@@ -620,64 +716,109 @@ export function OverviewDashboard({
         </section>
       )}
 
-      {/* Összes tétel */}
-      {scopedExpense.length > 0 && (
+      {/* Tételek (Típus-szűrő + rendezés szerint) */}
+      {listItems.length > 0 && (
         <section className="mt-6">
           <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
-            Összes kiadás ({scopedExpense.length}) · {fmtFt(totalExpense)}
+            {kindF === "income" ? "Bevételek" : kindF === "expense" ? "Kiadások" : "Tételek"} (
+            {listItems.length})
           </h2>
           <ul className="space-y-2">
-            {scopedExpense
-              .slice()
-              .sort((a, b) => b.spentAt - a.spentAt)
-              .map((e) => {
-                const cat = e.categoryId ? catById.get(e.categoryId) : null;
-                const pay = e.paymentMethodId ? payById.get(e.paymentMethodId) : null;
-                const person = e.personId ? personById.get(e.personId) : null;
-                const project = e.projectId ? projectById.get(e.projectId) : null;
-                const col = catColor(cat?.color ?? "zinc");
-                const Icon = catIcon(cat?.icon ?? "tag");
-                const PayIcon = pay ? payIcon(pay.kind) : null;
-                return (
-                  <li key={e.id}>
-                    <Link
-                      href={`/koltsegek/${e.id}`}
-                      className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-sm transition hover:border-[var(--color-primary)]/40 active:scale-[0.99]"
-                    >
-                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
-                        <Icon className="w-5 h-5" />
+            {listItems.map((e) => {
+              const inc = (e.kind ?? "expense") === "income";
+              const cat = e.categoryId
+                ? (inc ? incomeCatById : catById).get(e.categoryId)
+                : null;
+              const pay = e.paymentMethodId ? payById.get(e.paymentMethodId) : null;
+              const person = e.personId ? personById.get(e.personId) : null;
+              const project = e.projectId ? projectById.get(e.projectId) : null;
+              const col = catColor(cat?.color ?? (inc ? "emerald" : "zinc"));
+              const Icon = catIcon(cat?.icon ?? (inc ? "savings" : "tag"));
+              const PayIcon = pay ? payIcon(pay.kind) : null;
+              return (
+                <li key={e.id}>
+                  <Link
+                    href={`/koltsegek/${e.id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-sm transition hover:border-[var(--color-primary)]/40 active:scale-[0.99]"
+                  >
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-1.5">
+                        <p className="font-medium text-[15px] truncate">{e.merchant}</p>
+                        {project && (
+                          <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0", catColor(project.color).soft, catColor(project.color).text)}>
+                            {project.name}
+                          </span>
+                        )}
                       </div>
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <p className="font-medium text-[15px] truncate">{e.merchant}</p>
-                          {project && (
-                            <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0", catColor(project.color).soft, catColor(project.color).text)}>
-                              {project.name}
-                            </span>
-                          )}
-                        </div>
-                        <p className="text-xs text-[var(--color-muted-foreground)] truncate flex items-center gap-1.5">
-                          <span>{cat?.name ?? "Nincs kategória"}</span>
-                          <span>· {dayFmt.format(new Date(e.spentAt))}</span>
-                          {PayIcon && (
-                            <span className="inline-flex items-center gap-0.5">
-                              · <PayIcon className="w-3 h-3" /> {pay?.name}
-                            </span>
-                          )}
-                          {person && (
-                            <span className="inline-flex items-center gap-0.5">
-                              · <span className={cn("w-2 h-2 rounded-full", catColor(person.color).dot)} />
-                              {person.name}
-                            </span>
-                          )}
-                        </p>
-                      </div>
-                      <p className="font-semibold tabular-nums shrink-0">{fmtFt(e.amount)}</p>
-                      <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
-                    </Link>
-                  </li>
-                );
-              })}
+                      <p className="text-xs text-[var(--color-muted-foreground)] truncate flex items-center gap-1.5">
+                        <span>{cat?.name ?? (inc ? "Bevétel" : "Nincs kategória")}</span>
+                        <span>· {dayFmt.format(new Date(e.spentAt))}</span>
+                        {PayIcon && (
+                          <span className="inline-flex items-center gap-0.5">
+                            · <PayIcon className="w-3 h-3" /> {pay?.name}
+                          </span>
+                        )}
+                        {person && (
+                          <span className="inline-flex items-center gap-0.5">
+                            · <span className={cn("w-2 h-2 rounded-full", catColor(person.color).dot)} />
+                            {person.name}
+                          </span>
+                        )}
+                      </p>
+                    </div>
+                    <p className={cn("font-semibold tabular-nums shrink-0", inc && "text-emerald-600 dark:text-emerald-400")}>
+                      {inc ? "+" : ""}
+                      {fmtFt(e.amount)}
+                    </p>
+                    <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
+
+      {/* Bevételek — külön szekció csak kiadás-szűrésnél */}
+      {kindF === "expense" && scopedIncome.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1 flex items-center gap-1.5">
+            <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
+            Bevételek · {fmtFt(scopedIncome.reduce((s, e) => s + e.amount, 0))}
+          </h2>
+          <ul className="space-y-2">
+            {sortItems(scopedIncome).map((e) => {
+              const cat = e.categoryId ? incomeCatById.get(e.categoryId) : null;
+              const person = e.personId ? personById.get(e.personId) : null;
+              const col = catColor(cat?.color ?? "emerald");
+              const Icon = catIcon(cat?.icon ?? "savings");
+              return (
+                <li key={e.id}>
+                  <Link
+                    href={`/koltsegek/${e.id}`}
+                    className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-sm transition hover:border-emerald-500/40 active:scale-[0.99]"
+                  >
+                    <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
+                      <Icon className="w-5 h-5" />
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <p className="font-medium text-[15px] truncate">{e.merchant}</p>
+                      <p className="text-xs text-[var(--color-muted-foreground)] truncate">
+                        {cat?.name ?? "Bevétel"} · {dayFmt.format(new Date(e.spentAt))}
+                        {person ? ` · ${person.name}` : ""}
+                      </p>
+                    </div>
+                    <p className="font-semibold tabular-nums shrink-0 text-emerald-600 dark:text-emerald-400">
+                      +{fmtFt(e.amount)}
+                    </p>
+                    <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+                  </Link>
+                </li>
+              );
+            })}
           </ul>
         </section>
       )}

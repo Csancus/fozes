@@ -9,6 +9,7 @@ import {
   ensureDefaultPaymentMethods,
   listPersons,
   listProjects,
+  listGroups,
   runDueRecurring,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -23,7 +24,7 @@ export default async function AttekintesPage() {
   await ensureDefaultPaymentMethods(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   await runDueRecurring(me.householdId);
-  const [expenses, categories, incomeCategories, paymentMethods, persons, projects] =
+  const [expenses, categories, incomeCategories, paymentMethods, persons, projects, groups] =
     await Promise.all([
       listExpenses(me.householdId),
       listExpenseCategories(me.householdId),
@@ -31,6 +32,7 @@ export default async function AttekintesPage() {
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listProjects(me.householdId),
+      listGroups(me.householdId),
     ]);
 
   return (
@@ -62,6 +64,7 @@ export default async function AttekintesPage() {
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}
+          groups={groups}
         />
       )}
     </main>
