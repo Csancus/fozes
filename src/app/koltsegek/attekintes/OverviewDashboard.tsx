@@ -128,6 +128,13 @@ export function OverviewDashboard({
   }, []);
   const windowSet = useMemo(() => new Set(window12), [window12]);
 
+  // Csak azok a hónapok, ahol van adat (max 12, legfrissebb elöl).
+  const monthsWithData = useMemo(() => {
+    const set = new Set<string>();
+    allItems.forEach((e) => set.add(monthKey(e.spentAt)));
+    return [...set].sort().reverse().slice(0, 12);
+  }, [allItems]);
+
   function matchExpenseFilters(e: Expense): boolean {
     const q = search.trim().toLowerCase();
     if (nature !== "all" && (e.nature ?? "avg") !== nature) return false;
@@ -286,14 +293,11 @@ export function OverviewDashboard({
         <MonthChip active={month === "all"} onClick={() => setMonth("all")}>
           12 hó
         </MonthChip>
-        {window12
-          .slice()
-          .reverse()
-          .map((m) => (
-            <MonthChip key={m} active={month === m} onClick={() => setMonth(m)}>
-              {monthShortFmt.format(monthKeyToDate(m))}
-            </MonthChip>
-          ))}
+        {monthsWithData.map((m) => (
+          <MonthChip key={m} active={month === m} onClick={() => setMonth(m)}>
+            {monthShortFmt.format(monthKeyToDate(m))}
+          </MonthChip>
+        ))}
       </div>
 
       {/* Egyenleg kártya */}
@@ -612,6 +616,68 @@ export function OverviewDashboard({
                 </li>
               );
             })}
+          </ul>
+        </section>
+      )}
+
+      {/* Összes tétel */}
+      {scopedExpense.length > 0 && (
+        <section className="mt-6">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
+            Összes kiadás ({scopedExpense.length}) · {fmtFt(totalExpense)}
+          </h2>
+          <ul className="space-y-2">
+            {scopedExpense
+              .slice()
+              .sort((a, b) => b.spentAt - a.spentAt)
+              .map((e) => {
+                const cat = e.categoryId ? catById.get(e.categoryId) : null;
+                const pay = e.paymentMethodId ? payById.get(e.paymentMethodId) : null;
+                const person = e.personId ? personById.get(e.personId) : null;
+                const project = e.projectId ? projectById.get(e.projectId) : null;
+                const col = catColor(cat?.color ?? "zinc");
+                const Icon = catIcon(cat?.icon ?? "tag");
+                const PayIcon = pay ? payIcon(pay.kind) : null;
+                return (
+                  <li key={e.id}>
+                    <Link
+                      href={`/koltsegek/${e.id}`}
+                      className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-sm transition hover:border-[var(--color-primary)]/40 active:scale-[0.99]"
+                    >
+                      <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <p className="font-medium text-[15px] truncate">{e.merchant}</p>
+                          {project && (
+                            <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0", catColor(project.color).soft, catColor(project.color).text)}>
+                              {project.name}
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-[var(--color-muted-foreground)] truncate flex items-center gap-1.5">
+                          <span>{cat?.name ?? "Nincs kategória"}</span>
+                          <span>· {dayFmt.format(new Date(e.spentAt))}</span>
+                          {PayIcon && (
+                            <span className="inline-flex items-center gap-0.5">
+                              · <PayIcon className="w-3 h-3" /> {pay?.name}
+                            </span>
+                          )}
+                          {person && (
+                            <span className="inline-flex items-center gap-0.5">
+                              · <span className={cn("w-2 h-2 rounded-full", catColor(person.color).dot)} />
+                              {person.name}
+                            </span>
+                          )}
+                        </p>
+                      </div>
+                      <p className="font-semibold tabular-nums shrink-0">{fmtFt(e.amount)}</p>
+                      <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+                    </Link>
+                  </li>
+                );
+              })}
           </ul>
         </section>
       )}

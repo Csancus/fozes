@@ -281,33 +281,34 @@ export function ExpensesDashboard({
         </NatureChip>
       </div>
 
-      {/* Szűrők nyitó */}
-      <button
-        type="button"
-        onClick={() => setShowFilters((v) => !v)}
-        className="mt-4 inline-flex items-center gap-2 text-sm font-medium text-[var(--color-foreground)]"
-      >
-        <SlidersHorizontal className="w-4 h-4" />
-        Szűrők
-        {activeFilters > 0 && (
-          <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[var(--color-primary)] text-white text-[11px]">
-            {activeFilters}
-          </span>
-        )}
-      </button>
+      {/* Szűrők nyitó + szabadszavas kereső */}
+      <div className="mt-4 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setShowFilters((v) => !v)}
+          className="shrink-0 inline-flex items-center gap-2 h-10 px-3 rounded-xl border border-[var(--color-border)] text-sm font-medium text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition"
+        >
+          <SlidersHorizontal className="w-4 h-4" />
+          Szűrők
+          {activeFilters > 0 && (
+            <span className="inline-flex items-center justify-center min-w-5 h-5 px-1.5 rounded-full bg-[var(--color-primary)] text-white text-[11px]">
+              {activeFilters}
+            </span>
+          )}
+        </button>
+        <div className="relative flex-1 min-w-0">
+          <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Keresés (bolt / kinek)…"
+            className="w-full h-10 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+          />
+        </div>
+      </div>
 
       {showFilters && (
         <div className="mt-3 space-y-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-          <div className="relative">
-            <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-muted-foreground)]" />
-            <input
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Bolt keresése…"
-              className="w-full h-10 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] pl-9 pr-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
-            />
-          </div>
-
           <FilterGroup label="Kategória">
             {categories.map((c) => (
               <MiniChip
