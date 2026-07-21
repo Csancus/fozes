@@ -149,16 +149,16 @@ export function ExpenseTable({
       { key: "nature", label: "Jelleg" },
       { key: "payment", label: "Fizetés" },
     ];
-    if (persons.length) cols.push({ key: "person", label: "Ki", defaultHidden: true });
-    if (projects.length) cols.push({ key: "project", label: "Projekt", defaultHidden: true });
-    if (groups.length) cols.push({ key: "group", label: "Csoport", defaultHidden: true });
-    cols.push({ key: "review", label: "Felülvizsgálat", defaultHidden: true });
-    cols.push({ key: "note", label: "Megjegyzés", defaultHidden: true });
+    if (persons.length) cols.push({ key: "person", label: "Ki" });
+    if (projects.length) cols.push({ key: "project", label: "Projekt" });
+    if (groups.length) cols.push({ key: "group", label: "Csoport" });
+    cols.push({ key: "review", label: "Felülvizsgálat" });
+    cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
   }, [persons.length, projects.length, groups.length]);
 
   const { isVisible, hidden, toggle } = useColumnVisibility(
-    "cols:koltsegek-tabla",
+    "cols:koltsegek-tabla-v2",
     allColumns
   );
 
