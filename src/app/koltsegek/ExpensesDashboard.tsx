@@ -91,8 +91,11 @@ export function ExpensesDashboard({
     [projects]
   );
 
-  const [month, setMonth] = useState<string>("all");
-  const [nature, setNature] = useState<ExpenseNature | "all">("all");
+  const [month, setMonth] = useState<string>(() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  });
+  const [nature, setNature] = useState<ExpenseNature | "all">("avg");
   const [cats, setCats] = useState<Set<string>>(new Set());
   const [pays, setPays] = useState<Set<string>>(new Set());
   const [people, setPeople] = useState<Set<string>>(new Set());
