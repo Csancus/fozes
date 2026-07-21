@@ -87,7 +87,7 @@ export default async function KoltsegekPage() {
         >
           <span className="flex items-center gap-2">
             <PencilLine className="w-4 h-4" />
-            Meglévő kiadások szerkesztése egyben
+            Meglévő tételek szerkesztése egyben
           </span>
           <span className="text-[var(--color-primary)]">Táblázat</span>
         </Link>

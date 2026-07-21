@@ -3,6 +3,8 @@ import {
   listExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
+  listIncomeCategories,
+  ensureDefaultIncomeCategories,
   ensureDefaultPaymentMethods,
   listPaymentMethods,
   listPersons,
@@ -25,12 +27,14 @@ import { updateExpensesBatchAction } from "../actions";
 export default async function TablaPage() {
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
+  await ensureDefaultIncomeCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);
-  const [expenses, categories, paymentMethods, persons, projects, groups, merchantMap, merchants] =
+  const [expenses, categories, incomeCategories, paymentMethods, persons, projects, groups, merchantMap, merchants] =
     await Promise.all([
       listExpenses(me.householdId),
       listExpenseCategories(me.householdId),
+      listIncomeCategories(me.householdId),
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listProjects(me.householdId),
@@ -44,8 +48,8 @@ export default async function TablaPage() {
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-none mx-auto">
       <PageHeader
-        title="Kiadások szerkesztése"
-        subtitle="Minden tétel egy táblázatban"
+        title="Tételek szerkesztése"
+        subtitle="Kiadás és bevétel egy táblázatban"
         back="/koltsegek"
         action={
           <Link
@@ -62,12 +66,12 @@ export default async function TablaPage() {
         <div className="mt-6">
           <EmptyState
             icon={Wallet}
-            title="Még nincs kiadás"
-            description="Rögzíts előbb néhány tételt, itt pedig egyben szerkesztheted őket."
+            title="Még nincs tétel"
+            description="Rögzíts előbb néhány kiadást vagy bevételt, itt pedig egyben szerkesztheted őket."
           />
           <div className="mt-4 flex justify-center">
             <Button href="/koltsegek/uj" leftIcon={<Plus className="w-4 h-4" />}>
-              Új kiadás
+              Új tétel
             </Button>
           </div>
         </div>
@@ -78,6 +82,7 @@ export default async function TablaPage() {
           action={updateExpensesBatchAction}
           expenses={expenses}
           categories={categories}
+          incomeCategories={incomeCategories}
           paymentMethods={paymentMethods}
           persons={persons}
           projects={projects}

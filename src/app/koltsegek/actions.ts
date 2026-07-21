@@ -604,6 +604,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
 
 type EditRow = {
   id: unknown;
+  kind: unknown;
   amount: unknown;
   merchant: unknown;
   categoryId: unknown;
@@ -642,24 +643,31 @@ export async function updateExpensesBatchAction(fd: FormData) {
   for (const r of rows) {
     const id = String(r.id ?? "").trim();
     if (!id) continue; // csak meglévőket frissítünk itt
+    const kind: ExpenseKind =
+      String(r.kind ?? "expense") === "income" ? "income" : "expense";
     const amount = parseAmount(String(r.amount ?? ""));
     const merchant = String(r.merchant ?? "").trim();
     if (amount <= 0 || !merchant) continue;
 
     let categoryId = String(r.categoryId ?? "").trim() || null;
-    if (!categoryId) categoryId = map[slug(merchant)] ?? null;
+    if (kind === "expense" && !categoryId) categoryId = map[slug(merchant)] ?? null;
     const paymentMethodId = String(r.paymentMethodId ?? "").trim() || null;
     const personId = String(r.personId ?? "").trim() || null;
     const projectId = String(r.projectId ?? "").trim() || null;
     const groupId = String(r.groupId ?? "").trim() || null;
     const nature: ExpenseNature =
-      String(r.nature ?? "avg") === "project" ? "project" : "avg";
+      kind === "income"
+        ? "avg"
+        : String(r.nature ?? "avg") === "project"
+          ? "project"
+          : "avg";
     const review = r.review === true;
     const spentAt = parseDate(String(r.spentAt ?? ""));
     const note = String(r.note ?? "");
 
     await saveExpense(me.householdId, {
       id,
+      kind,
       amount,
       merchant,
       categoryId,

@@ -6,12 +6,13 @@ import type { ExpenseCategory } from "@/lib/types";
 const NEW = "__new_category__";
 
 // Kategória-legördülő „+ Új kategória…" opcióval: szép modállal hoz létre újat,
-// a szülő listájába teszi és kiválasztja.
+// a szülő listájába teszi és kiválasztja. A createFn cserélhető (pl. bevétel-kategória).
 export function CategorySelect({
   categories,
   value,
   onChange,
   onCreated,
+  createFn,
   className,
   placeholder = "—",
 }: {
@@ -19,10 +20,11 @@ export function CategorySelect({
   value: string;
   onChange: (id: string) => void;
   onCreated: (cat: ExpenseCategory) => void;
+  createFn?: (name: string) => Promise<ExpenseCategory | null>;
   className?: string;
   placeholder?: string;
 }) {
-  const { open, modal } = useCategoryCreator();
+  const { open, modal } = useCategoryCreator(createFn);
 
   async function handle(v: string) {
     if (v !== NEW) {
