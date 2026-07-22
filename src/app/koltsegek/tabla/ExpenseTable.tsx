@@ -35,6 +35,12 @@ function toNum(v: string): number {
   return Number(v.replace(/\s/g, "").replace(",", "."));
 }
 
+// Hármas tagolás beviteli mezőhöz (mentéskor a szóközöket a szerver eltávolítja).
+function groupDigits(s: string): string {
+  const d = s.replace(/\D/g, "");
+  return d ? d.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "";
+}
+
 function tsToDay(ts: number): string {
   const d = new Date(ts);
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(
@@ -71,7 +77,7 @@ function toRow(e: Expense): Row {
   return {
     id: e.id,
     kind: e.kind ?? "expense",
-    amount: String(e.amount),
+    amount: groupDigits(String(e.amount)),
     merchant: e.merchant,
     categoryId: e.categoryId ?? "",
     paymentMethodId: e.paymentMethodId ?? "",
@@ -517,9 +523,7 @@ export function ExpenseTable({
                       value={r.amount}
                       disabled={isDeleted}
                       onChange={(e) =>
-                        update(r.id, {
-                          amount: e.target.value.replace(/[^\d.,\s]/g, ""),
-                        })
+                        update(r.id, { amount: groupDigits(e.target.value) })
                       }
                       className={cn(ctrl, "tabular-nums font-medium")}
                     />

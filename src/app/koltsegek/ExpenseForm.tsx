@@ -37,6 +37,12 @@ function todayStr(): string {
   return `${d.getFullYear()}-${m}-${day}`;
 }
 
+// Hármas tagolás beviteli mezőhöz (mentéskor a szerver eltávolítja a szóközöket).
+function groupDigits(s: string): string {
+  const d = s.replace(/\D/g, "");
+  return d ? d.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "";
+}
+
 export function ExpenseForm({
   action,
   categories,
@@ -80,6 +86,7 @@ export function ExpenseForm({
     useState<ExpenseCategory[]>(incomeCategories);
   const currentCats = income ? incomeCatList : catList;
   const [nature, setNature] = useState<ExpenseNature>(initial?.nature ?? "avg");
+  const [amountStr, setAmountStr] = useState(groupDigits(String(initial?.amount ?? "")));
   const [merchant, setMerchant] = useState(initial?.merchant ?? "");
   const [categoryId, setCategoryId] = useState<string | null>(
     initial?.categoryId ?? null
@@ -260,14 +267,11 @@ export function ExpenseForm({
       <Field label="Összeg (Ft)" required>
         <Input
           name="amount"
-          inputMode="decimal"
+          inputMode="numeric"
           required
-          defaultValue={initial?.amount ? String(initial.amount) : ""}
-          placeholder="pl. 4990"
-          onChange={(e) => {
-            const cleaned = e.target.value.replace(/[^\d.,\s]/g, "");
-            if (cleaned !== e.target.value) e.target.value = cleaned;
-          }}
+          value={amountStr}
+          onChange={(e) => setAmountStr(groupDigits(e.target.value))}
+          placeholder="pl. 4 990"
           className={cn(
             "text-2xl font-bold h-14 tabular-nums",
             income && "text-emerald-600 dark:text-emerald-400"

@@ -43,6 +43,12 @@ function toNum(v: string): number {
   return Number(v.replace(/\s/g, "").replace(",", "."));
 }
 
+// Hármas tagolás beviteli mezőhöz (mentéskor a szerver eltávolítja a szóközöket).
+function groupDigits(s: string): string {
+  const d = s.replace(/\D/g, "");
+  return d ? d.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "";
+}
+
 type Row = {
   key: string;
   kind: ExpenseKind;
@@ -337,9 +343,7 @@ export function BatchEntry({
                       inputMode="decimal"
                       value={r.amount}
                       onChange={(e) =>
-                        update(r.key, {
-                          amount: e.target.value.replace(/[^\d.,\s]/g, ""),
-                        })
+                        update(r.key, { amount: groupDigits(e.target.value) })
                       }
                       placeholder="0"
                       className={cn(ctrl, "tabular-nums font-medium")}
