@@ -632,10 +632,14 @@ export function OverviewDashboard({
       {/* Legnagyobb kategóriák */}
       {topCategories.length > 0 && (
         <section className="mt-6">
-          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1 flex items-center justify-between">
             Legnagyobb kiadási kategóriák
+            <span className="text-[var(--color-primary)] normal-case tracking-normal font-medium">összes →</span>
           </h2>
-          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 space-y-3">
+          <div
+            onClick={() => setDetail({ title: "Kategóriák", rows: fullRows.category })}
+            className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 space-y-3 cursor-pointer hover:border-[var(--color-primary)]/40 transition"
+          >
             {topCategories.map(({ cat, amount }, i) => {
               const col = catColor(cat?.color ?? "zinc");
               const pct = totalExpense ? (amount / totalExpense) * 100 : 0;
@@ -674,6 +678,7 @@ export function OverviewDashboard({
             color: PALETTE[i % PALETTE.length],
           }))}
           total={totalExpense}
+          onOpen={() => setDetail({ title: "Boltok / kinek", rows: fullRows.merchant })}
         />
       )}
 
@@ -686,6 +691,7 @@ export function OverviewDashboard({
             .slice(0, 8)
             .map((p) => ({ label: p.project!.name, amount: p.amount, color: p.project!.color }))}
           total={totalExpense}
+          onOpen={() => setDetail({ title: "Projektek", rows: fullRows.project })}
         />
       )}
 
@@ -1072,17 +1078,26 @@ function BarBreakdown({
   title,
   rows,
   total,
+  onOpen,
 }: {
   title: string;
   rows: { label: string; amount: number; color: string }[];
   total: number;
+  onOpen?: () => void;
 }) {
   return (
     <section className="mt-6">
-      <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
+      <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1 flex items-center justify-between">
         {title}
+        {onOpen && <span className="text-[var(--color-primary)] normal-case tracking-normal font-medium">összes →</span>}
       </h2>
-      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 space-y-3">
+      <div
+        onClick={onOpen}
+        className={cn(
+          "rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 space-y-3",
+          onOpen && "cursor-pointer hover:border-[var(--color-primary)]/40 transition"
+        )}
+      >
         {rows.map((row, i) => {
           const col = catColor(row.color);
           const pct = total ? (row.amount / total) * 100 : 0;
