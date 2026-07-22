@@ -123,6 +123,7 @@ export function OverviewDashboard({
   const [grps, setGrps] = useState<Set<string>>(new Set());
   const [sort, setSort] = useState<SortKey>("date_desc");
   const [search, setSearch] = useState("");
+  const [chartType, setChartType] = useState<"bar" | "pie">("bar");
   const groupById = useMemo(() => new Map(groups.map((g) => [g.id, g])), [groups]);
   void groupById;
 
@@ -547,56 +548,91 @@ export function OverviewDashboard({
         </div>
       )}
 
-      {/* 12 hónap grafikon */}
+      {/* Fő grafikon: 12 hó → trend; egy hónap → kategóriánkénti kiadás (oszlop/pie) */}
       <section className="mt-6">
-        <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
-          Elmúlt 12 hónap
-        </h2>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 overflow-x-auto">
-          <div className="flex items-center gap-4 mb-3 text-xs text-[var(--color-muted-foreground)]">
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-[var(--color-primary)]" /> Kiadás
-            </span>
-            <span className="inline-flex items-center gap-1.5">
-              <span className="w-3 h-3 rounded-sm bg-emerald-500" /> Bevétel
-            </span>
-          </div>
-          <div className="flex items-end justify-between gap-2 h-72 min-w-[560px]">
-            {monthly.map((m) => {
-              const active = month === m.k;
-              return (
-                <button
-                  type="button"
-                  key={m.k}
-                  onClick={() => setMonth(active ? "all" : m.k)}
-                  className="flex-1 flex flex-col items-center justify-end h-full gap-1 group"
-                  title={`${monthLongFmt.format(monthKeyToDate(m.k))}\nKiadás: ${fmtFt(m.exp)}\nBevétel: ${fmtFt(m.inc)}`}
-                >
-                  <span className="text-[11px] leading-tight tabular-nums text-center min-h-[26px] flex flex-col justify-end">
-                    {m.exp > 0 && <span className="text-[var(--color-primary)] font-medium">{fmtShort(m.exp)}</span>}
-                    {m.inc > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{fmtShort(m.inc)}</span>}
-                  </span>
-                  <div className="w-full flex items-end justify-center gap-0.5 h-full">
-                    <span
-                      className={cn(
-                        "w-1/2 max-w-6 rounded-t-md transition-all",
-                        active ? "bg-[var(--color-primary)]" : "bg-[var(--color-primary)]/50 group-hover:bg-[var(--color-primary)]/70"
-                      )}
-                      style={{ height: `${Math.max(2, (m.exp / maxBar) * 100)}%` }}
-                    />
-                    <span
-                      className="w-1/2 max-w-6 rounded-t-md bg-emerald-500/80 transition-all"
-                      style={{ height: `${Math.max(2, (m.inc / maxBar) * 100)}%` }}
-                    />
-                  </div>
-                  <span className={cn("text-xs whitespace-nowrap", active ? "text-[var(--color-primary)] font-semibold" : "text-[var(--color-muted-foreground)]")}>
-                    {monthShortFmt.format(monthKeyToDate(m.k)).replace(".", "")}
-                  </span>
-                </button>
-              );
-            })}
-          </div>
+        <div className="flex items-center justify-between mb-3 px-1">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em]">
+            {month === "all"
+              ? "Elmúlt 12 hónap"
+              : `Kategóriánkénti kiadás · ${monthLongFmt.format(monthKeyToDate(month))}`}
+          </h2>
+          {month !== "all" && (
+            <div className="inline-flex rounded-lg border border-[var(--color-border)] p-0.5">
+              <button
+                type="button"
+                onClick={() => setChartType("bar")}
+                className={cn(
+                  "h-7 px-2.5 rounded-md text-xs font-medium transition",
+                  chartType === "bar" ? "bg-[var(--color-primary)] text-white" : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                Oszlop
+              </button>
+              <button
+                type="button"
+                onClick={() => setChartType("pie")}
+                className={cn(
+                  "h-7 px-2.5 rounded-md text-xs font-medium transition",
+                  chartType === "pie" ? "bg-[var(--color-primary)] text-white" : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                Pie
+              </button>
+            </div>
+          )}
         </div>
+
+        {month === "all" ? (
+          <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 overflow-x-auto">
+            <div className="flex items-center gap-4 mb-3 text-xs text-[var(--color-muted-foreground)]">
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-sm bg-[var(--color-primary)]" /> Kiadás
+              </span>
+              <span className="inline-flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-sm bg-emerald-500" /> Bevétel
+              </span>
+            </div>
+            <div className="flex items-end justify-between gap-2 h-72 min-w-[560px]">
+              {monthly.map((m) => {
+                const active = month === m.k;
+                return (
+                  <button
+                    type="button"
+                    key={m.k}
+                    onClick={() => setMonth(active ? "all" : m.k)}
+                    className="flex-1 flex flex-col items-center justify-end h-full gap-1 group"
+                    title={`${monthLongFmt.format(monthKeyToDate(m.k))}\nKiadás: ${fmtFt(m.exp)}\nBevétel: ${fmtFt(m.inc)}`}
+                  >
+                    <span className="text-[11px] leading-tight tabular-nums text-center min-h-[26px] flex flex-col justify-end">
+                      {m.exp > 0 && <span className="text-[var(--color-primary)] font-medium">{fmtShort(m.exp)}</span>}
+                      {m.inc > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{fmtShort(m.inc)}</span>}
+                    </span>
+                    <div className="w-full flex items-end justify-center gap-0.5 h-full">
+                      <span
+                        className="w-1/2 max-w-6 rounded-t-md bg-[var(--color-primary)]/50 group-hover:bg-[var(--color-primary)]/70 transition-all"
+                        style={{ height: `${Math.max(2, (m.exp / maxBar) * 100)}%` }}
+                      />
+                      <span
+                        className="w-1/2 max-w-6 rounded-t-md bg-emerald-500/80 transition-all"
+                        style={{ height: `${Math.max(2, (m.inc / maxBar) * 100)}%` }}
+                      />
+                    </div>
+                    <span className="text-xs whitespace-nowrap text-[var(--color-muted-foreground)]">
+                      {monthShortFmt.format(monthKeyToDate(m.k)).replace(".", "")}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <CategoryChart
+            rows={fullRows.category}
+            total={totalExpense}
+            type={chartType}
+            onOpen={() => setDetail({ title: "Kategóriák", rows: fullRows.category })}
+          />
+        )}
       </section>
 
       {/* Top 3 az adott időszakra */}
@@ -1070,6 +1106,114 @@ function PieCard({ title, segments, onOpen }: { title: string; segments: Seg[]; 
           </ul>
         </div>
       )}
+    </div>
+  );
+}
+
+function CategoryChart({
+  rows,
+  total,
+  type,
+  onOpen,
+}: {
+  rows: { label: string; amount: number; color: string }[];
+  total: number;
+  type: "bar" | "pie";
+  onOpen?: () => void;
+}) {
+  if (rows.length === 0) {
+    return (
+      <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-8 text-center text-sm text-[var(--color-muted-foreground)]">
+        Nincs kiadás ebben a hónapban.
+      </div>
+    );
+  }
+
+  if (type === "pie") {
+    const segs = toSegments(rows.map((r, i) => ({ label: r.label, value: r.amount, color: hexOf(r.color, i) })));
+    const sum = segs.reduce((s, x) => s + x.value, 0);
+    const rr = 42;
+    const C = 2 * Math.PI * rr;
+    let acc = 0;
+    const arcs = segs.map((s) => {
+      const dash = sum ? (s.value / sum) * C : 0;
+      const arc = { ...s, dash, offset: acc };
+      acc += dash;
+      return arc;
+    });
+    return (
+      <div
+        onClick={onOpen}
+        className={cn(
+          "rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 flex flex-col sm:flex-row items-center gap-6",
+          onOpen && "cursor-pointer hover:border-[var(--color-primary)]/40 transition"
+        )}
+      >
+        <svg viewBox="0 0 100 100" className="w-40 h-40 shrink-0 -rotate-90">
+          <circle cx="50" cy="50" r={rr} fill="none" stroke="var(--color-muted)" strokeWidth="16" />
+          {arcs.map((a, i) => (
+            <circle
+              key={i}
+              cx="50"
+              cy="50"
+              r={rr}
+              fill="none"
+              stroke={a.color}
+              strokeWidth="16"
+              strokeDasharray={`${a.dash} ${C - a.dash}`}
+              strokeDashoffset={-a.offset}
+            />
+          ))}
+        </svg>
+        <ul className="flex-1 min-w-0 w-full space-y-1.5 text-sm">
+          {arcs.map((a, i) => (
+            <li key={i} className="flex items-center justify-between gap-2">
+              <span className="flex items-center gap-2 min-w-0">
+                <span className="w-3 h-3 rounded-full shrink-0" style={{ background: a.color }} />
+                <span className="truncate">{a.label}</span>
+              </span>
+              <span className="tabular-nums shrink-0 text-right">
+                <span className="font-medium">{fmtFt(a.value)}</span>
+                <span className="text-[var(--color-muted-foreground)]"> · {Math.round((a.value / (sum || 1)) * 100)}%</span>
+              </span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
+  // Oszlop (vertikális)
+  const max = Math.max(1, ...rows.map((r) => r.amount));
+  return (
+    <div
+      onClick={onOpen}
+      className={cn(
+        "rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 overflow-x-auto",
+        onOpen && "cursor-pointer hover:border-[var(--color-primary)]/40 transition"
+      )}
+    >
+      <div
+        className="flex items-end justify-around gap-2 h-72"
+        style={{ minWidth: `${Math.max(320, rows.length * 64)}px` }}
+      >
+        {rows.map((r, i) => {
+          const col = catColor(r.color);
+          const pct = total ? (r.amount / total) * 100 : 0;
+          return (
+            <div key={i} className="flex-1 flex flex-col items-center justify-end h-full gap-1" title={`${r.label}: ${fmtFt(r.amount)}`}>
+              <span className="text-[11px] tabular-nums font-medium text-[var(--color-foreground)]">{fmtShort(r.amount)}</span>
+              <div className="w-full flex items-end justify-center h-full">
+                <div className={cn("w-full max-w-10 rounded-t-md", col.dot)} style={{ height: `${Math.max(2, (r.amount / max) * 100)}%` }} />
+              </div>
+              <span className="text-[11px] text-[var(--color-muted-foreground)] truncate w-full text-center leading-tight">
+                {r.label}
+              </span>
+              <span className="text-[10px] text-[var(--color-muted-foreground)] tabular-nums">{Math.round(pct)}%</span>
+            </div>
+          );
+        })}
+      </div>
     </div>
   );
 }
