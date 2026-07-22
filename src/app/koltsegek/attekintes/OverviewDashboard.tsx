@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { SlidersHorizontal, Search, TrendingUp, ChevronRight, Trophy } from "lucide-react";
+import { SlidersHorizontal, Search, TrendingUp, ChevronRight, Trophy, X } from "lucide-react";
 import type {
   Expense,
   ExpenseCategory,
@@ -332,6 +332,37 @@ export function OverviewDashboard({
     project: byProject.filter((p) => p.project).slice(0, 3).map((p) => ({ label: p.project!.name, amount: p.amount, color: p.project!.color })),
   };
 
+  // Teljes (nem csak top X) bontások a részletező popuphoz.
+  const fullRows = {
+    category: (() => {
+      const m = new Map<string, number>();
+      scopedExpense.forEach((e) => {
+        const k = e.categoryId ?? "__none";
+        m.set(k, (m.get(k) ?? 0) + e.amount);
+      });
+      return [...m.entries()]
+        .map(([k, amount]) => {
+          const c = k === "__none" ? null : catById.get(k) ?? null;
+          return { label: c?.name ?? "Nincs kategória", amount, color: c?.color ?? "zinc" };
+        })
+        .sort((a, b) => b.amount - a.amount);
+    })(),
+    expense: [...scopedExpense]
+      .sort((a, b) => b.amount - a.amount)
+      .map((e, i) => ({ label: e.merchant || "—", amount: e.amount, color: PALETTE[i % PALETTE.length] })),
+    merchant: byMerchant.map((m, i) => ({
+      label: m.name,
+      amount: m.amount,
+      color: PALETTE[i % PALETTE.length],
+    })),
+    project: byProject.map((p) => ({
+      label: p.project?.name ?? "Projekt nélkül",
+      amount: p.amount,
+      color: p.project?.color ?? "zinc",
+    })),
+  };
+  const [detail, setDetail] = useState<{ title: string; rows: { label: string; amount: number; color: string }[] } | null>(null);
+
   const activeFilters =
     cats.size +
     pays.size +
@@ -521,16 +552,16 @@ export function OverviewDashboard({
         <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1">
           Elmúlt 12 hónap
         </h2>
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-          <div className="flex items-center gap-4 mb-3 text-[11px] text-[var(--color-muted-foreground)]">
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 overflow-x-auto">
+          <div className="flex items-center gap-4 mb-3 text-xs text-[var(--color-muted-foreground)]">
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-[var(--color-primary)]" /> Kiadás
+              <span className="w-3 h-3 rounded-sm bg-[var(--color-primary)]" /> Kiadás
             </span>
             <span className="inline-flex items-center gap-1.5">
-              <span className="w-2.5 h-2.5 rounded-sm bg-emerald-500" /> Bevétel
+              <span className="w-3 h-3 rounded-sm bg-emerald-500" /> Bevétel
             </span>
           </div>
-          <div className="flex items-end justify-between gap-1 h-40">
+          <div className="flex items-end justify-between gap-2 h-72 min-w-[560px]">
             {monthly.map((m) => {
               const active = month === m.k;
               return (
@@ -541,23 +572,24 @@ export function OverviewDashboard({
                   className="flex-1 flex flex-col items-center justify-end h-full gap-1 group"
                   title={`${monthLongFmt.format(monthKeyToDate(m.k))}\nKiadás: ${fmtFt(m.exp)}\nBevétel: ${fmtFt(m.inc)}`}
                 >
-                  <span className="text-[9px] tabular-nums text-[var(--color-muted-foreground)]">
-                    {m.exp > 0 ? fmtShort(m.exp) : ""}
+                  <span className="text-[11px] leading-tight tabular-nums text-center min-h-[26px] flex flex-col justify-end">
+                    {m.exp > 0 && <span className="text-[var(--color-primary)] font-medium">{fmtShort(m.exp)}</span>}
+                    {m.inc > 0 && <span className="text-emerald-600 dark:text-emerald-400 font-medium">{fmtShort(m.inc)}</span>}
                   </span>
-                  <div className="w-full flex items-end justify-center gap-[2px] h-full">
+                  <div className="w-full flex items-end justify-center gap-0.5 h-full">
                     <span
                       className={cn(
-                        "w-1/2 rounded-t-sm transition-all",
-                        active ? "bg-[var(--color-primary)]" : "bg-[var(--color-primary)]/40 group-hover:bg-[var(--color-primary)]/60"
+                        "w-1/2 max-w-6 rounded-t-md transition-all",
+                        active ? "bg-[var(--color-primary)]" : "bg-[var(--color-primary)]/50 group-hover:bg-[var(--color-primary)]/70"
                       )}
                       style={{ height: `${Math.max(2, (m.exp / maxBar) * 100)}%` }}
                     />
                     <span
-                      className="w-1/2 rounded-t-sm bg-emerald-500/70 transition-all"
+                      className="w-1/2 max-w-6 rounded-t-md bg-emerald-500/80 transition-all"
                       style={{ height: `${Math.max(2, (m.inc / maxBar) * 100)}%` }}
                     />
                   </div>
-                  <span className={cn("text-[9px] whitespace-nowrap", active ? "text-[var(--color-primary)] font-semibold" : "text-[var(--color-muted-foreground)]")}>
+                  <span className={cn("text-xs whitespace-nowrap", active ? "text-[var(--color-primary)] font-semibold" : "text-[var(--color-muted-foreground)]")}>
                     {monthShortFmt.format(monthKeyToDate(m.k)).replace(".", "")}
                   </span>
                 </button>
@@ -574,10 +606,10 @@ export function OverviewDashboard({
             Top 3 · {month === "all" ? "12 hó" : monthLongFmt.format(monthKeyToDate(month))}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <Top3Card title="Kategória" rows={top3.category} total={totalExpense} />
-            <Top3Card title="Legnagyobb kiadás" rows={top3.expense} total={totalExpense} />
-            <Top3Card title="Bolt / kinek" rows={top3.merchant} total={totalExpense} />
-            <Top3Card title="Projekt" rows={top3.project} total={totalExpense} />
+            <Top3Card title="Kategória" rows={top3.category} total={totalExpense} onOpen={() => setDetail({ title: "Kategóriák", rows: fullRows.category })} />
+            <Top3Card title="Legnagyobb kiadás" rows={top3.expense} total={totalExpense} onOpen={() => setDetail({ title: "Kiadások (egyenként)", rows: fullRows.expense })} />
+            <Top3Card title="Bolt / kinek" rows={top3.merchant} total={totalExpense} onOpen={() => setDetail({ title: "Boltok / kinek", rows: fullRows.merchant })} />
+            <Top3Card title="Projekt" rows={top3.project} total={totalExpense} onOpen={() => setDetail({ title: "Projektek", rows: fullRows.project })} />
           </div>
         </section>
       )}
@@ -589,10 +621,10 @@ export function OverviewDashboard({
             Megoszlás · {month === "all" ? "12 hó" : monthLongFmt.format(monthKeyToDate(month))}
           </h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-            <PieCard title="Kategóriánként" segments={pieCategory} />
-            <PieCard title="Kiadásonként" segments={pieExpense} />
-            <PieCard title="Bolt / kinek szerint" segments={pieMerchant} />
-            <PieCard title="Projektenként" segments={pieProject} />
+            <PieCard title="Kategóriánként" segments={pieCategory} onOpen={() => setDetail({ title: "Kategóriák", rows: fullRows.category })} />
+            <PieCard title="Kiadásonként" segments={pieExpense} onOpen={() => setDetail({ title: "Kiadások (egyenként)", rows: fullRows.expense })} />
+            <PieCard title="Bolt / kinek szerint" segments={pieMerchant} onOpen={() => setDetail({ title: "Boltok / kinek", rows: fullRows.merchant })} />
+            <PieCard title="Projektenként" segments={pieProject} onOpen={() => setDetail({ title: "Projektek", rows: fullRows.project })} />
           </div>
         </section>
       )}
@@ -835,6 +867,85 @@ export function OverviewDashboard({
           <p className="text-sm">Nincs adat a kiválasztott időszakra / szűrőre.</p>
         </div>
       )}
+
+      {detail && (
+        <BreakdownModal
+          title={detail.title}
+          rows={detail.rows}
+          total={totalExpense}
+          onClose={() => setDetail(null)}
+        />
+      )}
+    </div>
+  );
+}
+
+function BreakdownModal({
+  title,
+  rows,
+  total,
+  onClose,
+}: {
+  title: string;
+  rows: { label: string; amount: number; color: string }[];
+  total: number;
+  onClose: () => void;
+}) {
+  const max = Math.max(1, ...rows.map((r) => r.amount));
+  const sum = rows.reduce((s, r) => s + r.amount, 0);
+  return (
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center p-4"
+      role="dialog"
+      aria-modal="true"
+      onClick={onClose}
+    >
+      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+      <div
+        className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--color-border)]">
+          <div>
+            <h2 className="font-semibold">{title}</h2>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              {rows.length} tétel · {fmtFt(sum)}
+            </p>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            aria-label="Bezárás"
+            className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] transition"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+        <div className="overflow-y-auto p-4 space-y-3">
+          {rows.map((row, i) => {
+            const col = catColor(row.color);
+            const pct = (total || sum) ? (row.amount / (total || sum)) * 100 : 0;
+            return (
+              <div key={i}>
+                <div className="flex items-center justify-between text-sm mb-1 gap-2">
+                  <span className="flex items-center gap-2 min-w-0">
+                    <span className="text-[var(--color-muted-foreground)] tabular-nums text-xs w-5 shrink-0">{i + 1}.</span>
+                    <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", col.dot)} />
+                    <span className="truncate">{row.label}</span>
+                  </span>
+                  <span className="tabular-nums font-medium shrink-0">
+                    {fmtFt(row.amount)}
+                    <span className="text-[var(--color-muted-foreground)] font-normal"> · {Math.round(pct)}%</span>
+                  </span>
+                </div>
+                <div className="h-2 rounded-full bg-[var(--color-muted)] overflow-hidden ml-7">
+                  <div className={cn("h-full rounded-full", col.dot)} style={{ width: `${(row.amount / max) * 100}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
     </div>
   );
 }
@@ -843,16 +954,26 @@ function Top3Card({
   title,
   rows,
   total,
+  onOpen,
 }: {
   title: string;
   rows: { label: string; amount: number; color: string }[];
   total: number;
+  onOpen?: () => void;
 }) {
+  void total;
   const max = Math.max(1, ...rows.map((r) => r.amount));
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3.5">
-      <p className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider mb-2">
+    <div
+      onClick={onOpen}
+      className={cn(
+        "rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3.5",
+        onOpen && "cursor-pointer hover:border-[var(--color-primary)]/40 transition"
+      )}
+    >
+      <p className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider mb-2 flex items-center justify-between">
         {title}
+        {onOpen && <span className="text-[var(--color-primary)] normal-case tracking-normal font-medium">összes →</span>}
       </p>
       {rows.length === 0 ? (
         <p className="text-xs text-[var(--color-muted-foreground)] py-2">—</p>
@@ -881,7 +1002,7 @@ function Top3Card({
   );
 }
 
-function PieCard({ title, segments }: { title: string; segments: Seg[] }) {
+function PieCard({ title, segments, onOpen }: { title: string; segments: Seg[]; onOpen?: () => void }) {
   const total = segments.reduce((s, x) => s + x.value, 0);
   const r = 42;
   const C = 2 * Math.PI * r;
@@ -893,9 +1014,16 @@ function PieCard({ title, segments }: { title: string; segments: Seg[] }) {
     return arc;
   });
   return (
-    <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4">
-      <p className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider mb-3">
+    <div
+      onClick={onOpen}
+      className={cn(
+        "rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4",
+        onOpen && "cursor-pointer hover:border-[var(--color-primary)]/40 transition"
+      )}
+    >
+      <p className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider mb-3 flex items-center justify-between">
         {title}
+        {onOpen && <span className="text-[var(--color-primary)] normal-case tracking-normal font-medium">összes →</span>}
       </p>
       {total === 0 ? (
         <p className="text-xs text-[var(--color-muted-foreground)] py-4 text-center">Nincs adat.</p>
