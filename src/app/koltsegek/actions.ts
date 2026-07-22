@@ -204,6 +204,7 @@ export async function restoreDefaultCategoriesAction() {
   }
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
+  redirect("/koltsegek/beallitasok");
 }
 
 // ============ BEVÉTEL-KATEGÓRIÁK ============

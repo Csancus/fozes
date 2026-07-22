@@ -111,9 +111,117 @@ export const CAT_COLORS: Record<
     dot: "bg-zinc-500",
     ring: "ring-zinc-500",
   },
+  teal: {
+    soft: "bg-teal-500/12",
+    text: "text-teal-600 dark:text-teal-400",
+    dot: "bg-teal-500",
+    ring: "ring-teal-500",
+  },
+  lime: {
+    soft: "bg-lime-500/12",
+    text: "text-lime-600 dark:text-lime-400",
+    dot: "bg-lime-500",
+    ring: "ring-lime-500",
+  },
+  red: {
+    soft: "bg-red-500/12",
+    text: "text-red-600 dark:text-red-400",
+    dot: "bg-red-500",
+    ring: "ring-red-500",
+  },
+  blue: {
+    soft: "bg-blue-500/12",
+    text: "text-blue-600 dark:text-blue-400",
+    dot: "bg-blue-500",
+    ring: "ring-blue-500",
+  },
+  green: {
+    soft: "bg-green-500/12",
+    text: "text-green-600 dark:text-green-400",
+    dot: "bg-green-500",
+    ring: "ring-green-500",
+  },
+  yellow: {
+    soft: "bg-yellow-500/12",
+    text: "text-yellow-600 dark:text-yellow-400",
+    dot: "bg-yellow-500",
+    ring: "ring-yellow-500",
+  },
+  fuchsia: {
+    soft: "bg-fuchsia-500/12",
+    text: "text-fuchsia-600 dark:text-fuchsia-400",
+    dot: "bg-fuchsia-500",
+    ring: "ring-fuchsia-500",
+  },
+  purple: {
+    soft: "bg-purple-500/12",
+    text: "text-purple-600 dark:text-purple-400",
+    dot: "bg-purple-500",
+    ring: "ring-purple-500",
+  },
+  slate: {
+    soft: "bg-slate-500/12",
+    text: "text-slate-600 dark:text-slate-400",
+    dot: "bg-slate-500",
+    ring: "ring-slate-500",
+  },
+  stone: {
+    soft: "bg-stone-500/12",
+    text: "text-stone-600 dark:text-stone-400",
+    dot: "bg-stone-500",
+    ring: "ring-stone-500",
+  },
 };
 
 export const COLOR_KEYS = Object.keys(CAT_COLORS);
+
+// Szín-tokenek hex értékei (RGB-választó „legközelebbi" számításához + chartokhoz).
+export const CAT_HEX: Record<string, string> = {
+  emerald: "#10b981",
+  orange: "#f97316",
+  sky: "#0ea5e9",
+  indigo: "#6366f1",
+  rose: "#f43f5e",
+  violet: "#8b5cf6",
+  pink: "#ec4899",
+  cyan: "#06b6d4",
+  amber: "#f59e0b",
+  zinc: "#71717a",
+  teal: "#14b8a6",
+  lime: "#84cc16",
+  red: "#ef4444",
+  blue: "#3b82f6",
+  green: "#22c55e",
+  yellow: "#eab308",
+  fuchsia: "#d946ef",
+  purple: "#a855f7",
+  slate: "#64748b",
+  stone: "#78716c",
+};
+
+// Adott hex-hez a paletta legközelebbi token-je (egyszerű RGB távolság).
+export function nearestColorToken(hex: string): string {
+  const m = /^#?([0-9a-f]{6})$/i.exec(hex.trim());
+  if (!m) return "zinc";
+  const n = parseInt(m[1], 16);
+  const r = (n >> 16) & 255;
+  const g = (n >> 8) & 255;
+  const b = n & 255;
+  let best = "zinc";
+  let bestD = Infinity;
+  for (const [token, h] of Object.entries(CAT_HEX)) {
+    const v = parseInt(h.slice(1), 16);
+    const dr = ((v >> 16) & 255) - r;
+    const dg = ((v >> 8) & 255) - g;
+    const db = (v & 255) - b;
+    const d = dr * dr + dg * dg + db * db;
+    if (d < bestD) {
+      bestD = d;
+      best = token;
+    }
+  }
+  return best;
+}
 
 export const CAT_ICONS: Record<string, LucideIcon> = {
   basket: ShoppingBasket,

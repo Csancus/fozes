@@ -13,6 +13,7 @@ import {
   ensureMerchantsFromHistory,
 } from "@/lib/data";
 import { RotateCcw } from "lucide-react";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CollapsiblePanel } from "./CollapsiblePanel";
 import { EntityManager } from "./EntityManager";
@@ -69,13 +70,14 @@ export default async function BeallitasokPage() {
       <div className="mt-6 space-y-3">
         <CollapsiblePanel title="Kategóriák" count={categories.length}>
           <form action={restoreDefaultCategoriesAction} className="mb-3">
-            <button
-              type="submit"
-              className="inline-flex items-center gap-1.5 h-9 px-3 rounded-xl border border-dashed border-[var(--color-border)] text-sm font-medium text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)] transition"
+            <SubmitButton
+              variant="secondary"
+              size="sm"
+              leftIcon={<RotateCcw className="w-4 h-4" />}
+              pendingText="Visszaállítás…"
             >
-              <RotateCcw className="w-4 h-4" />
               Hiányzó alapkategóriák visszaállítása
-            </button>
+            </SubmitButton>
           </form>
           <EntityManager
             variant="category"

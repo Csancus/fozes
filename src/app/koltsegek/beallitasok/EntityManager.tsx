@@ -12,11 +12,12 @@ import {
   catColor,
   catIcon,
   payIcon,
+  nearestColorToken,
 } from "@/lib/expense-visuals";
 import { PAYMENT_KIND_LABEL } from "@/lib/types";
 import type { PaymentKind } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers } from "lucide-react";
+import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers, Palette } from "lucide-react";
 
 export type Variant = "category" | "payment" | "person" | "project" | "merchant" | "group";
 
@@ -74,7 +75,7 @@ function ColorPicker({
   onChange: (c: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap gap-2">
+    <div className="flex flex-wrap items-center gap-2">
       {COLOR_KEYS.map((c) => {
         const col = CAT_COLORS[c];
         return (
@@ -93,6 +94,23 @@ function ColorPicker({
           />
         );
       })}
+      {/* RGB színválasztó — a paletta legközelebbi színére állít */}
+      <label
+        className="w-8 h-8 rounded-full border border-dashed border-[var(--color-border)] flex items-center justify-center cursor-pointer relative overflow-hidden"
+        title="Egyéni szín (RGB)"
+        style={{
+          background:
+            "conic-gradient(#ef4444,#f59e0b,#eab308,#22c55e,#06b6d4,#3b82f6,#8b5cf6,#ec4899,#ef4444)",
+        }}
+      >
+        <Palette className="w-4 h-4 text-white drop-shadow" />
+        <input
+          type="color"
+          onChange={(e) => onChange(nearestColorToken(e.target.value))}
+          className="absolute inset-0 opacity-0 cursor-pointer"
+          aria-label="Egyéni szín (RGB)"
+        />
+      </label>
     </div>
   );
 }
