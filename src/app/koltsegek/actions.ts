@@ -6,6 +6,7 @@ import {
   deleteExpense,
   setExpenseReview,
   getMerchantMap,
+  listExpenseCategories,
   createExpenseCategory,
   updateExpenseCategory,
   deleteExpenseCategory,
@@ -33,6 +34,7 @@ import {
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
 import type { PaymentKind, ExpenseKind, ExpenseNature } from "@/lib/types";
+import { DEFAULT_EXPENSE_CATEGORIES } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
@@ -186,6 +188,20 @@ export async function deleteCategoryAction(fd: FormData) {
   const id = String(fd.get("id") ?? "");
   if (!id) return;
   await deleteExpenseCategory(me.householdId, id);
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+}
+
+// Hiányzó alapértelmezett kiadás-kategóriák visszaállítása (pl. véletlen törlés után).
+export async function restoreDefaultCategoriesAction() {
+  const me = await requireUser();
+  const existing = await listExpenseCategories(me.householdId);
+  const have = new Set(existing.map((c) => c.name.trim().toLowerCase()));
+  for (const c of DEFAULT_EXPENSE_CATEGORIES) {
+    if (!have.has(c.name.toLowerCase())) {
+      await createExpenseCategory(me.householdId, c);
+    }
+  }
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
 }
