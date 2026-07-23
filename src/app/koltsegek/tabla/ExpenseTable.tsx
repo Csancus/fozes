@@ -69,6 +69,7 @@ type Row = {
   groupId: string;
   nature: string;
   review: boolean;
+  planned: boolean;
   spentAt: string;
   note: string;
 };
@@ -86,6 +87,7 @@ function toRow(e: Expense): Row {
     groupId: e.groupId ?? "",
     nature: e.nature ?? "avg",
     review: e.review ?? false,
+    planned: e.planned ?? false,
     spentAt: tsToDay(e.spentAt),
     note: e.note ?? "",
   };
@@ -103,6 +105,7 @@ function serialize(r: Row): string {
     r.groupId,
     r.nature,
     r.review,
+    r.planned,
     r.spentAt,
     r.note,
   ]);
@@ -123,6 +126,7 @@ const COL_W: Record<string, number> = {
   project: 130,
   group: 140,
   review: 120,
+  planned: 100,
   note: 200,
 };
 
@@ -166,6 +170,7 @@ export function ExpenseTable({
     if (projects.length) cols.push({ key: "project", label: "Projekt" });
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
+    cols.push({ key: "planned", label: "Jövőbeni terv" });
     cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
   }, [persons.length, projects.length, groups.length]);
@@ -185,6 +190,7 @@ export function ExpenseTable({
   const [kindF, setKindF] = useState<ExpenseKind | "all">("all");
   const [natureF, setNatureF] = useState<"all" | "avg" | "project">("all");
   const [reviewF, setReviewF] = useState(false);
+  const [plannedF, setPlannedF] = useState<"all" | "planned" | "real">("all");
   const [cats, setCats] = useState<Set<string>>(new Set());
   const [pays, setPays] = useState<Set<string>>(new Set());
   const [people, setPeople] = useState<Set<string>>(new Set());
@@ -201,6 +207,7 @@ export function ExpenseTable({
     (kindF !== "all" ? 1 : 0) +
     (natureF !== "all" ? 1 : 0) +
     (reviewF ? 1 : 0) +
+    (plannedF !== "all" ? 1 : 0) +
     cats.size +
     pays.size +
     people.size +
@@ -257,6 +264,8 @@ export function ExpenseTable({
     if (kindF !== "all" && (r.kind ?? "expense") !== kindF) return false;
     if (natureF !== "all" && !((r.kind ?? "expense") === "expense" && r.nature === natureF)) return false;
     if (reviewF && !r.review) return false;
+    if (plannedF === "planned" && !r.planned) return false;
+    if (plannedF === "real" && r.planned) return false;
     if (cats.size && !(r.categoryId && cats.has(r.categoryId))) return false;
     if (pays.size && !(r.paymentMethodId && pays.has(r.paymentMethodId))) return false;
     if (people.size && !(r.personId && people.has(r.personId))) return false;
@@ -287,6 +296,7 @@ export function ExpenseTable({
       groupId: r.groupId,
       nature: r.nature,
       review: r.review,
+      planned: r.planned,
       spentAt: r.spentAt,
       note: r.note,
     }))
@@ -380,6 +390,13 @@ export function ExpenseTable({
               Csak felülvizsgálandó
             </TChip>
           </TChipGroup>
+          <TChipGroup label="Jövőbeni terv">
+            {(["all", "real", "planned"] as const).map((p) => (
+              <TChip key={p} active={plannedF === p} onClick={() => setPlannedF(p)}>
+                {p === "all" ? "Mind" : p === "real" ? "Csak valós" : "Csak terv"}
+              </TChip>
+            ))}
+          </TChipGroup>
           {(categories.length > 0 || incomeCategories.length > 0) && (
             <TChipGroup label="Kategória">
               {[...categories, ...incomeCategories].map((c) => (
@@ -464,6 +481,7 @@ export function ExpenseTable({
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
               {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
+              {isVisible("planned") && <th className="font-semibold px-1 w-24 text-center">Terv</th>}
               {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
               <th className="w-7" />
             </tr>
@@ -479,6 +497,7 @@ export function ExpenseTable({
                   className={cn(
                     "align-top",
                     isDeleted && "opacity-40",
+                    r.planned && !isDeleted && "bg-indigo-500/[0.06]",
                     isDirty && "ring-1 ring-[var(--color-primary)]/30 rounded-lg"
                   )}
                 >
@@ -645,6 +664,20 @@ export function ExpenseTable({
                           onChange={(e) => update(r.id, { review: e.target.checked })}
                           className="w-4 h-4 accent-amber-500"
                           aria-label="Felülvizsgálat"
+                        />
+                      </div>
+                    </td>
+                  )}
+                  {isVisible("planned") && (
+                    <td>
+                      <div className={cn(ctrl, "flex items-center justify-center")}>
+                        <input
+                          type="checkbox"
+                          checked={r.planned}
+                          disabled={isDeleted}
+                          onChange={(e) => update(r.id, { planned: e.target.checked })}
+                          className="w-4 h-4 accent-indigo-500"
+                          aria-label="Jövőbeni terv"
                         />
                       </div>
                     </td>

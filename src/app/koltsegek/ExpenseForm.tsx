@@ -129,6 +129,7 @@ export function ExpenseForm({
     String(new Date(initial?.spentAt ?? Date.now()).getDate())
   );
   const [review, setReview] = useState(initial?.review ?? false);
+  const [planned, setPlanned] = useState(initial?.planned ?? false);
 
   async function addCategoryInline() {
     const cat = await openCatModal();
@@ -531,6 +532,27 @@ export function ExpenseForm({
         <span className="text-sm font-medium flex items-center gap-1.5">
           <ClipboardCheck className="w-4 h-4 text-amber-500" />
           Felülvizsgálat — ezt még ellenőrizni kell
+        </span>
+      </label>
+
+      <input type="hidden" name="planned" value={planned ? "on" : ""} />
+      <label
+        className={cn(
+          "flex items-center gap-2.5 cursor-pointer rounded-xl border p-3.5 transition",
+          planned
+            ? "border-indigo-400/70 bg-indigo-50 dark:bg-indigo-500/10"
+            : "border-[var(--color-border)]"
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={planned}
+          onChange={(e) => setPlanned(e.target.checked)}
+          className="w-4 h-4 accent-indigo-500"
+        />
+        <span className="text-sm font-medium flex items-center gap-1.5">
+          <CalendarClock className="w-4 h-4 text-indigo-500" />
+          Jövőbeni terv — még nem valós tétel
         </span>
       </label>
 

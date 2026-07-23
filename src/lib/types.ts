@@ -374,6 +374,7 @@ export type Expense = {
   groupId: string | null;         // ExpenseGroup.id — csoport (kiadás+bevétel együtt)
   nature: ExpenseNature;          // havi átlagos / eseti projekt (kiadásnál értelmezett)
   review: boolean;                // felülvizsgálat: ellenőrizni kell → Teendők
+  planned: boolean;               // jövőbeni terv (még nem valós tétel)
   note: string;
   spentAt: number;                // ms since epoch (day granularity)
   createdAt: number;

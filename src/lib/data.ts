@@ -901,6 +901,7 @@ export async function listExpenses(hh: string): Promise<Expense[]> {
       kind: e.kind ?? "expense",
       nature: e.nature ?? "avg",
       review: e.review ?? false,
+      planned: e.planned ?? false,
       groupId: e.groupId ?? null,
     }))
     .sort((a, b) => b.spentAt - a.spentAt || b.createdAt - a.createdAt);
@@ -914,6 +915,7 @@ export async function getExpense(hh: string, id: string) {
     kind: e.kind ?? "expense",
     nature: e.nature ?? "avg",
     review: e.review ?? false,
+    planned: e.planned ?? false,
     groupId: e.groupId ?? null,
   };
 }
@@ -922,12 +924,13 @@ export async function saveExpense(
   hh: string,
   input: Omit<
     Expense,
-    "id" | "createdAt" | "kind" | "nature" | "review" | "groupId"
+    "id" | "createdAt" | "kind" | "nature" | "review" | "planned" | "groupId"
   > & {
     id?: string;
     kind?: ExpenseKind;
     nature?: ExpenseNature;
     review?: boolean;
+    planned?: boolean;
     groupId?: string | null;
   }
 ): Promise<Expense> {
@@ -946,6 +949,7 @@ export async function saveExpense(
     groupId: input.groupId ?? existing?.groupId ?? null,
     nature: input.nature ?? existing?.nature ?? "avg",
     review: input.review ?? existing?.review ?? false,
+    planned: input.planned ?? existing?.planned ?? false,
     note: input.note.trim(),
     spentAt: input.spentAt,
     createdAt: existing?.createdAt ?? Date.now(),

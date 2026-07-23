@@ -61,6 +61,7 @@ type Row = {
   groupId: string;
   nature: string;
   review: boolean;
+  planned: boolean;
   recurring: boolean;
   spentAt: string;
   note: string;
@@ -81,6 +82,7 @@ function emptyRow(kind: ExpenseKind = "expense"): Row {
     groupId: "",
     nature: "avg",
     review: false,
+    planned: false,
     recurring: false,
     spentAt: todayStr(),
     note: "",
@@ -101,6 +103,7 @@ const COL_W: Record<string, number> = {
   project: 130,
   group: 140,
   review: 120,
+  planned: 110,
   recurring: 120,
   date: 150,
   note: 200,
@@ -160,6 +163,7 @@ export function BatchEntry({
     if (projects.length) cols.push({ key: "project", label: "Projekt" });
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
+    cols.push({ key: "planned", label: "Jövőbeni terv" });
     cols.push({ key: "recurring", label: "Ismétlődő" });
     cols.push({ key: "date", label: "Dátum" });
     cols.push({ key: "note", label: "Megjegyzés" });
@@ -253,6 +257,7 @@ export function BatchEntry({
       projectId: r.projectId,
       nature: r.kind === "income" ? "avg" : r.nature,
       review: r.review,
+      planned: r.planned,
       recurring: r.recurring,
       groupId: r.groupId,
       spentAt: r.spentAt,
@@ -300,6 +305,7 @@ export function BatchEntry({
               {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
               {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
+              {isVisible("planned") && <th className="font-semibold px-1 w-24 text-center">Terv</th>}
               {isVisible("recurring") && <th className="font-semibold px-1 w-28 text-center">Ismétlődő</th>}
               {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
               {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
@@ -453,6 +459,19 @@ export function BatchEntry({
                           onChange={(e) => update(r.key, { review: e.target.checked })}
                           className="w-4 h-4 accent-amber-500"
                           aria-label="Felülvizsgálat"
+                        />
+                      </div>
+                    </td>
+                  )}
+                  {isVisible("planned") && (
+                    <td>
+                      <div className={cn(ctrl, "flex items-center justify-center")}>
+                        <input
+                          type="checkbox"
+                          checked={r.planned}
+                          onChange={(e) => update(r.key, { planned: e.target.checked })}
+                          className="w-4 h-4 accent-indigo-500"
+                          aria-label="Jövőbeni terv"
                         />
                       </div>
                     </td>

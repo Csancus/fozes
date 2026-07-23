@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { SlidersHorizontal, ChevronRight, Search, Wallet, TrendingUp } from "lucide-react";
+import { SlidersHorizontal, ChevronRight, Search, Wallet, TrendingUp, CalendarClock } from "lucide-react";
 import type {
   Expense,
   ExpenseCategory,
@@ -609,7 +609,12 @@ export function ExpensesDashboard({
                 <li key={e.id}>
                   <Link
                     href={`/koltsegek/${e.id}`}
-                    className="flex items-center gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-sm transition hover:border-[var(--color-primary)]/40 active:scale-[0.99]"
+                    className={cn(
+                      "flex items-center gap-3 rounded-2xl border p-3 shadow-sm transition hover:border-[var(--color-primary)]/40 active:scale-[0.99]",
+                      e.planned
+                        ? "border-indigo-400/50 bg-indigo-500/[0.06]"
+                        : "border-[var(--color-border)] bg-[var(--color-card)]"
+                    )}
                   >
                     <div className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
                       <Icon className="w-5 h-5" />
@@ -617,6 +622,12 @@ export function ExpensesDashboard({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-1.5">
                         <p className="font-medium text-[15px] truncate">{e.merchant}</p>
+                        {e.planned && (
+                          <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0 bg-indigo-500/12 text-indigo-600 dark:text-indigo-400">
+                            <CalendarClock className="w-2.5 h-2.5" />
+                            Terv
+                          </span>
+                        )}
                         {project && (
                           <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0", catColor(project.color).soft, catColor(project.color).text)}>
                             <span className={cn("w-1.5 h-1.5 rounded-full", catColor(project.color).dot)} />
