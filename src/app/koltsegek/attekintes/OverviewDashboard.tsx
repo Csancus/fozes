@@ -167,6 +167,15 @@ export function OverviewDashboard({
     return [...set].sort().reverse().slice(0, 12);
   }, [allItems]);
 
+  // Hónapok, amikben van jövőbeni terv tétel — a hónap-chipen ikonnal jelezve.
+  const monthsWithPlanned = useMemo(() => {
+    const set = new Set<string>();
+    allItems.forEach((e) => {
+      if (e.planned) set.add(monthKey(e.spentAt));
+    });
+    return set;
+  }, [allItems]);
+
   function matchExpenseFilters(e: Expense): boolean {
     const q = search.trim().toLowerCase();
     if (nature !== "all" && (e.nature ?? "avg") !== nature) return false;
@@ -207,15 +216,25 @@ export function OverviewDashboard({
 
   const maxBar = Math.max(1, ...monthly.map((m) => Math.max(m.exp, m.inc)));
 
-  // Aktuális nézet: teljes 12 hó vagy egy kiválasztott hónap.
-  const scopedExpense = useMemo(
-    () => (month === "all" ? expenseWindow : expenseWindow.filter((e) => monthKey(e.spentAt) === month)),
-    [expenseWindow, month]
-  );
-  const scopedIncome = useMemo(
-    () => (month === "all" ? incomeWindow : incomeWindow.filter((e) => monthKey(e.spentAt) === month)),
-    [incomeWindow, month]
-  );
+  // Aktuális nézet: teljes 12 hó (trailing valós ablak) vagy egy kiválasztott hónap.
+  // Konkrét hónapnál a teljes listából szűrünk, nem a trailing ablakból — így a jövőbeni
+  // (terv) hónapok is megjelennek, amik kívül esnek az elmúlt-12-hónap ablakon.
+  const scopedExpense = useMemo(() => {
+    if (month === "all") return expenseWindow;
+    return expensesAll.filter((e) => monthKey(e.spentAt) === month && matchExpenseFilters(e));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expensesAll, expenseWindow, month, nature, cats, pays, people, projs, grps, search]);
+  const scopedIncome = useMemo(() => {
+    if (month === "all") return incomeWindow;
+    const q = search.trim().toLowerCase();
+    return incomesAll.filter((e) => {
+      if (monthKey(e.spentAt) !== month) return false;
+      if (people.size && !(e.personId && people.has(e.personId))) return false;
+      if (grps.size && !(e.groupId && grps.has(e.groupId))) return false;
+      if (q && !e.merchant.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }, [incomesAll, incomeWindow, month, people, grps, search]);
 
   // Tétel-lista a Típus-szűrő szerint + rendezve.
   const listItems = useMemo(
@@ -420,7 +439,10 @@ export function OverviewDashboard({
         </MonthChip>
         {monthsWithData.map((m) => (
           <MonthChip key={m} active={month === m} onClick={() => setMonth(m)}>
-            {monthShortFmt.format(monthKeyToDate(m))}
+            <span className="inline-flex items-center gap-1">
+              {monthShortFmt.format(monthKeyToDate(m))}
+              {monthsWithPlanned.has(m) && <CalendarClock className="w-3 h-3 opacity-80" />}
+            </span>
           </MonthChip>
         ))}
       </div>
