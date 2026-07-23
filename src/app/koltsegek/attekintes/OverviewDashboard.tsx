@@ -4,7 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { SlidersHorizontal, Search, TrendingUp, ChevronRight, Trophy, X, CalendarClock } from "lucide-react";
+import { SlidersHorizontal, Search, TrendingUp, ChevronRight, Trophy, X, CalendarClock, Wallet } from "lucide-react";
 import type {
   Expense,
   ExpenseCategory,
@@ -41,6 +41,10 @@ function monthKey(ts: number): string {
 function monthKeyToDate(k: string): Date {
   const [y, m] = k.split("-").map(Number);
   return new Date(y, (m || 1) - 1, 1);
+}
+function endOfMonth(k: string): number {
+  const [y, m] = k.split("-").map(Number);
+  return new Date(y, m || 1, 0, 23, 59, 59, 999).getTime();
 }
 
 // Szín-tokenek hex értékei (pie chartokhoz, ahol Tailwind class nem használható).
@@ -256,6 +260,22 @@ export function OverviewDashboard({
         ? plannedIncome
         : plannedExpense + plannedIncome;
 
+  // Számlák egyenlege: kumulált egyenleg a kiválasztott hónap végéig (valós + terv tételek együtt),
+  // fizetési módonként — hónapot váltva megmutatja, mi várható a jövőben rögzített tervek alapján.
+  const accountBalances = useMemo(() => {
+    const cutoff = month === "all" ? Infinity : endOfMonth(month);
+    const m = new Map<string, number>();
+    allItems.forEach((e) => {
+      if (!e.paymentMethodId || e.spentAt > cutoff) return;
+      const sign = (e.kind ?? "expense") === "income" ? 1 : -1;
+      m.set(e.paymentMethodId, (m.get(e.paymentMethodId) ?? 0) + sign * e.amount);
+    });
+    return paymentMethods
+      .map((p) => ({ method: p, balance: m.get(p.id) ?? 0 }))
+      .filter((a) => m.has(a.method.id));
+  }, [allItems, paymentMethods, month]);
+  const totalAccountBalance = accountBalances.reduce((s, a) => s + a.balance, 0);
+
   // Legnagyobb kiadási kategóriák.
   const topCategories = useMemo(() => {
     const m = new Map<string, number>();
@@ -446,6 +466,61 @@ export function OverviewDashboard({
           </div>
         )}
       </section>
+
+      {/* Számlák egyenlege */}
+      {accountBalances.length > 0 && (
+        <section className="mt-4 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 shadow-sm">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 flex items-center gap-1.5">
+            <Wallet className="w-3.5 h-3.5" />
+            Számlák egyenlege
+            {month !== "all" && (
+              <span className="normal-case tracking-normal">
+                · {monthLongFmt.format(monthKeyToDate(month))} végéig
+              </span>
+            )}
+          </h2>
+          <div className="space-y-2">
+            {accountBalances.map(({ method, balance }) => {
+              const col = catColor(method.color);
+              const PayIcon = payIcon(method.kind);
+              return (
+                <div key={method.id} className="flex items-center gap-2.5">
+                  <div className={cn("w-8 h-8 rounded-lg flex items-center justify-center shrink-0", col.soft, col.text)}>
+                    <PayIcon className="w-4 h-4" />
+                  </div>
+                  <span className="flex-1 text-sm font-medium truncate">
+                    {method.name}
+                    {method.last4 && (
+                      <span className="text-[var(--color-muted-foreground)] font-normal"> ···{method.last4}</span>
+                    )}
+                  </span>
+                  <span
+                    className={cn(
+                      "font-semibold tabular-nums text-sm",
+                      balance < 0 && "text-rose-600 dark:text-rose-400"
+                    )}
+                  >
+                    {balance >= 0 ? "+" : "−"}
+                    {fmtFt(Math.abs(balance))}
+                  </span>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-3 pt-3 border-t border-[var(--color-border)] flex items-center justify-between">
+            <span className="text-sm font-semibold">Összesen</span>
+            <span
+              className={cn(
+                "font-bold tabular-nums",
+                totalAccountBalance < 0 && "text-rose-600 dark:text-rose-400"
+              )}
+            >
+              {totalAccountBalance >= 0 ? "+" : "−"}
+              {fmtFt(Math.abs(totalAccountBalance))}
+            </span>
+          </div>
+        </section>
+      )}
 
       {/* Jelleg szűrő */}
       <div className="mt-4 flex gap-2">
