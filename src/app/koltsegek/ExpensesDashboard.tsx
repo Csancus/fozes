@@ -184,6 +184,10 @@ export function ExpensesDashboard({
     [base, month]
   );
   const total = scoped.reduce((s, e) => s + e.amount, 0);
+  const totalTax = [...scoped, ...incomeScoped]
+    .filter((e) => e.tax)
+    .reduce((s, e) => s + e.amount, 0);
+  const incomeAfterTax = incomeTotal - totalTax;
 
   // A nagy szám a Kiadás/Bevétel/Mind szűrő szerint (a kisebb számok fixek).
   const headline =
@@ -308,11 +312,17 @@ export function ExpensesDashboard({
           {headline >= 0 ? "+" : "−"}
           {fmtFt(Math.abs(headline))}
         </p>
-        <div className="mt-3 flex gap-4 text-xs">
+        <div className="mt-3 flex flex-wrap gap-4 text-xs">
           <span className="flex flex-col">
             <span className="opacity-80">Bevétel</span>
             <span className="font-semibold tabular-nums text-emerald-100">
               +{fmtFt(incomeTotal)}
+            </span>
+          </span>
+          <span className="flex flex-col">
+            <span className="opacity-80">Bevétel − adók</span>
+            <span className="font-semibold tabular-nums text-emerald-100">
+              +{fmtFt(incomeAfterTax)}
             </span>
           </span>
           <span className="flex flex-col">
@@ -628,6 +638,11 @@ export function ExpensesDashboard({
                             Terv
                           </span>
                         )}
+                        {e.tax && (
+                          <span className="inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0 bg-rose-500/12 text-rose-600 dark:text-rose-400">
+                            Adó
+                          </span>
+                        )}
                         {project && (
                           <span className={cn("inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-medium shrink-0", catColor(project.color).soft, catColor(project.color).text)}>
                             <span className={cn("w-1.5 h-1.5 rounded-full", catColor(project.color).dot)} />
@@ -667,9 +682,14 @@ export function ExpensesDashboard({
       {/* Bevételek — külön szekció csak kiadás-szűrésnél (különben a lista már tartalmazza) */}
       {kindF === "expense" && incomeScoped.length > 0 && (
         <section className="mt-8">
-          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1 flex items-center gap-1.5">
+          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-3 px-1 flex items-center gap-1.5 flex-wrap">
             <TrendingUp className="w-3.5 h-3.5 text-emerald-500" />
             Bevételek · {fmtFt(incomeTotal)}
+            {totalTax > 0 && (
+              <span className="normal-case tracking-normal text-[var(--color-muted-foreground)]/80">
+                · adók után: {fmtFt(incomeAfterTax)}
+              </span>
+            )}
           </h2>
           <ul className="space-y-2">
             {incomeScoped.map((e) => {

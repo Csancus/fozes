@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
-import { Check, Sparkles, Plus, AlertTriangle, Repeat, CalendarClock, FolderKanban, ClipboardCheck } from "lucide-react";
+import { Check, Sparkles, Plus, AlertTriangle, Repeat, CalendarClock, FolderKanban, ClipboardCheck, Landmark } from "lucide-react";
 import { useCategoryCreator } from "./useCategoryCreator";
 import { createCategoryInline, createIncomeCategoryInline } from "./actions";
 import type {
@@ -130,6 +130,7 @@ export function ExpenseForm({
   );
   const [review, setReview] = useState(initial?.review ?? false);
   const [planned, setPlanned] = useState(initial?.planned ?? false);
+  const [tax, setTax] = useState(initial?.tax ?? false);
 
   async function addCategoryInline() {
     const cat = await openCatModal();
@@ -553,6 +554,27 @@ export function ExpenseForm({
         <span className="text-sm font-medium flex items-center gap-1.5">
           <CalendarClock className="w-4 h-4 text-indigo-500" />
           Jövőbeni terv — még nem valós tétel
+        </span>
+      </label>
+
+      <input type="hidden" name="tax" value={tax ? "on" : ""} />
+      <label
+        className={cn(
+          "flex items-center gap-2.5 cursor-pointer rounded-xl border p-3.5 transition",
+          tax
+            ? "border-rose-400/70 bg-rose-50 dark:bg-rose-500/10"
+            : "border-[var(--color-border)]"
+        )}
+      >
+        <input
+          type="checkbox"
+          checked={tax}
+          onChange={(e) => setTax(e.target.checked)}
+          className="w-4 h-4 accent-rose-500"
+        />
+        <span className="text-sm font-medium flex items-center gap-1.5">
+          <Landmark className="w-4 h-4 text-rose-500" />
+          Adó — beleszámít a „Bevétel − adók" összegbe
         </span>
       </label>
 

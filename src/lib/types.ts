@@ -375,6 +375,7 @@ export type Expense = {
   nature: ExpenseNature;          // havi átlagos / eseti projekt (kiadásnál értelmezett)
   review: boolean;                // felülvizsgálat: ellenőrizni kell → Teendők
   planned: boolean;               // jövőbeni terv (még nem valós tétel)
+  tax: boolean;                   // adó tétel (a „Bevétel − adók" számításhoz)
   note: string;
   spentAt: number;                // ms since epoch (day granularity)
   createdAt: number;

@@ -70,6 +70,7 @@ type Row = {
   nature: string;
   review: boolean;
   planned: boolean;
+  tax: boolean;
   spentAt: string;
   note: string;
 };
@@ -88,6 +89,7 @@ function toRow(e: Expense): Row {
     nature: e.nature ?? "avg",
     review: e.review ?? false,
     planned: e.planned ?? false,
+    tax: e.tax ?? false,
     spentAt: tsToDay(e.spentAt),
     note: e.note ?? "",
   };
@@ -106,6 +108,7 @@ function serialize(r: Row): string {
     r.nature,
     r.review,
     r.planned,
+    r.tax,
     r.spentAt,
     r.note,
   ]);
@@ -127,6 +130,7 @@ const COL_W: Record<string, number> = {
   group: 140,
   review: 120,
   planned: 100,
+  tax: 80,
   note: 200,
 };
 
@@ -171,6 +175,7 @@ export function ExpenseTable({
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
     cols.push({ key: "planned", label: "Jövőbeni terv" });
+    cols.push({ key: "tax", label: "Adó" });
     cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
   }, [persons.length, projects.length, groups.length]);
@@ -297,6 +302,7 @@ export function ExpenseTable({
       nature: r.nature,
       review: r.review,
       planned: r.planned,
+      tax: r.tax,
       spentAt: r.spentAt,
       note: r.note,
     }))
@@ -482,6 +488,7 @@ export function ExpenseTable({
               {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
               {isVisible("planned") && <th className="font-semibold px-1 w-24 text-center">Terv</th>}
+              {isVisible("tax") && <th className="font-semibold px-1 w-20 text-center">Adó</th>}
               {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
               <th className="w-7" />
             </tr>
@@ -678,6 +685,20 @@ export function ExpenseTable({
                           onChange={(e) => update(r.id, { planned: e.target.checked })}
                           className="w-4 h-4 accent-indigo-500"
                           aria-label="Jövőbeni terv"
+                        />
+                      </div>
+                    </td>
+                  )}
+                  {isVisible("tax") && (
+                    <td>
+                      <div className={cn(ctrl, "flex items-center justify-center")}>
+                        <input
+                          type="checkbox"
+                          checked={r.tax}
+                          disabled={isDeleted}
+                          onChange={(e) => update(r.id, { tax: e.target.checked })}
+                          className="w-4 h-4 accent-rose-500"
+                          aria-label="Adó"
                         />
                       </div>
                     </td>

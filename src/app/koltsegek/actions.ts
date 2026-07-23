@@ -58,6 +58,7 @@ export async function saveExpenseAction(fd: FormData) {
     String(fd.get("nature") ?? "avg") === "project" ? "project" : "avg";
   const review = String(fd.get("review") ?? "") === "on";
   const planned = String(fd.get("planned") ?? "") === "on";
+  const tax = String(fd.get("tax") ?? "") === "on";
   const amount = parseAmount(String(fd.get("amount") ?? ""));
   const merchant = String(fd.get("merchant") ?? "").trim();
   let categoryId = String(fd.get("categoryId") ?? "").trim() || null;
@@ -89,6 +90,7 @@ export async function saveExpenseAction(fd: FormData) {
     nature,
     review,
     planned,
+    tax,
     note,
     spentAt,
   });
@@ -530,6 +532,7 @@ type BatchRow = {
   nature: unknown;
   review: unknown;
   planned: unknown;
+  tax: unknown;
   recurring: unknown;
   spentAt: unknown;
   note: unknown;
@@ -571,6 +574,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
     const note = String(r.note ?? "").trim();
     const review = r.review === true;
     const planned = r.planned === true;
+    const tax = r.tax === true;
 
     await saveExpense(me.householdId, {
       kind,
@@ -584,6 +588,7 @@ export async function saveExpensesBatchAction(fd: FormData) {
       nature,
       review,
       planned,
+      tax,
       note,
       spentAt,
     });
@@ -635,6 +640,7 @@ type EditRow = {
   nature: unknown;
   review: unknown;
   planned: unknown;
+  tax: unknown;
   spentAt: unknown;
   note: unknown;
 };
@@ -684,6 +690,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
           : "avg";
     const review = r.review === true;
     const planned = r.planned === true;
+    const tax = r.tax === true;
     const spentAt = parseDate(String(r.spentAt ?? ""));
     const note = String(r.note ?? "");
 
@@ -700,6 +707,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
       nature,
       review,
       planned,
+      tax,
       note,
       spentAt,
     });

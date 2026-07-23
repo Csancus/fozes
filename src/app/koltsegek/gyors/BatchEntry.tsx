@@ -62,6 +62,7 @@ type Row = {
   nature: string;
   review: boolean;
   planned: boolean;
+  tax: boolean;
   recurring: boolean;
   spentAt: string;
   note: string;
@@ -83,6 +84,7 @@ function emptyRow(kind: ExpenseKind = "expense"): Row {
     nature: "avg",
     review: false,
     planned: false,
+    tax: false,
     recurring: false,
     spentAt: todayStr(),
     note: "",
@@ -104,6 +106,7 @@ const COL_W: Record<string, number> = {
   group: 140,
   review: 120,
   planned: 110,
+  tax: 90,
   recurring: 120,
   date: 150,
   note: 200,
@@ -164,6 +167,7 @@ export function BatchEntry({
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
     cols.push({ key: "planned", label: "Jövőbeni terv" });
+    cols.push({ key: "tax", label: "Adó" });
     cols.push({ key: "recurring", label: "Ismétlődő" });
     cols.push({ key: "date", label: "Dátum" });
     cols.push({ key: "note", label: "Megjegyzés" });
@@ -258,6 +262,7 @@ export function BatchEntry({
       nature: r.kind === "income" ? "avg" : r.nature,
       review: r.review,
       planned: r.planned,
+      tax: r.tax,
       recurring: r.recurring,
       groupId: r.groupId,
       spentAt: r.spentAt,
@@ -306,6 +311,7 @@ export function BatchEntry({
               {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
               {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
               {isVisible("planned") && <th className="font-semibold px-1 w-24 text-center">Terv</th>}
+              {isVisible("tax") && <th className="font-semibold px-1 w-20 text-center">Adó</th>}
               {isVisible("recurring") && <th className="font-semibold px-1 w-28 text-center">Ismétlődő</th>}
               {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
               {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
@@ -472,6 +478,19 @@ export function BatchEntry({
                           onChange={(e) => update(r.key, { planned: e.target.checked })}
                           className="w-4 h-4 accent-indigo-500"
                           aria-label="Jövőbeni terv"
+                        />
+                      </div>
+                    </td>
+                  )}
+                  {isVisible("tax") && (
+                    <td>
+                      <div className={cn(ctrl, "flex items-center justify-center")}>
+                        <input
+                          type="checkbox"
+                          checked={r.tax}
+                          onChange={(e) => update(r.key, { tax: e.target.checked })}
+                          className="w-4 h-4 accent-rose-500"
+                          aria-label="Adó"
                         />
                       </div>
                     </td>
