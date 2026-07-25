@@ -22,6 +22,8 @@ import type {
   SavedType,
   Trip,
   TripDay,
+  Task,
+  TaskFileMeta,
   User,
 } from "./types";
 import bcrypt from "bcryptjs";
@@ -1352,4 +1354,58 @@ export async function saveTripDays(hh: string, id: string, days: TripDay[]) {
 export async function deleteTrip(hh: string, id: string) {
   await redis.del(key.trip(hh, id));
   await redis.srem(key.trips(hh), id);
+}
+
+// ============ TEENDŐK (Tasks) ============
+
+export async function listTasks(hh: string): Promise<Task[]> {
+  const ids = await redis.smembers(key.tasks(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<Task>(key.task(hh, id)))
+  );
+  return items.filter((t): t is Task => !!t);
+}
+
+export async function getTask(hh: string, id: string) {
+  return redis.get<Task>(key.task(hh, id));
+}
+
+export async function saveTask(hh: string, task: Task) {
+  await redis.set(key.task(hh, task.id), task);
+  await redis.sadd(key.tasks(hh), task.id);
+  return task;
+}
+
+export async function deleteTask(hh: string, id: string) {
+  const task = await getTask(hh, id);
+  if (task) {
+    await Promise.all(
+      task.files.map((f) => redis.del(key.taskFile(hh, id, f.id)))
+    );
+  }
+  await redis.del(key.task(hh, id));
+  await redis.srem(key.tasks(hh), id);
+}
+
+// Teendő fájl-blobok (kép/PDF/egyéb) külön kulcson, hogy a lista könnyű maradjon.
+export async function getTaskFile(hh: string, taskId: string, fileId: string) {
+  return redis.get<string>(key.taskFile(hh, taskId, fileId));
+}
+
+export async function setTaskFile(
+  hh: string,
+  taskId: string,
+  fileId: string,
+  dataUrl: string
+) {
+  await redis.set(key.taskFile(hh, taskId, fileId), dataUrl);
+}
+
+export async function deleteTaskFile(
+  hh: string,
+  taskId: string,
+  fileId: string
+) {
+  await redis.del(key.taskFile(hh, taskId, fileId));
 }

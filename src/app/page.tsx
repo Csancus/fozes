@@ -8,6 +8,7 @@ import {
   listRecipes,
   listExpenses,
   listSavedItems,
+  listTasks,
 } from "@/lib/data";
 import Link from "next/link";
 import {
@@ -16,6 +17,7 @@ import {
   Bookmark,
   Users,
   Plane,
+  ListTodo,
   LogOut,
   AlertTriangle,
   ChevronRight,
@@ -34,15 +36,24 @@ export default async function Home() {
   const me = await currentUser();
   if (!me) redirect("/belepes");
 
-  const [hh, pantry, recipes, expenses, saved] = await Promise.all([
+  const [hh, pantry, recipes, expenses, saved, tasks] = await Promise.all([
     redis.get<Household>(key.household(me.householdId)),
     listPantry(me.householdId),
     listRecipes(me.householdId),
     listExpenses(me.householdId),
     listSavedItems(me.householdId),
+    listTasks(me.householdId),
   ]);
 
   const now = Date.now();
+  const todayStr = (() => {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  })();
+  const openTasks = tasks.filter((t) => !t.done);
+  const dueTaskCount = openTasks.filter(
+    (t) => t.dueDate && t.dueDate <= todayStr
+  ).length;
   const expiringSoon = pantry.filter(
     (p) => p.expiresAt != null && p.expiresAt - now <= 3 * DAY_MS
   );
@@ -167,6 +178,19 @@ export default async function Home() {
           title="Utazások"
           desc="Útitervek évről évre, napról napra"
           stat="Tervezd meg a következő utat"
+        />
+        <AreaTile
+          href="/teendok"
+          icon={ListTodo}
+          title="Teendők"
+          desc="Feladatok határidővel, alteendőkkel"
+          stat={
+            openTasks.length
+              ? `${openTasks.length} nyitott teendő`
+              : "Vedd fel az első teendőt"
+          }
+          badge={dueTaskCount ? String(dueTaskCount) : undefined}
+          badgeTone="warning"
         />
       </section>
 

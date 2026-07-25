@@ -84,6 +84,12 @@ export const key = {
   trips: (hh: string) => `hh:${hh}:trips`,
   trip: (hh: string, id: string) => `hh:${hh}:trip:${id}`,
 
+  // Teendők
+  tasks: (hh: string) => `hh:${hh}:tasks`,
+  task: (hh: string, id: string) => `hh:${hh}:task:${id}`,
+  taskFile: (hh: string, taskId: string, fileId: string) =>
+    `hh:${hh}:task:${taskId}:file:${fileId}`,
+
   savedTypes: (hh: string) => `hh:${hh}:saved-types`,
   savedType: (hh: string, id: string) => `hh:${hh}:saved-type:${id}`,
 };

@@ -20,6 +20,7 @@ import {
   Table2,
   SlidersHorizontal,
   ListChecks,
+  ListTodo,
   Layers,
   Plane,
   Map as MapIcon,
@@ -48,6 +49,7 @@ const primary: NavItem[] = [
   { href: "/koltsegek", label: "Költségek", icon: Wallet },
   { href: "/bakancslista", label: "Bakancslista", icon: Bookmark },
   { href: "/utazasok", label: "Utazások", icon: Plane },
+  { href: "/teendok", label: "Teendők", icon: ListTodo },
   { href: "/csalad", label: "Család", icon: Users },
 ];
 

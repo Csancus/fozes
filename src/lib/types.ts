@@ -521,3 +521,33 @@ export const TRIP_PLAN_COLUMNS: { key: keyof TripPlanItem; label: string }[] = [
   { key: "kayak", label: "Kaják" },
   { key: "gear", label: "Felszereltség" },
 ];
+
+// ============ TEENDŐK (Tasks) ============
+
+export type Subtask = {
+  id: string;
+  title: string;
+  done: boolean;
+};
+
+export type TaskFileMeta = {
+  id: string;
+  name: string;
+  mime: string;
+  size: number; // bytes (approx)
+};
+
+export type Task = {
+  id: string;
+  title: string;
+  description: string;
+  ownerId: string | null;   // kié a teendő (household user), vagy null = bárkié
+  dueDate: string | null;    // YYYY-MM-DD, vagy null = nincs határidő
+  imageUrl: string | null;   // R2/inline borítókép
+  files: TaskFileMeta[];     // csatolt fájlok (blob külön kulcson)
+  subtasks: Subtask[];       // pipálható alteendők
+  done: boolean;
+  doneAt: number | null;
+  createdAt: number;
+  updatedAt: number;
+};
