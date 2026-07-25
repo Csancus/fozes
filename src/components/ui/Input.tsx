@@ -3,10 +3,19 @@ import type { ComponentProps, ReactNode } from "react";
 
 export function Input({
   className,
+  type,
+  min,
+  max,
   ...props
 }: ComponentProps<"input">) {
+  // type="date" mezőknél böngészőnként az év szegmens akár 6 számjegyet is
+  // elfogad min/max nélkül — a határok 4 számjegyre korlátozzák.
+  const isDate = type === "date";
   return (
     <input
+      type={type}
+      min={isDate ? min ?? "1970-01-01" : min}
+      max={isDate ? max ?? "2099-12-31" : max}
       className={cn(
         "w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3.5 text-[15px] text-[var(--color-foreground)] placeholder:text-[var(--color-muted-foreground)] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)] transition",
         className

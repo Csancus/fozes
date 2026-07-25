@@ -527,6 +527,8 @@ export function ExpenseTable({
                     <td>
                       <input
                         type="date"
+                        min="1970-01-01"
+                        max="2099-12-31"
                         value={r.spentAt}
                         disabled={isDeleted}
                         onChange={(e) => update(r.id, { spentAt: e.target.value })}
