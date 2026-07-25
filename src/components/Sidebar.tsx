@@ -24,6 +24,7 @@ import {
   Layers,
   Plane,
   Map as MapIcon,
+  FolderKanban,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
@@ -70,6 +71,13 @@ const costs: NavItem[] = [
   { href: "/koltsegek/csoportok", label: "Csoportok", icon: Layers },
   { href: "/koltsegek/teendok", label: "Teendők", icon: ListChecks },
   { href: "/koltsegek/beallitasok", label: "Beállítások", icon: SlidersHorizontal },
+  { href: "/beallitasok", label: "Célok és projektek", icon: FolderKanban },
+];
+
+const todos: NavItem[] = [
+  { href: "/teendok", label: "Teendők", icon: ListTodo },
+  { href: "/teendok/gyors", label: "Gyors felvitel", icon: Table2 },
+  { href: "/beallitasok", label: "Beállítások", icon: SlidersHorizontal },
 ];
 
 function isActive(pathname: string, href: string) {
@@ -133,7 +141,14 @@ export function Sidebar() {
   const inCooking = COOKING_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/")
   );
-  const inCosts = pathname === "/koltsegek" || pathname.startsWith("/koltsegek/");
+  const inCosts =
+    pathname === "/koltsegek" ||
+    pathname.startsWith("/koltsegek/") ||
+    pathname === "/beallitasok";
+  const inTodos =
+    pathname === "/teendok" ||
+    pathname.startsWith("/teendok/") ||
+    pathname === "/beallitasok";
 
   // Egy konkrét utazáson belül: al-menü (Áttekintés / Terv).
   const tripMatch = pathname.match(/^\/utazasok\/([^/]+)/);
@@ -179,6 +194,18 @@ export function Sidebar() {
                     item={sub}
                     pathname={pathname}
                     exact={sub.href === "/koltsegek"}
+                  />
+                ))}
+              </div>
+            )}
+            {it.href === "/teendok" && inTodos && (
+              <div className="mt-1 mb-1 space-y-0.5 border-l border-[var(--color-border)] ml-4">
+                {todos.map((sub) => (
+                  <SubLink
+                    key={sub.href}
+                    item={sub}
+                    pathname={pathname}
+                    exact={sub.href === "/teendok"}
                   />
                 ))}
               </div>

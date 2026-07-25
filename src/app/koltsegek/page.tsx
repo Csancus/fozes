@@ -8,7 +8,7 @@ import {
   listPaymentMethods,
   ensureDefaultPaymentMethods,
   listPersons,
-  listProjects,
+  listExpenseProjects,
   listGroups,
   runDueRecurring,
 } from "@/lib/data";
@@ -32,7 +32,7 @@ export default async function KoltsegekPage() {
       listIncomeCategories(me.householdId),
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
-      listProjects(me.householdId),
+      listExpenseProjects(me.householdId),
       listGroups(me.householdId),
     ]);
 

@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { listHouseholdMembers, listProjects } from "@/lib/data";
+import { listHouseholdMembers, listTaskProjects } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BatchTaskEntry } from "./BatchTaskEntry";
 import { saveTasksBatchAction } from "../actions";
@@ -8,7 +8,7 @@ export default async function GyorsTaskPage() {
   const me = await requireUser();
   const [members, projects] = await Promise.all([
     listHouseholdMembers(me.householdId),
-    listProjects(me.householdId),
+    listTaskProjects(me.householdId),
   ]);
 
   return (

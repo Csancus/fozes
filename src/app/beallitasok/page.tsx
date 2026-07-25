@@ -7,14 +7,14 @@ import {
   createGoalAction,
   updateGoalAction,
   deleteGoalAction,
-} from "../actions";
+} from "../teendok/actions";
 import {
   createProjectAction,
   updateProjectAction,
   deleteProjectAction,
 } from "@/app/koltsegek/actions";
 
-export default async function TeendokBeallitasokPage() {
+export default async function GlobalisBeallitasokPage() {
   const me = await requireUser();
   const [goals, projects] = await Promise.all([
     listGoals(me.householdId),
@@ -25,8 +25,8 @@ export default async function TeendokBeallitasokPage() {
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader
         title="Célok és projektek"
-        subtitle="Koppints egy panelre a kinyitáshoz"
-        back="/teendok"
+        subtitle="Megosztott elemek — minden modulban elérhetők"
+        back="/"
       />
 
       <div className="mt-6 space-y-3">
@@ -46,8 +46,9 @@ export default async function TeendokBeallitasokPage() {
 
         <CollapsiblePanel title="Projektek" count={projects.length} defaultOpen>
           <p className="mb-3 text-xs text-[var(--color-muted-foreground)]">
-            Teendőket és kiadásokat egyaránt rendelhetsz projekthez. Egy
-            projekt opcionálisan egy célhoz is tartozhat.
+            Egy projekt jelölhető csak Költségekhez, csak Teendőkhöz, vagy
+            mindkét helyhez tartozónak — és opcionálisan egy célhoz is
+            köthető.
           </p>
           <EntityManager
             variant="project"

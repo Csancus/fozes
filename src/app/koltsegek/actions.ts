@@ -33,7 +33,7 @@ import {
   deleteIncomeCategory,
 } from "@/lib/data";
 import { slug } from "@/lib/redis";
-import type { PaymentKind, ExpenseKind, ExpenseNature } from "@/lib/types";
+import type { PaymentKind, ExpenseKind, ExpenseNature, Project } from "@/lib/types";
 import { DEFAULT_EXPENSE_CATEGORIES } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -347,16 +347,22 @@ export async function deletePersonAction(fd: FormData) {
 
 // ============ PROJEKTEK ============
 
+function parseScope(v: FormDataEntryValue | null): Project["scope"] {
+  const s = String(v ?? "");
+  return s === "task" || s === "both" ? s : "expense";
+}
+
 export async function createProjectAction(fd: FormData) {
   const me = await requireUser();
   const name = String(fd.get("name") ?? "").trim();
   const color = String(fd.get("color") ?? "zinc").trim();
   const goalId = String(fd.get("goalId") ?? "").trim() || null;
+  const scope = parseScope(fd.get("scope"));
   if (!name) return;
-  await createProject(me.householdId, { name, color, goalId });
+  await createProject(me.householdId, { name, color, goalId, scope });
+  revalidatePath("/beallitasok");
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
-  revalidatePath("/teendok/beallitasok");
   revalidatePath("/teendok");
 }
 
@@ -366,11 +372,12 @@ export async function updateProjectAction(fd: FormData) {
   const name = String(fd.get("name") ?? "").trim();
   const color = String(fd.get("color") ?? "zinc").trim();
   const goalId = String(fd.get("goalId") ?? "").trim() || null;
+  const scope = parseScope(fd.get("scope"));
   if (!id || !name) return;
-  await updateProject(me.householdId, id, { name, color, goalId });
+  await updateProject(me.householdId, id, { name, color, goalId, scope });
+  revalidatePath("/beallitasok");
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
-  revalidatePath("/teendok/beallitasok");
   revalidatePath("/teendok");
 }
 
@@ -379,9 +386,9 @@ export async function deleteProjectAction(fd: FormData) {
   const id = String(fd.get("id") ?? "");
   if (!id) return;
   await deleteProject(me.householdId, id);
+  revalidatePath("/beallitasok");
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
-  revalidatePath("/teendok/beallitasok");
   revalidatePath("/teendok");
 }
 

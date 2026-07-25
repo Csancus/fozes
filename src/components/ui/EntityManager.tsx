@@ -14,8 +14,8 @@ import {
   payIcon,
   nearestColorToken,
 } from "@/lib/expense-visuals";
-import { PAYMENT_KIND_LABEL } from "@/lib/types";
-import type { PaymentKind } from "@/lib/types";
+import { PAYMENT_KIND_LABEL, PROJECT_SCOPE_LABEL } from "@/lib/types";
+import type { PaymentKind, ProjectScope } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers, Palette, Target } from "lucide-react";
 
@@ -30,6 +30,7 @@ export type EntityItem = {
   last4?: string | null;
   categoryId?: string | null;
   goalId?: string | null;
+  scope?: ProjectScope;
 };
 
 export type CategoryLite = {
@@ -140,6 +141,7 @@ function Fields({
   const [color, setColor] = useState(initial?.color ?? DEFAULT_COLOR[variant]);
   const [icon, setIcon] = useState(initial?.icon ?? "tag");
   const [kind, setKind] = useState<PaymentKind>(initial?.kind ?? "card");
+  const [scope, setScope] = useState<ProjectScope>(initial?.scope ?? "expense");
 
   return (
     <div className="space-y-4">
@@ -148,6 +150,33 @@ function Fields({
       )}
       {variant === "category" && <input type="hidden" name="icon" value={icon} />}
       {variant === "payment" && <input type="hidden" name="kind" value={kind} />}
+      {variant === "project" && <input type="hidden" name="scope" value={scope} />}
+
+      {variant === "project" && (
+        <div>
+          <span className="block text-sm font-medium mb-2">Hol jelenjen meg</span>
+          <div className="flex flex-wrap gap-2">
+            {(["expense", "task", "both"] as ProjectScope[]).map((s) => {
+              const active = scope === s;
+              return (
+                <button
+                  type="button"
+                  key={s}
+                  onClick={() => setScope(s)}
+                  className={cn(
+                    "inline-flex items-center gap-1.5 rounded-full pl-2.5 pr-3 h-9 text-[13px] font-medium border transition",
+                    active
+                      ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)] border-transparent ring-2 ring-[var(--color-primary)]/40"
+                      : "border-[var(--color-border)] text-[var(--color-foreground)] hover:bg-[var(--color-muted)]"
+                  )}
+                >
+                  {PROJECT_SCOPE_LABEL[s]}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {variant === "payment" && (
         <div>
@@ -346,8 +375,15 @@ export function EntityManager({
       return item.categoryId
         ? catById.get(item.categoryId)?.name ?? "Ismeretlen kategória"
         : "Nincs alap-kategória";
-    if (variant === "project")
-      return item.goalId ? goalById.get(item.goalId)?.name ?? null : null;
+    if (variant === "project") {
+      const parts: string[] = [];
+      if (item.goalId) {
+        const g = goalById.get(item.goalId);
+        if (g) parts.push(g.name);
+      }
+      if (item.scope) parts.push(PROJECT_SCOPE_LABEL[item.scope]);
+      return parts.length ? parts.join(" · ") : null;
+    }
     return null;
   }
 

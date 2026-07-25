@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { listHouseholdMembers, listProjects } from "@/lib/data";
+import { listHouseholdMembers, listTaskProjects } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { TaskForm } from "../TaskForm";
@@ -9,7 +9,7 @@ export default async function NewTaskPage() {
   const me = await requireUser();
   const [members, projects] = await Promise.all([
     listHouseholdMembers(me.householdId),
-    listProjects(me.householdId),
+    listTaskProjects(me.householdId),
   ]);
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">

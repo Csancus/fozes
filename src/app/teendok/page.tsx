@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { listTasks, listHouseholdMembers, listProjects } from "@/lib/data";
+import { listTasks, listHouseholdMembers, listTaskProjects } from "@/lib/data";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -13,7 +13,7 @@ export default async function TeendokPage() {
   const [tasks, members, projects] = await Promise.all([
     listTasks(me.householdId),
     listHouseholdMembers(me.householdId),
-    listProjects(me.householdId),
+    listTaskProjects(me.householdId),
   ]);
 
   const nameOf = (id: string | null) =>
@@ -32,7 +32,7 @@ export default async function TeendokPage() {
         back="/"
         action={
           <Link
-            href="/teendok/beallitasok"
+            href="/beallitasok"
             aria-label="Célok és projektek"
             className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
           >

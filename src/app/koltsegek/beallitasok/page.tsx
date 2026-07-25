@@ -5,14 +5,14 @@ import {
   listPaymentMethods,
   ensureDefaultPaymentMethods,
   listPersons,
-  listProjects,
   listGroups,
   listMerchants,
   listIncomeCategories,
   ensureDefaultIncomeCategories,
   ensureMerchantsFromHistory,
 } from "@/lib/data";
-import { RotateCcw } from "lucide-react";
+import Link from "next/link";
+import { RotateCcw, FolderKanban, ChevronRight } from "lucide-react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CollapsiblePanel } from "@/components/ui/CollapsiblePanel";
@@ -28,9 +28,6 @@ import {
   createPersonAction,
   updatePersonAction,
   deletePersonAction,
-  createProjectAction,
-  updateProjectAction,
-  deleteProjectAction,
   createMerchantAction,
   updateMerchantAction,
   deleteMerchantAction,
@@ -48,13 +45,12 @@ export default async function BeallitasokPage() {
   await ensureDefaultPaymentMethods(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);
-  const [categories, incomeCategories, paymentMethods, persons, projects, groups, merchants] =
+  const [categories, incomeCategories, paymentMethods, persons, groups, merchants] =
     await Promise.all([
       listExpenseCategories(me.householdId),
       listIncomeCategories(me.householdId),
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
-      listProjects(me.householdId),
       listGroups(me.householdId),
       listMerchants(me.householdId),
     ]);
@@ -67,7 +63,25 @@ export default async function BeallitasokPage() {
         back="/koltsegek"
       />
 
-      <div className="mt-6 space-y-3">
+      <Link
+        href="/beallitasok"
+        className="mt-6 flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 hover:border-[var(--color-primary)]/40 transition"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center">
+            <FolderKanban className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">Célok és projektek</p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              Megosztott — Költségek és Teendők között is
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)]" />
+      </Link>
+
+      <div className="mt-3 space-y-3">
         <CollapsiblePanel title="Kategóriák" count={categories.length}>
           <form action={restoreDefaultCategoriesAction} className="mb-3">
             <SubmitButton
@@ -135,16 +149,6 @@ export default async function BeallitasokPage() {
             createAction={createPersonAction}
             updateAction={updatePersonAction}
             deleteAction={deletePersonAction}
-          />
-        </CollapsiblePanel>
-
-        <CollapsiblePanel title="Projektek" count={projects.length}>
-          <EntityManager
-            variant="project"
-            items={projects}
-            createAction={createProjectAction}
-            updateAction={updateProjectAction}
-            deleteAction={deleteProjectAction}
           />
         </CollapsiblePanel>
 

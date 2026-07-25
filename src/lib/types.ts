@@ -286,12 +286,22 @@ export type Person = {
   createdAt: number;
 };
 
+// Hol jelenjen meg a projekt: csak Költségeknél, csak Teendőknél, vagy mindkét helyen.
+export type ProjectScope = "expense" | "task" | "both";
+
+export const PROJECT_SCOPE_LABEL: Record<ProjectScope, string> = {
+  expense: "Csak Költségek",
+  task: "Csak Teendők",
+  both: "Mindkettő",
+};
+
 // Projekt, amihez költségeket és/vagy teendőket rendelünk (pl. Autóvásárlás, Olaszország-út)
 export type Project = {
   id: string;
   name: string;
   color: string; // szín token (expense-visuals)
   goalId: string | null; // opcionális szülő Cél
+  scope: ProjectScope; // hol jelenjen meg (Költségek / Teendők / mindkettő)
   createdAt: number;
 };
 

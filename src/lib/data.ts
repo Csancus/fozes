@@ -800,25 +800,39 @@ export async function listProjects(hh: string): Promise<Project[]> {
   );
   return items
     .filter((p): p is Project => !!p)
-    .map((p) => ({ ...p, goalId: p.goalId ?? null }))
+    .map((p) => ({ ...p, goalId: p.goalId ?? null, scope: p.scope ?? "expense" }))
     .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+// Csak azok a projektek, amik a Költségek modulban is megjelenhetnek.
+export async function listExpenseProjects(hh: string): Promise<Project[]> {
+  return (await listProjects(hh)).filter((p) => p.scope !== "task");
+}
+
+// Csak azok a projektek, amik a Teendők modulban is megjelenhetnek.
+export async function listTaskProjects(hh: string): Promise<Project[]> {
+  return (await listProjects(hh)).filter((p) => p.scope !== "expense");
 }
 
 export async function getProject(hh: string, id: string) {
   const p = await redis.get<Project>(key.project(hh, id));
   if (!p) return null;
-  return { ...p, goalId: p.goalId ?? null };
+  return { ...p, goalId: p.goalId ?? null, scope: p.scope ?? "expense" };
 }
 
 export async function createProject(
   hh: string,
-  input: Pick<Project, "name" | "color"> & { goalId?: string | null }
+  input: Pick<Project, "name" | "color"> & {
+    goalId?: string | null;
+    scope?: Project["scope"];
+  }
 ): Promise<Project> {
   const p: Project = {
     id: newId(),
     name: input.name.trim(),
     color: input.color,
     goalId: input.goalId ?? null,
+    scope: input.scope ?? "expense",
     createdAt: Date.now(),
   };
   await redis.set(key.project(hh, p.id), p);
@@ -829,7 +843,9 @@ export async function createProject(
 export async function updateProject(
   hh: string,
   id: string,
-  patch: Partial<Pick<Project, "name" | "color">> & { goalId?: string | null }
+  patch: Partial<Pick<Project, "name" | "color" | "scope">> & {
+    goalId?: string | null;
+  }
 ) {
   const cur = await getProject(hh, id);
   if (!cur) return null;

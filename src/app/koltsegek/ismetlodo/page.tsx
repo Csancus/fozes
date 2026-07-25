@@ -7,7 +7,7 @@ import {
   ensureDefaultPaymentMethods,
   listPaymentMethods,
   listPersons,
-  listProjects,
+  listExpenseProjects,
   listMerchants,
   ensureMerchantsFromHistory,
   getMerchantMap,
@@ -37,7 +37,7 @@ export default async function IsmetlodoPage() {
       listExpenseCategories(me.householdId),
       listPaymentMethods(me.householdId),
       listPersons(me.householdId),
-      listProjects(me.householdId),
+      listExpenseProjects(me.householdId),
       getMerchantMap(me.householdId),
       listMerchants(me.householdId),
     ]);
