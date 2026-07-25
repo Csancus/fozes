@@ -4,7 +4,7 @@ import { useRef, useState } from "react";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { cn } from "@/lib/cn";
-import type { Task } from "@/lib/types";
+import type { Task, Project } from "@/lib/types";
 import {
   Image as ImageIcon,
   X,
@@ -89,11 +89,13 @@ export function TaskForm({
   action,
   initial,
   members = [],
+  projects = [],
   myId,
 }: {
   action: (fd: FormData) => void | Promise<void>;
   initial?: Task | null;
   members?: { id: string; name: string }[];
+  projects?: Project[];
   myId?: string;
 }) {
   const [ownerId, setOwnerId] = useState<string>(
@@ -197,6 +199,23 @@ export function TaskForm({
           </Field>
         )}
       </div>
+
+      {projects.length > 0 && (
+        <Field label="Projekt" hint="nem kötelező">
+          <select
+            name="projectId"
+            defaultValue={initial?.projectId ?? ""}
+            className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+          >
+            <option value="">— Nincs —</option>
+            {projects.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <Field label="Leírás">
         <Textarea

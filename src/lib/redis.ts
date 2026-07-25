@@ -72,6 +72,8 @@ export const key = {
   project: (hh: string, id: string) => `hh:${hh}:project:${id}`,
   groups: (hh: string) => `hh:${hh}:groups`,
   group: (hh: string, id: string) => `hh:${hh}:group:${id}`,
+  goals: (hh: string) => `hh:${hh}:goals`,
+  goal: (hh: string, id: string) => `hh:${hh}:goal:${id}`,
 
   // Bakancslista
   savedItems: (hh: string) => `hh:${hh}:saved`,

@@ -15,8 +15,8 @@ import {
 import { RotateCcw } from "lucide-react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { CollapsiblePanel } from "./CollapsiblePanel";
-import { EntityManager } from "./EntityManager";
+import { CollapsiblePanel } from "@/components/ui/CollapsiblePanel";
+import { EntityManager } from "@/components/ui/EntityManager";
 import {
   createCategoryAction,
   updateCategoryAction,

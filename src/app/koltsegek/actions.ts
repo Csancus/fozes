@@ -351,10 +351,13 @@ export async function createProjectAction(fd: FormData) {
   const me = await requireUser();
   const name = String(fd.get("name") ?? "").trim();
   const color = String(fd.get("color") ?? "zinc").trim();
+  const goalId = String(fd.get("goalId") ?? "").trim() || null;
   if (!name) return;
-  await createProject(me.householdId, { name, color });
+  await createProject(me.householdId, { name, color, goalId });
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
+  revalidatePath("/teendok/beallitasok");
+  revalidatePath("/teendok");
 }
 
 export async function updateProjectAction(fd: FormData) {
@@ -362,10 +365,13 @@ export async function updateProjectAction(fd: FormData) {
   const id = String(fd.get("id") ?? "");
   const name = String(fd.get("name") ?? "").trim();
   const color = String(fd.get("color") ?? "zinc").trim();
+  const goalId = String(fd.get("goalId") ?? "").trim() || null;
   if (!id || !name) return;
-  await updateProject(me.householdId, id, { name, color });
+  await updateProject(me.householdId, id, { name, color, goalId });
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
+  revalidatePath("/teendok/beallitasok");
+  revalidatePath("/teendok");
 }
 
 export async function deleteProjectAction(fd: FormData) {
@@ -375,6 +381,8 @@ export async function deleteProjectAction(fd: FormData) {
   await deleteProject(me.householdId, id);
   revalidatePath("/koltsegek/beallitasok");
   revalidatePath("/koltsegek");
+  revalidatePath("/teendok/beallitasok");
+  revalidatePath("/teendok");
 }
 
 // ============ CSOPORTOK ============

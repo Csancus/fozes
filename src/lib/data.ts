@@ -12,6 +12,7 @@ import type {
   PaymentMethod,
   Person,
   Project,
+  Goal,
   ExpenseGroup,
   Merchant,
   RecurringExpense,
@@ -789,7 +790,7 @@ export async function deletePerson(hh: string, id: string) {
   await redis.srem(key.persons(hh), id);
 }
 
-// ============ PROJECTS (kiadás-projektek) ============
+// ============ PROJECTS (kiadás + teendő projektek) ============
 
 export async function listProjects(hh: string): Promise<Project[]> {
   const ids = await redis.smembers(key.projects(hh));
@@ -799,21 +800,25 @@ export async function listProjects(hh: string): Promise<Project[]> {
   );
   return items
     .filter((p): p is Project => !!p)
+    .map((p) => ({ ...p, goalId: p.goalId ?? null }))
     .sort((a, b) => a.createdAt - b.createdAt);
 }
 
 export async function getProject(hh: string, id: string) {
-  return redis.get<Project>(key.project(hh, id));
+  const p = await redis.get<Project>(key.project(hh, id));
+  if (!p) return null;
+  return { ...p, goalId: p.goalId ?? null };
 }
 
 export async function createProject(
   hh: string,
-  input: Pick<Project, "name" | "color">
+  input: Pick<Project, "name" | "color"> & { goalId?: string | null }
 ): Promise<Project> {
   const p: Project = {
     id: newId(),
     name: input.name.trim(),
     color: input.color,
+    goalId: input.goalId ?? null,
     createdAt: Date.now(),
   };
   await redis.set(key.project(hh, p.id), p);
@@ -824,7 +829,7 @@ export async function createProject(
 export async function updateProject(
   hh: string,
   id: string,
-  patch: Partial<Pick<Project, "name" | "color">>
+  patch: Partial<Pick<Project, "name" | "color">> & { goalId?: string | null }
 ) {
   const cur = await getProject(hh, id);
   if (!cur) return null;
@@ -836,6 +841,62 @@ export async function updateProject(
 export async function deleteProject(hh: string, id: string) {
   await redis.del(key.project(hh, id));
   await redis.srem(key.projects(hh), id);
+}
+
+// ============ GOALS (célok) ============
+
+export async function listGoals(hh: string): Promise<Goal[]> {
+  const ids = await redis.smembers(key.goals(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<Goal>(key.goal(hh, id)))
+  );
+  return items
+    .filter((g): g is Goal => !!g)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getGoal(hh: string, id: string) {
+  return redis.get<Goal>(key.goal(hh, id));
+}
+
+export async function createGoal(
+  hh: string,
+  input: Pick<Goal, "name" | "color">
+): Promise<Goal> {
+  const g: Goal = {
+    id: newId(),
+    name: input.name.trim(),
+    color: input.color,
+    createdAt: Date.now(),
+  };
+  await redis.set(key.goal(hh, g.id), g);
+  await redis.sadd(key.goals(hh), g.id);
+  return g;
+}
+
+export async function updateGoal(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<Goal, "name" | "color">>
+) {
+  const cur = await getGoal(hh, id);
+  if (!cur) return null;
+  const next = { ...cur, ...patch };
+  await redis.set(key.goal(hh, id), next);
+  return next;
+}
+
+export async function deleteGoal(hh: string, id: string) {
+  await redis.del(key.goal(hh, id));
+  await redis.srem(key.goals(hh), id);
+  // A projektek megmaradnak, csak a cél-hozzárendelésük ürül.
+  const projects = await listProjects(hh);
+  await Promise.all(
+    projects
+      .filter((p) => p.goalId === id)
+      .map((p) => updateProject(hh, p.id, { goalId: null }))
+  );
 }
 
 // ============ CSOPORTOK (kiadás + bevétel együtt) ============
@@ -1364,11 +1425,15 @@ export async function listTasks(hh: string): Promise<Task[]> {
   const items = await Promise.all(
     ids.map((id) => redis.get<Task>(key.task(hh, id)))
   );
-  return items.filter((t): t is Task => !!t);
+  return items
+    .filter((t): t is Task => !!t)
+    .map((t) => ({ ...t, projectId: t.projectId ?? null }));
 }
 
 export async function getTask(hh: string, id: string) {
-  return redis.get<Task>(key.task(hh, id));
+  const t = await redis.get<Task>(key.task(hh, id));
+  if (!t) return null;
+  return { ...t, projectId: t.projectId ?? null };
 }
 
 export async function saveTask(hh: string, task: Task) {

@@ -1,17 +1,18 @@
 import { requireUser } from "@/lib/auth";
-import { getTask, getTaskFile, listHouseholdMembers } from "@/lib/data";
+import { getTask, getTaskFile, listHouseholdMembers, getProject } from "@/lib/data";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
+import { catColor } from "@/lib/expense-visuals";
 import {
   Pencil,
-  Trash2,
   Check,
   RotateCcw,
   CalendarDays,
   User as UserIcon,
+  FolderKanban,
   FileText,
   Music,
   Download,
@@ -21,6 +22,7 @@ import {
   toggleSubtaskAction,
   deleteTaskAction,
 } from "../actions";
+import { DeleteTaskButton } from "../DeleteTaskButton";
 
 function fmtSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -45,7 +47,7 @@ export default async function TaskDetailPage({
   const task = await getTask(me.householdId, id);
   if (!task) notFound();
 
-  const [blobs, members] = await Promise.all([
+  const [blobs, members, project] = await Promise.all([
     Promise.all(
       task.files.map(async (f) => ({
         meta: f,
@@ -53,6 +55,7 @@ export default async function TaskDetailPage({
       }))
     ),
     listHouseholdMembers(me.householdId),
+    task.projectId ? getProject(me.householdId, task.projectId) : null,
   ]);
   const ownerName = task.ownerId
     ? members.find((m) => m.id === task.ownerId)?.name ?? null
@@ -96,6 +99,17 @@ export default async function TaskDetailPage({
         {ownerName && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-primary-soft)] px-3 py-1 text-[var(--color-primary)]">
             <UserIcon className="w-4 h-4" /> {ownerName}
+          </span>
+        )}
+        {project && (
+          <span
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1",
+              catColor(project.color).soft,
+              catColor(project.color).text
+            )}
+          >
+            <FolderKanban className="w-4 h-4" /> {project.name}
           </span>
         )}
       </div>
@@ -217,18 +231,9 @@ export default async function TaskDetailPage({
         </section>
       )}
 
-      <form action={deleteTaskAction} className="mt-8">
-        <input type="hidden" name="id" value={task.id} />
-        <Button
-          type="submit"
-          variant="ghost"
-          fullWidth
-          className="text-red-600 hover:text-red-700"
-          leftIcon={<Trash2 className="w-4 h-4" />}
-        >
-          Törlés
-        </Button>
-      </form>
+      <div className="mt-8">
+        <DeleteTaskButton id={task.id} title={task.title} deleteAction={deleteTaskAction} />
+      </div>
     </main>
   );
 }

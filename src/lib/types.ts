@@ -286,8 +286,17 @@ export type Person = {
   createdAt: number;
 };
 
-// Projekt / cél, amihez költségeket rendelünk (pl. Autóvásárlás, Olaszország-út)
+// Projekt, amihez költségeket és/vagy teendőket rendelünk (pl. Autóvásárlás, Olaszország-út)
 export type Project = {
+  id: string;
+  name: string;
+  color: string; // szín token (expense-visuals)
+  goalId: string | null; // opcionális szülő Cél
+  createdAt: number;
+};
+
+// Cél: nagyobb életcél, amihez projektek tartozhatnak (pl. Vagyonépítés, Egészség)
+export type Goal = {
   id: string;
   name: string;
   color: string; // szín token (expense-visuals)
@@ -543,6 +552,7 @@ export type Task = {
   description: string;
   ownerId: string | null;   // kié a teendő (household user), vagy null = bárkié
   dueDate: string | null;    // YYYY-MM-DD, vagy null = nincs határidő
+  projectId: string | null;  // opcionális projekt (Project.id)
   imageUrl: string | null;   // R2/inline borítókép
   files: TaskFileMeta[];     // csatolt fájlok (blob külön kulcson)
   subtasks: Subtask[];       // pipálható alteendők

@@ -3,15 +3,18 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import type { Task } from "@/lib/types";
+import type { Task, Project } from "@/lib/types";
+import { catColor } from "@/lib/expense-visuals";
 import {
   Check,
   CalendarDays,
   Paperclip,
   ListChecks,
+  FolderKanban,
   ChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
+import { DeleteTaskButton } from "./DeleteTaskButton";
 
 type Entry = Task & { ownerName: string | null };
 
@@ -41,14 +44,19 @@ type Bucket = { key: string; label: string; tone: string; items: Entry[] };
 export function TaskListClient({
   tasks,
   members,
+  projects = [],
   myId,
   toggleDoneAction,
+  deleteAction,
 }: {
   tasks: Entry[];
   members: { id: string; name: string }[];
+  projects?: Project[];
   myId?: string;
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
+  deleteAction: (fd: FormData) => void | Promise<void>;
 }) {
+  const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
   const [owner, setOwner] = useState<string>("all"); // all | userId | me
   const [showDone, setShowDone] = useState(false);
 
@@ -148,7 +156,13 @@ export function TaskListClient({
               </h2>
               <div className="space-y-2.5">
                 {b.items.map((t) => (
-                  <TaskCard key={t.id} task={t} toggleDoneAction={toggleDoneAction} />
+                  <TaskCard
+                    key={t.id}
+                    task={t}
+                    project={t.projectId ? projectById.get(t.projectId) ?? null : null}
+                    toggleDoneAction={toggleDoneAction}
+                    deleteAction={deleteAction}
+                  />
                 ))}
               </div>
             </section>
@@ -170,7 +184,13 @@ export function TaskListClient({
           {showDone && (
             <div className="mt-3 space-y-2.5">
               {done.map((t) => (
-                <TaskCard key={t.id} task={t} toggleDoneAction={toggleDoneAction} />
+                <TaskCard
+                  key={t.id}
+                  task={t}
+                  project={t.projectId ? projectById.get(t.projectId) ?? null : null}
+                  toggleDoneAction={toggleDoneAction}
+                  deleteAction={deleteAction}
+                />
               ))}
             </div>
           )}
@@ -182,10 +202,14 @@ export function TaskListClient({
 
 function TaskCard({
   task,
+  project,
   toggleDoneAction,
+  deleteAction,
 }: {
   task: Entry;
+  project?: Project | null;
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
+  deleteAction: (fd: FormData) => void | Promise<void>;
 }) {
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;
@@ -253,6 +277,17 @@ function TaskCard({
               <Paperclip className="w-3 h-3" /> {task.files.length}
             </span>
           )}
+          {project && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
+                catColor(project.color).soft,
+                catColor(project.color).text
+              )}
+            >
+              <FolderKanban className="w-3 h-3" /> {project.name}
+            </span>
+          )}
         </div>
       </Link>
 
@@ -265,6 +300,8 @@ function TaskCard({
           {initials(task.ownerName)}
         </span>
       )}
+
+      <DeleteTaskButton id={task.id} title={task.title} deleteAction={deleteAction} variant="icon" />
     </div>
   );
 }

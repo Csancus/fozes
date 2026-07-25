@@ -7,6 +7,9 @@ import {
   deleteTask,
   setTaskFile,
   deleteTaskFile,
+  createGoal,
+  updateGoal,
+  deleteGoal,
 } from "@/lib/data";
 import { offloadImage } from "@/lib/r2";
 import { newId } from "@/lib/redis";
@@ -61,6 +64,7 @@ export async function saveTaskAction(fd: FormData) {
   const description = String(fd.get("description") ?? "").trim();
   const ownerId = String(fd.get("ownerId") ?? "").trim() || null;
   const dueDate = String(fd.get("dueDate") ?? "").trim() || null;
+  const projectId = String(fd.get("projectId") ?? "").trim() || null;
   const subtasks = parseSubtasks(String(fd.get("subtasks") ?? "[]"));
   const incoming = parseFiles(String(fd.get("files") ?? "[]"));
 
@@ -92,6 +96,7 @@ export async function saveTaskAction(fd: FormData) {
     description,
     ownerId,
     dueDate,
+    projectId,
     imageUrl,
     files: keptMeta,
     subtasks,
@@ -148,4 +153,91 @@ export async function deleteTaskAction(fd: FormData) {
   revalidatePath("/teendok");
   revalidatePath("/");
   redirect("/teendok");
+}
+
+// Törlés a listáról (nincs redirect — a lista maga marad az aktuális oldalon).
+export async function deleteTaskFromListAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await deleteTask(me.householdId, id);
+  revalidatePath("/teendok");
+  revalidatePath("/");
+}
+
+type BatchTaskRow = {
+  title: unknown;
+  description: unknown;
+  ownerId: unknown;
+  dueDate: unknown;
+  projectId: unknown;
+};
+
+// Több teendő egyszerre (táblázatos gyors felvitel).
+export async function saveTasksBatchAction(fd: FormData) {
+  const me = await requireUser();
+  let rows: BatchTaskRow[] = [];
+  try {
+    const parsed = JSON.parse(String(fd.get("rows") ?? "[]"));
+    if (Array.isArray(parsed)) rows = parsed;
+  } catch {
+    rows = [];
+  }
+
+  const now = Date.now();
+  for (const r of rows) {
+    const title = String(r.title ?? "").trim();
+    if (!title) continue;
+    const task: Task = {
+      id: newId(),
+      title,
+      description: String(r.description ?? "").trim(),
+      ownerId: String(r.ownerId ?? "").trim() || null,
+      dueDate: String(r.dueDate ?? "").trim() || null,
+      projectId: String(r.projectId ?? "").trim() || null,
+      imageUrl: null,
+      files: [],
+      subtasks: [],
+      done: false,
+      doneAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    await saveTask(me.householdId, task);
+  }
+  revalidatePath("/teendok");
+  revalidatePath("/");
+  redirect("/teendok");
+}
+
+// ============ CÉLOK ============
+
+export async function createGoalAction(fd: FormData) {
+  const me = await requireUser();
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "amber").trim();
+  if (!name) return;
+  await createGoal(me.householdId, { name, color });
+  revalidatePath("/teendok/beallitasok");
+  revalidatePath("/koltsegek/beallitasok");
+}
+
+export async function updateGoalAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "amber").trim();
+  if (!id || !name) return;
+  await updateGoal(me.householdId, id, { name, color });
+  revalidatePath("/teendok/beallitasok");
+  revalidatePath("/koltsegek/beallitasok");
+}
+
+export async function deleteGoalAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await deleteGoal(me.householdId, id);
+  revalidatePath("/teendok/beallitasok");
+  revalidatePath("/koltsegek/beallitasok");
 }

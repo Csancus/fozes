@@ -17,9 +17,9 @@ import {
 import { PAYMENT_KIND_LABEL } from "@/lib/types";
 import type { PaymentKind } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers, Palette } from "lucide-react";
+import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers, Palette, Target } from "lucide-react";
 
-export type Variant = "category" | "payment" | "person" | "project" | "merchant" | "group";
+export type Variant = "category" | "payment" | "person" | "project" | "merchant" | "group" | "goal";
 
 export type EntityItem = {
   id: string;
@@ -29,6 +29,7 @@ export type EntityItem = {
   kind?: PaymentKind;
   last4?: string | null;
   categoryId?: string | null;
+  goalId?: string | null;
 };
 
 export type CategoryLite = {
@@ -47,6 +48,7 @@ const DEFAULT_COLOR: Record<Variant, string> = {
   project: "violet",
   merchant: "zinc",
   group: "violet",
+  goal: "amber",
 };
 
 const ADD_LABEL: Record<Variant, string> = {
@@ -56,6 +58,7 @@ const ADD_LABEL: Record<Variant, string> = {
   project: "Projekt hozzáadása",
   merchant: "Bolt / kinek hozzáadása",
   group: "Csoport hozzáadása",
+  goal: "Cél hozzáadása",
 };
 
 const NAME_PLACEHOLDER: Record<Variant, string> = {
@@ -65,6 +68,7 @@ const NAME_PLACEHOLDER: Record<Variant, string> = {
   project: "pl. Autóvásárlás, Olaszország-út",
   merchant: "pl. Lidl, Shell, Spotify",
   group: "pl. Nyaralás elszámolás, Közös kassza",
+  goal: "pl. Vagyonépítés, Egészség",
 };
 
 function ColorPicker({
@@ -115,15 +119,23 @@ function ColorPicker({
   );
 }
 
+export type GoalLite = {
+  id: string;
+  name: string;
+  color: string;
+};
+
 // Közös mezők create-hez és edit-hez. Hidden inputokkal submitál a szülő formba.
 function Fields({
   variant,
   initial,
   categories = [],
+  goals = [],
 }: {
   variant: Variant;
   initial?: EntityItem;
   categories?: CategoryLite[];
+  goals?: GoalLite[];
 }) {
   const [color, setColor] = useState(initial?.color ?? DEFAULT_COLOR[variant]);
   const [icon, setIcon] = useState(initial?.icon ?? "tag");
@@ -188,6 +200,23 @@ function Fields({
             {categories.map((c) => (
               <option key={c.id} value={c.id}>
                 {c.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
+
+      {variant === "project" && goals.length > 0 && (
+        <Field label="Cél" hint="Nem kötelező">
+          <select
+            name="goalId"
+            defaultValue={initial?.goalId ?? ""}
+            className="h-11 w-full rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)]"
+          >
+            <option value="">— Nincs —</option>
+            {goals.map((g) => (
+              <option key={g.id} value={g.id}>
+                {g.name}
               </option>
             ))}
           </select>
@@ -278,6 +307,8 @@ function Visual({
       ? payIcon(item.kind ?? "card")
       : variant === "group"
       ? Layers
+      : variant === "goal"
+      ? Target
       : FolderKanban;
   return (
     <span className={cn("w-10 h-10 rounded-xl flex items-center justify-center shrink-0", col.soft, col.text)}>
@@ -293,6 +324,7 @@ export function EntityManager({
   updateAction,
   deleteAction,
   categories = [],
+  goals = [],
 }: {
   variant: Variant;
   items: EntityItem[];
@@ -300,11 +332,13 @@ export function EntityManager({
   updateAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
   categories?: CategoryLite[];
+  goals?: GoalLite[];
 }) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [view, setView] = useState<"list" | "board">("list");
   const [confirmDel, setConfirmDel] = useState<EntityItem | null>(null);
   const catById = new Map(categories.map((c) => [c.id, c]));
+  const goalById = new Map(goals.map((g) => [g.id, g]));
 
   function subtitle(item: EntityItem): string | null {
     if (variant === "payment" && item.kind) return PAYMENT_KIND_LABEL[item.kind];
@@ -312,6 +346,8 @@ export function EntityManager({
       return item.categoryId
         ? catById.get(item.categoryId)?.name ?? "Ismeretlen kategória"
         : "Nincs alap-kategória";
+    if (variant === "project")
+      return item.goalId ? goalById.get(item.goalId)?.name ?? null : null;
     return null;
   }
 
@@ -320,7 +356,7 @@ export function EntityManager({
       <Card className="p-5">
         <form action={updateAction} className="space-y-4">
           <input type="hidden" name="id" value={item.id} />
-          <Fields variant={variant} initial={item} categories={categories} />
+          <Fields variant={variant} initial={item} categories={categories} goals={goals} />
           <div className="flex gap-2">
             <SubmitButton fullWidth leftIcon={<Check className="w-4 h-4" />}>
               Mentés
@@ -454,7 +490,7 @@ export function EntityManager({
 
       <Card className="mt-3 p-5">
         <form action={createAction} className="space-y-4">
-          <Fields variant={variant} categories={categories} />
+          <Fields variant={variant} categories={categories} goals={goals} />
           <SubmitButton
             size="lg"
             fullWidth
