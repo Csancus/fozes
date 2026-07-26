@@ -25,6 +25,7 @@ import {
   Plane,
   Map as MapIcon,
   FolderKanban,
+  Settings,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
@@ -52,6 +53,7 @@ const primary: NavItem[] = [
   { href: "/utazasok", label: "Utazások", icon: Plane },
   { href: "/teendok", label: "Teendők", icon: ListTodo },
   { href: "/csalad", label: "Család", icon: Users },
+  { href: "/beallitasok", label: "Globális beállítások", icon: Settings },
 ];
 
 const cooking: NavItem[] = [

@@ -22,6 +22,7 @@ import {
   AlertTriangle,
   ChevronRight,
   Plus,
+  Settings,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { Badge } from "@/components/ui/Badge";
@@ -194,7 +195,7 @@ export default async function Home() {
         />
       </section>
 
-      <section className="mt-8">
+      <section className="mt-8 space-y-3">
         <Link
           href="/csalad"
           className="flex items-center justify-between rounded-2xl border border-dashed border-[var(--color-border)] p-4 hover:border-[var(--color-primary)]/40 transition"
@@ -207,6 +208,24 @@ export default async function Home() {
               <p className="text-sm font-medium">Család / meghívó</p>
               <p className="text-xs text-[var(--color-muted-foreground)]">
                 Hívj meg másokat a háztartásba
+              </p>
+            </div>
+          </div>
+          <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)]" />
+        </Link>
+
+        <Link
+          href="/beallitasok"
+          className="flex items-center justify-between rounded-2xl border border-dashed border-[var(--color-border)] p-4 hover:border-[var(--color-primary)]/40 transition"
+        >
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-xl bg-[var(--color-muted)] flex items-center justify-center text-[var(--color-muted-foreground)]">
+              <Settings className="w-4.5 h-4.5" />
+            </div>
+            <div>
+              <p className="text-sm font-medium">Globális beállítások</p>
+              <p className="text-xs text-[var(--color-muted-foreground)]">
+                Célok és projektek — Költségek és Teendők között megosztva
               </p>
             </div>
           </div>
