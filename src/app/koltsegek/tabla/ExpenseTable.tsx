@@ -5,7 +5,7 @@ import { SubmitButton } from "@/components/ui/SubmitButton";
 import { ColumnToggle, useColumnVisibility, type ColumnDef } from "@/components/ui/ColumnToggle";
 import { cn } from "@/lib/cn";
 import { catColor } from "@/lib/expense-visuals";
-import { X, Search, Undo2, Trash2, SlidersHorizontal } from "lucide-react";
+import { X, Search, Undo2, Trash2, SlidersHorizontal, Plus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
 import { createIncomeCategoryInline } from "../actions";
 import type {
@@ -48,6 +48,10 @@ function tsToDay(ts: number): string {
   ).padStart(2, "0")}`;
 }
 
+function todayStr(): string {
+  return tsToDay(Date.now());
+}
+
 const monthLabelFmt = new Intl.DateTimeFormat("hu-HU", {
   year: "numeric",
   month: "short",
@@ -58,7 +62,8 @@ function monthKeyToDate(k: string): Date {
 }
 
 type Row = {
-  id: string;
+  key: string; // React kulcs + belső azonosítás — új (nem mentett) sornál nem egyezik az id-vel
+  id: string; // valós szerver id; üres string = még nem mentett, új sor
   kind: ExpenseKind;
   amount: string;
   merchant: string;
@@ -77,6 +82,7 @@ type Row = {
 
 function toRow(e: Expense): Row {
   return {
+    key: e.id,
     id: e.id,
     kind: e.kind ?? "expense",
     amount: groupDigits(String(e.amount)),
@@ -92,6 +98,29 @@ function toRow(e: Expense): Row {
     tax: e.tax ?? false,
     spentAt: tsToDay(e.spentAt),
     note: e.note ?? "",
+  };
+}
+
+let newRowCounter = 0;
+function emptyRow(): Row {
+  newRowCounter += 1;
+  return {
+    key: `new-${newRowCounter}`,
+    id: "",
+    kind: "expense",
+    amount: "",
+    merchant: "",
+    categoryId: "",
+    paymentMethodId: "",
+    personId: "",
+    projectId: "",
+    groupId: "",
+    nature: "avg",
+    review: false,
+    planned: false,
+    tax: false,
+    spentAt: todayStr(),
+    note: "",
   };
 }
 
@@ -231,10 +260,10 @@ export function ExpenseTable({
     return [...set].filter(Boolean).sort().reverse();
   }, [rows]);
 
-  function update(id: string, patch: Partial<Row>) {
+  function update(key: string, patch: Partial<Row>) {
     setRows((cur) =>
       cur.map((r) => {
-        if (r.id !== id) return r;
+        if (r.key !== key) return r;
         const next = { ...r, ...patch };
         // Típusváltáskor a kategória ürül (más a készlet), és a jelleg alap.
         if (patch.kind !== undefined && patch.kind !== r.kind) {
@@ -261,6 +290,18 @@ export function ExpenseTable({
       n.delete(id);
       return n;
     });
+  }
+  // Új (még nem mentett) sor azonnali eltávolítása — nincs mit visszavonni.
+  function removeNewRow(key: string) {
+    setRows((cur) => cur.filter((r) => r.key !== key));
+  }
+  function addRowTop() {
+    setMonth("all");
+    setRows((cur) => [emptyRow(), ...cur]);
+  }
+  function addRowBottom() {
+    setMonth("all");
+    setRows((cur) => [...cur, emptyRow()]);
   }
 
   const q = search.trim().toLowerCase();
@@ -469,7 +510,17 @@ export function ExpenseTable({
         </div>
       )}
 
-      <div className="mt-4 overflow-x-auto -mx-5 px-5">
+      <div className="mt-4 flex justify-end">
+        <button
+          type="button"
+          onClick={addRowTop}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
+        >
+          <Plus className="w-4 h-4" /> Új tétel
+        </button>
+      </div>
+
+      <div className="mt-2 overflow-x-auto -mx-5 px-5">
         <table
           className="w-full border-separate border-spacing-x-1.5 border-spacing-y-1.5"
           style={{ minWidth: `${minW}px` }}
@@ -500,7 +551,7 @@ export function ExpenseTable({
                 !isDeleted && serialize(r) !== original.get(r.id);
               return (
                 <tr
-                  key={r.id}
+                  key={r.key}
                   className={cn(
                     "align-top",
                     isDeleted && "opacity-40",
@@ -512,7 +563,7 @@ export function ExpenseTable({
                     <select
                       value={r.kind}
                       disabled={isDeleted}
-                      onChange={(e) => update(r.id, { kind: e.target.value as ExpenseKind })}
+                      onChange={(e) => update(r.key, { kind: e.target.value as ExpenseKind })}
                       className={cn(
                         ctrl,
                         "appearance-none font-medium",
@@ -531,7 +582,7 @@ export function ExpenseTable({
                         max="2099-12-31"
                         value={r.spentAt}
                         disabled={isDeleted}
-                        onChange={(e) => update(r.id, { spentAt: e.target.value })}
+                        onChange={(e) => update(r.key, { spentAt: e.target.value })}
                         className={ctrl}
                       />
                     </td>
@@ -540,7 +591,7 @@ export function ExpenseTable({
                     <input
                       value={r.merchant}
                       disabled={isDeleted}
-                      onChange={(e) => update(r.id, { merchant: e.target.value })}
+                      onChange={(e) => update(r.key, { merchant: e.target.value })}
                       list="table-merchants"
                       className={ctrl}
                     />
@@ -551,7 +602,7 @@ export function ExpenseTable({
                       value={r.amount}
                       disabled={isDeleted}
                       onChange={(e) =>
-                        update(r.id, { amount: groupDigits(e.target.value) })
+                        update(r.key, { amount: groupDigits(e.target.value) })
                       }
                       className={cn(ctrl, "tabular-nums font-medium")}
                     />
@@ -561,7 +612,7 @@ export function ExpenseTable({
                       <CategorySelect
                         categories={r.kind === "income" ? incomeCatList : catList}
                         value={r.categoryId}
-                        onChange={(id) => update(r.id, { categoryId: id })}
+                        onChange={(id) => update(r.key, { categoryId: id })}
                         onCreated={(c) =>
                           r.kind === "income"
                             ? setIncomeCatList((cur) => [...cur, c])
@@ -580,7 +631,7 @@ export function ExpenseTable({
                         <select
                           value={r.nature}
                           disabled={isDeleted}
-                          onChange={(e) => update(r.id, { nature: e.target.value })}
+                          onChange={(e) => update(r.key, { nature: e.target.value })}
                           className={cn(ctrl, "appearance-none")}
                         >
                           <option value="avg">Havi átlagos</option>
@@ -595,7 +646,7 @@ export function ExpenseTable({
                         value={r.paymentMethodId}
                         disabled={isDeleted}
                         onChange={(e) =>
-                          update(r.id, { paymentMethodId: e.target.value })
+                          update(r.key, { paymentMethodId: e.target.value })
                         }
                         className={cn(ctrl, "appearance-none")}
                       >
@@ -614,7 +665,7 @@ export function ExpenseTable({
                         value={r.personId}
                         disabled={isDeleted}
                         onChange={(e) =>
-                          update(r.id, { personId: e.target.value })
+                          update(r.key, { personId: e.target.value })
                         }
                         className={cn(ctrl, "appearance-none")}
                       >
@@ -633,7 +684,7 @@ export function ExpenseTable({
                         value={r.projectId}
                         disabled={isDeleted}
                         onChange={(e) =>
-                          update(r.id, { projectId: e.target.value })
+                          update(r.key, { projectId: e.target.value })
                         }
                         className={cn(ctrl, "appearance-none")}
                       >
@@ -651,7 +702,7 @@ export function ExpenseTable({
                       <select
                         value={r.groupId}
                         disabled={isDeleted}
-                        onChange={(e) => update(r.id, { groupId: e.target.value })}
+                        onChange={(e) => update(r.key, { groupId: e.target.value })}
                         className={cn(ctrl, "appearance-none")}
                       >
                         <option value="">—</option>
@@ -670,7 +721,7 @@ export function ExpenseTable({
                           type="checkbox"
                           checked={r.review}
                           disabled={isDeleted}
-                          onChange={(e) => update(r.id, { review: e.target.checked })}
+                          onChange={(e) => update(r.key, { review: e.target.checked })}
                           className="w-4 h-4 accent-amber-500"
                           aria-label="Felülvizsgálat"
                         />
@@ -684,7 +735,7 @@ export function ExpenseTable({
                           type="checkbox"
                           checked={r.planned}
                           disabled={isDeleted}
-                          onChange={(e) => update(r.id, { planned: e.target.checked })}
+                          onChange={(e) => update(r.key, { planned: e.target.checked })}
                           className="w-4 h-4 accent-indigo-500"
                           aria-label="Jövőbeni terv"
                         />
@@ -698,7 +749,7 @@ export function ExpenseTable({
                           type="checkbox"
                           checked={r.tax}
                           disabled={isDeleted}
-                          onChange={(e) => update(r.id, { tax: e.target.checked })}
+                          onChange={(e) => update(r.key, { tax: e.target.checked })}
                           className="w-4 h-4 accent-rose-500"
                           aria-label="Adó"
                         />
@@ -710,7 +761,7 @@ export function ExpenseTable({
                       <input
                         value={r.note}
                         disabled={isDeleted}
-                        onChange={(e) => update(r.id, { note: e.target.value })}
+                        onChange={(e) => update(r.key, { note: e.target.value })}
                         placeholder="Megjegyzés"
                         className={ctrl}
                       />
@@ -729,7 +780,7 @@ export function ExpenseTable({
                     ) : (
                       <button
                         type="button"
-                        onClick={() => markDeleted(r.id)}
+                        onClick={() => (r.id ? markDeleted(r.id) : removeNewRow(r.key))}
                         className="h-9 w-7 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600"
                         aria-label="Törlés"
                       >
@@ -749,6 +800,16 @@ export function ExpenseTable({
           Nincs a szűrőnek megfelelő tétel.
         </p>
       )}
+
+      <div className="mt-2">
+        <button
+          type="button"
+          onClick={addRowBottom}
+          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
+        >
+          <Plus className="w-4 h-4" /> Új tétel
+        </button>
+      </div>
 
       <div className="mt-6 sticky bottom-0 -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
         <div className="flex items-center justify-between gap-3">

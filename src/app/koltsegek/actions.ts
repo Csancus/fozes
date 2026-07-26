@@ -683,8 +683,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
 
   const map = await getMerchantMap(me.householdId);
   for (const r of rows) {
-    const id = String(r.id ?? "").trim();
-    if (!id) continue; // csak meglévőket frissítünk itt
+    const id = String(r.id ?? "").trim(); // üres = új tétel (a szerver generál id-t)
     const kind: ExpenseKind =
       String(r.kind ?? "expense") === "income" ? "income" : "expense";
     const amount = parseAmount(String(r.amount ?? ""));
@@ -710,7 +709,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
     const note = String(r.note ?? "");
 
     await saveExpense(me.householdId, {
-      id,
+      id: id || undefined,
       kind,
       amount,
       merchant,
