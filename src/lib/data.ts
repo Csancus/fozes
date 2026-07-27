@@ -26,6 +26,8 @@ import type {
   Task,
   TaskFileMeta,
   User,
+  JournalEntry,
+  JournalFile,
 } from "./types";
 import bcrypt from "bcryptjs";
 import {
@@ -34,6 +36,7 @@ import {
   DEFAULT_INCOME_CATEGORIES,
   DEFAULT_SAVED_TYPES,
 } from "./types";
+import { offloadImage, uploadDataUrl, isR2Configured } from "./r2";
 
 // ============ LOCATIONS ============
 
@@ -1510,4 +1513,131 @@ export async function deleteTaskFile(
   fileId: string
 ) {
   await redis.del(key.taskFile(hh, taskId, fileId));
+}
+
+// ============ NAPLÓ (Journal) ============
+
+export async function listJournalEntries(hh: string): Promise<JournalEntry[]> {
+  const ids = await redis.smembers(key.journalEntries(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<JournalEntry>(key.journalEntry(hh, id)))
+  );
+  return items
+    .filter((e): e is JournalEntry => !!e)
+    .sort((a, b) =>
+      a.date === b.date ? b.createdAt - a.createdAt : b.date.localeCompare(a.date)
+    );
+}
+
+export async function getJournalEntry(hh: string, id: string) {
+  return redis.get<JournalEntry>(key.journalEntry(hh, id));
+}
+
+export async function saveJournalEntry(hh: string, entry: JournalEntry) {
+  await redis.set(key.journalEntry(hh, entry.id), entry);
+  await redis.sadd(key.journalEntries(hh), entry.id);
+}
+
+export async function deleteJournalEntry(hh: string, id: string) {
+  const entry = await getJournalEntry(hh, id);
+  if (entry) {
+    await Promise.all(
+      entry.files.map((f) => deleteJournalFile(hh, id, f.id))
+    );
+  }
+  await redis.del(key.journalEntry(hh, id));
+  await redis.srem(key.journalEntries(hh), id);
+}
+
+// Napló fájl-blobok (videó/hang/egyéb) külön kulcson — csak akkor kerül ide
+// blob, ha nincs R2 konfigurálva (különben a fájl közvetlenül R2-be megy).
+export async function getJournalFile(
+  hh: string,
+  entryId: string,
+  fileId: string
+) {
+  return redis.get<string>(key.journalFile(hh, entryId, fileId));
+}
+
+export async function setJournalFile(
+  hh: string,
+  entryId: string,
+  fileId: string,
+  dataUrl: string
+) {
+  await redis.set(key.journalFile(hh, entryId, fileId), dataUrl);
+}
+
+export async function deleteJournalFile(
+  hh: string,
+  entryId: string,
+  fileId: string
+) {
+  await redis.del(key.journalFile(hh, entryId, fileId));
+}
+
+// Bejövő fotó/fájl a form-ból: dataUrl csak új feltöltésnél van; meglévő,
+// megtartott fájloknál csak a metaadat (+ esetleges korábbi url) érkezik.
+export type JournalIncomingFile = {
+  id: string;
+  name: string;
+  mime: string;
+  size: number;
+  dataUrl?: string;
+  url?: string | null;
+};
+
+// Közös mentési logika a Napló saját form-ja ÉS a Bakancslista "megcsináltuk"
+// popup között: a fotókat offloadImage-en engedi (R2 vagy inline fallback),
+// a fájlokat R2-be tölti ha van konfig, különben blobként külön kulcs alá
+// menti (mint a bakancslista/teendő fájlok). `existing` megadásával a
+// szerkesztésnél már nem használt fájl-blobok kitakarítódnak.
+export async function saveJournalEntryWithFiles(
+  hh: string,
+  entry: Omit<JournalEntry, "photos" | "files">,
+  input: { photos: string[]; files: JournalIncomingFile[] },
+  existing?: JournalEntry | null
+): Promise<JournalEntry> {
+  const photos: string[] = [];
+  for (const p of input.photos) {
+    const url = await offloadImage(p, `naplo/${hh}`);
+    if (url) photos.push(url);
+  }
+
+  const files: JournalFile[] = [];
+  for (const f of input.files) {
+    if (f.dataUrl) {
+      if (isR2Configured()) {
+        const url = await uploadDataUrl(f.dataUrl, `naplo/${hh}`);
+        if (url) {
+          files.push({ id: f.id, name: f.name, mime: f.mime, size: f.size, url });
+          continue;
+        }
+      }
+      await setJournalFile(hh, entry.id, f.id, f.dataUrl);
+      files.push({ id: f.id, name: f.name, mime: f.mime, size: f.size, url: null });
+    } else {
+      files.push({
+        id: f.id,
+        name: f.name,
+        mime: f.mime,
+        size: f.size,
+        url: f.url ?? null,
+      });
+    }
+  }
+
+  if (existing) {
+    const keptIds = new Set(files.map((f) => f.id));
+    for (const old of existing.files) {
+      if (!keptIds.has(old.id) && !old.url) {
+        await deleteJournalFile(hh, entry.id, old.id);
+      }
+    }
+  }
+
+  const full: JournalEntry = { ...entry, photos, files };
+  await saveJournalEntry(hh, full);
+  return full;
 }

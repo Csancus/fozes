@@ -13,6 +13,8 @@ import {
   createSavedType,
   updateSavedType,
   deleteSavedType,
+  saveJournalEntryWithFiles,
+  type JournalIncomingFile,
 } from "@/lib/data";
 import { getSession } from "@/lib/session";
 import { offloadImage } from "@/lib/r2";
@@ -118,6 +120,7 @@ export async function saveOcrDraftsAction(fd: FormData) {
       tags,
       done: false,
       doneAt: null,
+      journalEntryId: null,
       surpriseFor,
       createdAt: now,
       updatedAt: now,
@@ -188,6 +191,7 @@ export async function saveSavedAction(fd: FormData) {
     tags,
     done: existing?.done ?? false,
     doneAt: existing?.doneAt ?? null,
+    journalEntryId: existing?.journalEntryId ?? null,
     surpriseFor,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
@@ -245,6 +249,7 @@ export async function saveSavedBatchAction(fd: FormData) {
       tags,
       done: false,
       doneAt: null,
+      journalEntryId: null,
       surpriseFor: null,
       createdAt: now,
       updatedAt: now,
@@ -276,6 +281,86 @@ export async function toggleDoneAction(fd: FormData) {
   revalidatePath("/bakancslista");
   revalidatePath(`/bakancslista/${id}`);
   revalidatePath("/");
+}
+
+function parseJournalPhotos(raw: string): string[] {
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr.map((p) => String(p ?? "").trim()).filter(Boolean);
+  } catch {
+    return [];
+  }
+}
+
+function parseJournalFiles(raw: string): JournalIncomingFile[] {
+  try {
+    const arr = JSON.parse(raw);
+    if (!Array.isArray(arr)) return [];
+    return arr
+      .map((f) => ({
+        id: String(f?.id ?? "") || newId(),
+        name: String(f?.name ?? "fájl"),
+        mime: String(f?.mime ?? "application/octet-stream"),
+        size: Number(f?.size ?? 0) || 0,
+        dataUrl: typeof f?.dataUrl === "string" ? f.dataUrl : undefined,
+        url: typeof f?.url === "string" ? f.url : null,
+      }))
+      .filter((f) => f.id);
+  } catch {
+    return [];
+  }
+}
+
+// "Megcsináltuk" popup: kész-re állítja a tételt ÉS egy összekapcsolt Napló-
+// bejegyzést hoz létre (dátum, alkalom neve, leírás, fotók, videó/hang/fájl,
+// leirat). A tétel `journalEntryId` mezője erre a bejegyzésre mutat.
+export async function completeSavedItemAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  const item = await getSavedItem(hh, id);
+  if (!item) return;
+
+  const date = String(fd.get("date") ?? "").trim();
+  if (!date) return;
+  const title = String(fd.get("title") ?? "").trim() || item.title;
+  const body = String(fd.get("body") ?? "").trim();
+  const transcript = String(fd.get("transcript") ?? "").trim();
+  const photos = parseJournalPhotos(String(fd.get("photos") ?? "[]"));
+  const files = parseJournalFiles(String(fd.get("files") ?? "[]"));
+
+  const now = Date.now();
+  const entry = await saveJournalEntryWithFiles(
+    hh,
+    {
+      id: newId(),
+      date,
+      title,
+      body,
+      transcript,
+      savedItemId: id,
+      createdAt: now,
+      updatedAt: now,
+    },
+    { photos, files }
+  );
+
+  await saveSavedItem(hh, {
+    ...item,
+    done: true,
+    doneAt: new Date(`${date}T12:00:00`).getTime(),
+    journalEntryId: entry.id,
+    updatedAt: now,
+  });
+
+  revalidatePath("/bakancslista");
+  revalidatePath(`/bakancslista/${id}`);
+  revalidatePath("/naplo");
+  revalidatePath("/");
+  redirect(`/bakancslista/${id}`);
 }
 
 export async function deleteSavedAction(fd: FormData) {

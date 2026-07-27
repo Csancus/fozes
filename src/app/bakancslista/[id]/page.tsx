@@ -11,6 +11,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SurpriseUnlock } from "../SurpriseUnlock";
 import { SavedCover } from "../SavedCover";
+import { CompletionArea } from "../CompletionArea";
 import { unlockSurpriseAction } from "../actions";
 import { Button } from "@/components/ui/Button";
 import { catColor } from "@/lib/expense-visuals";
@@ -19,8 +20,6 @@ import { cn } from "@/lib/cn";
 import {
   Pencil,
   Trash2,
-  Check,
-  RotateCcw,
   Link2,
   MapPin,
   Video,
@@ -30,7 +29,7 @@ import {
   ExternalLink,
   Map as MapIcon,
 } from "lucide-react";
-import { toggleDoneAction, deleteSavedAction } from "../actions";
+import { deleteSavedAction } from "../actions";
 
 function fmtSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -109,22 +108,12 @@ export default async function SavedDetailPage({
         </div>
       </div>
 
-      {/* Done toggle */}
-      <form action={toggleDoneAction} className="mt-4">
-        <input type="hidden" name="id" value={item.id} />
-        {item.done ? (
-          <Button type="submit" variant="secondary" fullWidth leftIcon={<RotateCcw className="w-4 h-4" />}>
-            Visszarakás a listára
-          </Button>
-        ) : (
-          <button
-            type="submit"
-            className="w-full h-12 rounded-xl bg-emerald-600 text-white font-medium inline-flex items-center justify-center gap-2 hover:brightness-110 transition active:scale-[0.98]"
-          >
-            <Check className="w-4 h-4" /> Megcsináltam / kész
-          </button>
-        )}
-      </form>
+      <CompletionArea
+        itemId={item.id}
+        itemTitle={item.title}
+        done={item.done}
+        journalEntryId={item.journalEntryId}
+      />
 
       {item.location && (
         <a

@@ -94,6 +94,12 @@ export const key = {
 
   savedTypes: (hh: string) => `hh:${hh}:saved-types`,
   savedType: (hh: string, id: string) => `hh:${hh}:saved-type:${id}`,
+
+  // Napló
+  journalEntries: (hh: string) => `hh:${hh}:journal`,
+  journalEntry: (hh: string, id: string) => `hh:${hh}:journal:${id}`,
+  journalFile: (hh: string, entryId: string, fileId: string) =>
+    `hh:${hh}:journal:${entryId}:file:${fileId}`,
 };
 
 export function newId(): string {

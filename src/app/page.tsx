@@ -9,6 +9,7 @@ import {
   listExpenses,
   listSavedItems,
   listTasks,
+  listJournalEntries,
 } from "@/lib/data";
 import Link from "next/link";
 import {
@@ -18,6 +19,7 @@ import {
   Users,
   Plane,
   ListTodo,
+  NotebookPen,
   LogOut,
   AlertTriangle,
   ChevronRight,
@@ -37,13 +39,14 @@ export default async function Home() {
   const me = await currentUser();
   if (!me) redirect("/belepes");
 
-  const [hh, pantry, recipes, expenses, saved, tasks] = await Promise.all([
+  const [hh, pantry, recipes, expenses, saved, tasks, journalEntries] = await Promise.all([
     redis.get<Household>(key.household(me.householdId)),
     listPantry(me.householdId),
     listRecipes(me.householdId),
     listExpenses(me.householdId),
     listSavedItems(me.householdId),
     listTasks(me.householdId),
+    listJournalEntries(me.householdId),
   ]);
 
   const now = Date.now();
@@ -179,6 +182,17 @@ export default async function Home() {
           title="Utazások"
           desc="Útitervek évről évre, napról napra"
           stat="Tervezd meg a következő utat"
+        />
+        <AreaTile
+          href="/naplo"
+          icon={NotebookPen}
+          title="Napló"
+          desc="Gondolatok, élmények — írva vagy szóban"
+          stat={
+            journalEntries.length
+              ? `${journalEntries.length} bejegyzés`
+              : "Írd le, mi történt"
+          }
         />
         <AreaTile
           href="/teendok"

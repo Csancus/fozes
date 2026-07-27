@@ -475,7 +475,27 @@ export type SavedItem = {
   tags: string[];
   done: boolean;            // visited / read / watched
   doneAt: number | null;
+  journalEntryId: string | null; // a "megcsináltuk" popupból létrejött Napló-bejegyzés
   surpriseFor: string | null; // userId who must NOT see it (grey "Meglepetés" + password)
+  createdAt: number;
+  updatedAt: number;
+};
+
+// ============ NAPLÓ (Journal) ============
+
+// Egy csatolt fájl (videó/hang/egyéb) — url ha R2-be ment, különben a blob
+// külön kulcs alatt van (journalFile), és url: null.
+export type JournalFile = SavedFileMeta & { url: string | null };
+
+export type JournalEntry = {
+  id: string;
+  date: string;                // "YYYY-MM-DD" — melyik naphoz tartozik
+  title: string;                // alkalom neve
+  body: string;                 // leírás / gondolat
+  photos: string[];             // kép URL-ek (offloadImage-elve, mint a SavedItem.imageUrl)
+  files: JournalFile[];         // videó / hangfelvétel / egyéb csatolmány
+  transcript: string;           // hangfelvétel gépi (vagy kézzel javított) leirata
+  savedItemId: string | null;   // ha Bakancslista-tételből jött, ide mutat vissza
   createdAt: number;
   updatedAt: number;
 };

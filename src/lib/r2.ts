@@ -41,6 +41,10 @@ const EXT: Record<string, string> = {
   "audio/mp4": "m4a",
   "audio/wav": "wav",
   "audio/ogg": "ogg",
+  "audio/webm": "webm",
+  "video/mp4": "mp4",
+  "video/webm": "webm",
+  "video/quicktime": "mov",
 };
 
 // data:URL feltöltése R2-be → publikus URL (vagy null, ha nincs konfig / hiba).
