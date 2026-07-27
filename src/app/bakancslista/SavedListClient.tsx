@@ -25,6 +25,8 @@ import {
   EyeOff,
   Eye,
   Loader2,
+  List,
+  LayoutGrid,
 } from "lucide-react";
 
 type Entry = SavedItem & { surpriseForName?: string | null };
@@ -51,6 +53,7 @@ export function SavedListClient({
 }) {
   const [done, setDone] = useState(false);
   const [kind, setKind] = useState<KindFilter>("all");
+  const [view, setView] = useState<"grid" | "list">("grid");
 
   // Kijelölés-mód a tömeges elrejtéshez
   const [selectMode, setSelectMode] = useState(false);
@@ -156,28 +159,51 @@ export function SavedListClient({
         )}
       </div>
 
-      {/* Típus szűrő */}
-      <div className="mt-4 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
-        <FilterChip active={kind === "all"} onClick={() => setKind("all")}>
-          Mind ({pool.length})
-        </FilterChip>
-        {types
-          .filter((t) => kindsInPool.has(t.id))
-          .map((t) => (
-            <FilterChip
-              key={t.id}
-              active={kind === t.id}
-              onClick={() => setKind(t.id)}
-            >
-              {t.name}
-            </FilterChip>
-          ))}
+      {/* Típus szűrő + nézetváltó */}
+      <div className="mt-4 flex items-center gap-2">
+        <div className="flex-1 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          <FilterChip active={kind === "all"} onClick={() => setKind("all")}>
+            Mind ({pool.length})
+          </FilterChip>
+          {types
+            .filter((t) => kindsInPool.has(t.id))
+            .map((t) => (
+              <FilterChip
+                key={t.id}
+                active={kind === t.id}
+                onClick={() => setKind(t.id)}
+              >
+                {t.name}
+              </FilterChip>
+            ))}
+        </div>
+        <div className="inline-flex rounded-lg border border-[var(--color-border)] p-0.5 shrink-0">
+          <ViewBtn active={view === "grid"} onClick={() => setView("grid")} label="Rács nézet">
+            <LayoutGrid className="w-4 h-4" />
+          </ViewBtn>
+          <ViewBtn active={view === "list"} onClick={() => setView("list")} label="Lista nézet">
+            <List className="w-4 h-4" />
+          </ViewBtn>
+        </div>
       </div>
 
       {shown.length === 0 ? (
         <p className="mt-10 text-center text-sm text-[var(--color-muted-foreground)]">
           {done ? "Még semmi sincs kipipálva." : "Nincs itt semmi. Adj hozzá egyet!"}
         </p>
+      ) : view === "list" ? (
+        <div className={cn("mt-5 space-y-2", selectMode && "pb-28")}>
+          {shown.map((item) => (
+            <SavedRow
+              key={item.id}
+              item={item}
+              types={types}
+              selectMode={selectMode}
+              selected={selected.has(item.id)}
+              onToggle={() => toggleSelect(item.id)}
+            />
+          ))}
+        </div>
       ) : (
         <div
           className={cn(
@@ -389,6 +415,35 @@ function Tab({
   );
 }
 
+function ViewBtn({
+  active,
+  onClick,
+  label,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      aria-pressed={active}
+      className={cn(
+        "w-8 h-8 rounded-md flex items-center justify-center transition",
+        active
+          ? "bg-[var(--color-primary)] text-white"
+          : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
 function FilterChip({
   active,
   onClick,
@@ -529,6 +584,115 @@ function SavedCard({
 
   return (
     <Link href={`/bakancslista/${item.id}`} className={cardCls}>
+      {inner}
+    </Link>
+  );
+}
+
+function SavedRow({
+  item,
+  types,
+  selectMode,
+  selected,
+  onToggle,
+}: {
+  item: Entry;
+  types: SavedType[];
+  selectMode: boolean;
+  selected: boolean;
+  onToggle: () => void;
+}) {
+  const vis = resolveType(types, item.kind);
+  const col = catColor(vis.color);
+  const Icon = savedIcon(vis.icon);
+
+  const inner = (
+    <>
+      <span
+        className={cn(
+          "w-10 h-10 rounded-xl flex items-center justify-center shrink-0 overflow-hidden",
+          !item.imageUrl && col.soft
+        )}
+      >
+        {item.imageUrl ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={item.imageUrl}
+            alt={item.title}
+            className="w-full h-full object-cover"
+          />
+        ) : (
+          <Icon className={cn("w-5 h-5", col.text)} />
+        )}
+      </span>
+      <div className="flex-1 min-w-0">
+        <p className="font-medium text-[15px] leading-tight truncate">
+          {item.title}
+        </p>
+        <div className="mt-0.5 flex items-center gap-2 text-xs text-[var(--color-muted-foreground)]">
+          <span className={cn("inline-flex items-center gap-1", col.text)}>
+            <Icon className="w-3 h-3" /> {vis.name}
+          </span>
+          {item.location && (
+            <span className="flex items-center gap-1 truncate">
+              <MapPin className="w-3 h-3 shrink-0" /> {item.location}
+            </span>
+          )}
+          {item.links.length > 0 && (
+            <span className="inline-flex items-center gap-0.5 shrink-0">
+              <Link2 className="w-3 h-3" /> {item.links.length}
+            </span>
+          )}
+          {item.files.length > 0 && (
+            <span className="inline-flex items-center gap-0.5 shrink-0">
+              <Paperclip className="w-3 h-3" /> {item.files.length}
+            </span>
+          )}
+        </div>
+        {item.surpriseForName && (
+          <p className="mt-1 inline-flex items-center gap-1 rounded-full bg-[var(--color-primary-soft)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-primary)]">
+            <Gift className="w-3 h-3" /> Meglepetés · {item.surpriseForName} elől
+          </p>
+        )}
+      </div>
+      {item.done && (
+        <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
+          <Check className="w-3.5 h-3.5" />
+        </span>
+      )}
+      {selectMode && (
+        <span
+          className={cn(
+            "w-6 h-6 rounded-md flex items-center justify-center shrink-0",
+            selected
+              ? "text-[var(--color-primary)]"
+              : "text-[var(--color-muted-foreground)]"
+          )}
+        >
+          {selected ? <CheckSquare className="w-5 h-5" /> : <Square className="w-5 h-5" />}
+        </span>
+      )}
+    </>
+  );
+
+  const rowCls = cn(
+    "flex items-center gap-3 rounded-xl border bg-[var(--color-card)] px-3 py-2.5 transition active:scale-[0.99]",
+    selected
+      ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/30"
+      : "border-[var(--color-border)] hover:border-[var(--color-primary)]/40",
+    item.done && !selected && "opacity-70"
+  );
+
+  if (selectMode) {
+    return (
+      <button type="button" onClick={onToggle} className={cn(rowCls, "w-full text-left")}>
+        {inner}
+      </button>
+    );
+  }
+
+  return (
+    <Link href={`/bakancslista/${item.id}`} className={rowCls}>
       {inner}
     </Link>
   );

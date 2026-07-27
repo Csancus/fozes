@@ -6,10 +6,11 @@ import {
   ensureDefaultSavedTypes,
 } from "@/lib/data";
 import { getSession } from "@/lib/session";
+import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
-import { Bookmark, Plus, Table2, ScanText } from "lucide-react";
+import { Bookmark, Plus, Table2, ScanText, SlidersHorizontal } from "lucide-react";
 import { SavedListClient } from "./SavedListClient";
 import {
   setSurpriseBatchAction,
@@ -56,13 +57,22 @@ export default async function BakancslistaPage() {
         subtitle="Amit egyszer meg akarsz csinálni"
         back="/"
         action={
-          <Button
-            href="/bakancslista/uj"
-            size="sm"
-            leftIcon={<Plus className="w-4 h-4" />}
-          >
-            Új
-          </Button>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/bakancslista/beallitasok"
+              aria-label="Beállítások"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+            </Link>
+            <Button
+              href="/bakancslista/uj"
+              size="sm"
+              leftIcon={<Plus className="w-4 h-4" />}
+            >
+              Új
+            </Button>
+          </div>
         }
       />
 
@@ -87,6 +97,17 @@ export default async function BakancslistaPage() {
       >
         Kép alapján
       </Button>
+
+      <Link
+        href="/bakancslista/beallitasok"
+        className="mt-3 flex items-center justify-between rounded-xl border border-dashed border-[var(--color-border)] px-4 h-11 text-sm font-medium text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/40 hover:text-[var(--color-foreground)] transition"
+      >
+        <span className="flex items-center gap-2">
+          <SlidersHorizontal className="w-4 h-4" />
+          Típusok kezelése
+        </span>
+        <span className="text-[var(--color-primary)]">Beállítások</span>
+      </Link>
 
       {visible.length === 0 && lockedCount === 0 ? (
         <div className="mt-6">

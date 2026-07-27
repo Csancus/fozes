@@ -1282,6 +1282,27 @@ export async function createSavedType(
   return type;
 }
 
+export async function getSavedType(hh: string, id: string) {
+  return redis.get<SavedType>(key.savedType(hh, id));
+}
+
+export async function updateSavedType(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<SavedType, "name" | "color" | "icon">>
+) {
+  const cur = await getSavedType(hh, id);
+  if (!cur) return null;
+  const next = { ...cur, ...patch };
+  await redis.set(key.savedType(hh, id), next);
+  return next;
+}
+
+export async function deleteSavedType(hh: string, id: string) {
+  await redis.del(key.savedType(hh, id));
+  await redis.srem(key.savedTypes(hh), id);
+}
+
 // ---- Meglepetés (rejtett tételek egy háztartás-tag elől) ----
 
 export async function listHouseholdMembers(

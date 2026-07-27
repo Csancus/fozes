@@ -14,12 +14,13 @@ import {
   payIcon,
   nearestColorToken,
 } from "@/lib/expense-visuals";
+import { SAVED_ICON_KEYS, savedIcon } from "@/lib/saved-visuals";
 import { PAYMENT_KIND_LABEL, PROJECT_SCOPE_LABEL } from "@/lib/types";
 import type { PaymentKind, ProjectScope } from "@/lib/types";
 import { cn } from "@/lib/cn";
 import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers, Palette, Target } from "lucide-react";
 
-export type Variant = "category" | "payment" | "person" | "project" | "merchant" | "group" | "goal";
+export type Variant = "category" | "payment" | "person" | "project" | "merchant" | "group" | "goal" | "savedType";
 
 export type EntityItem = {
   id: string;
@@ -50,6 +51,7 @@ const DEFAULT_COLOR: Record<Variant, string> = {
   merchant: "zinc",
   group: "violet",
   goal: "amber",
+  savedType: "sky",
 };
 
 const ADD_LABEL: Record<Variant, string> = {
@@ -60,6 +62,7 @@ const ADD_LABEL: Record<Variant, string> = {
   merchant: "Bolt / kinek hozzáadása",
   group: "Csoport hozzáadása",
   goal: "Cél hozzáadása",
+  savedType: "Típus hozzáadása",
 };
 
 const NAME_PLACEHOLDER: Record<Variant, string> = {
@@ -70,6 +73,7 @@ const NAME_PLACEHOLDER: Record<Variant, string> = {
   merchant: "pl. Lidl, Shell, Spotify",
   group: "pl. Nyaralás elszámolás, Közös kassza",
   goal: "pl. Vagyonépítés, Egészség",
+  savedType: "pl. Koncert, Kirándulás",
 };
 
 function ColorPicker({
@@ -139,7 +143,7 @@ function Fields({
   goals?: GoalLite[];
 }) {
   const [color, setColor] = useState(initial?.color ?? DEFAULT_COLOR[variant]);
-  const [icon, setIcon] = useState(initial?.icon ?? "tag");
+  const [icon, setIcon] = useState(initial?.icon ?? (variant === "savedType" ? "bookmark" : "tag"));
   const [kind, setKind] = useState<PaymentKind>(initial?.kind ?? "card");
   const [scope, setScope] = useState<ProjectScope>(initial?.scope ?? "expense");
 
@@ -148,7 +152,9 @@ function Fields({
       {variant !== "merchant" && (
         <input type="hidden" name="color" value={color} />
       )}
-      {variant === "category" && <input type="hidden" name="icon" value={icon} />}
+      {(variant === "category" || variant === "savedType") && (
+        <input type="hidden" name="icon" value={icon} />
+      )}
       {variant === "payment" && <input type="hidden" name="kind" value={kind} />}
       {variant === "project" && <input type="hidden" name="scope" value={scope} />}
 
@@ -271,12 +277,12 @@ function Fields({
         </div>
       )}
 
-      {variant === "category" && (
+      {(variant === "category" || variant === "savedType") && (
         <div>
           <span className="block text-sm font-medium mb-2">Ikon</span>
           <div className="flex flex-wrap gap-2">
-            {ICON_KEYS.map((ic) => {
-              const Icon = catIcon(ic);
+            {(variant === "savedType" ? SAVED_ICON_KEYS : ICON_KEYS).map((ic) => {
+              const Icon = variant === "savedType" ? savedIcon(ic) : catIcon(ic);
               const active = icon === ic;
               const col = catColor(color);
               return (
@@ -332,6 +338,8 @@ function Visual({
   const Icon =
     variant === "category"
       ? catIcon(item.icon ?? "tag")
+      : variant === "savedType"
+      ? savedIcon(item.icon ?? "bookmark")
       : variant === "payment"
       ? payIcon(item.kind ?? "card")
       : variant === "group"

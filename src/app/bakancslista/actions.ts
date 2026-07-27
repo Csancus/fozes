@@ -11,6 +11,8 @@ import {
   verifySurprisePassword,
   setSurpriseForItems,
   createSavedType,
+  updateSavedType,
+  deleteSavedType,
 } from "@/lib/data";
 import { getSession } from "@/lib/session";
 import { offloadImage } from "@/lib/r2";
@@ -302,6 +304,39 @@ export async function createSavedTypeInline(input: {
   });
   revalidatePath("/bakancslista");
   return type;
+}
+
+// Beállítások oldal: típus létrehozása/szerkesztése/törlése űrlapról.
+export async function createSavedTypeAction(fd: FormData) {
+  const me = await requireUser();
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "zinc").trim();
+  const icon = String(fd.get("icon") ?? "bookmark").trim();
+  if (!name) return;
+  await createSavedType(me.householdId, { name, color, icon });
+  revalidatePath("/bakancslista/beallitasok");
+  revalidatePath("/bakancslista");
+}
+
+export async function updateSavedTypeAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  const name = String(fd.get("name") ?? "").trim();
+  const color = String(fd.get("color") ?? "zinc").trim();
+  const icon = String(fd.get("icon") ?? "bookmark").trim();
+  if (!id || !name) return;
+  await updateSavedType(me.householdId, id, { name, color, icon });
+  revalidatePath("/bakancslista/beallitasok");
+  revalidatePath("/bakancslista");
+}
+
+export async function deleteSavedTypeAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "");
+  if (!id) return;
+  await deleteSavedType(me.householdId, id);
+  revalidatePath("/bakancslista/beallitasok");
+  revalidatePath("/bakancslista");
 }
 
 // ---- Meglepetés ----
