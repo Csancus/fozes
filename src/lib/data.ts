@@ -1433,6 +1433,7 @@ export async function saveTrip(
     startDate: input.startDate ?? "",
     endDate: input.endDate ?? "",
     note: input.note ?? "",
+    planNote: input.planNote ?? existing?.planNote ?? "",
     imageUrl: input.imageUrl ?? null,
     days: input.days ?? existing?.days ?? [],
     createdAt: existing?.createdAt ?? now,
@@ -1443,11 +1444,21 @@ export async function saveTrip(
   return trip;
 }
 
-// Csak a nap-terv frissítése (a tervezőből).
-export async function saveTripDays(hh: string, id: string, days: TripDay[]) {
+// Csak a nap-terv (+ a terv alatti jegyzet) frissítése (a tervezőből).
+export async function saveTripDays(
+  hh: string,
+  id: string,
+  days: TripDay[],
+  planNote?: string
+) {
   const trip = await getTrip(hh, id);
   if (!trip) return null;
-  const next: Trip = { ...trip, days, updatedAt: Date.now() };
+  const next: Trip = {
+    ...trip,
+    days,
+    planNote: planNote ?? trip.planNote ?? "",
+    updatedAt: Date.now(),
+  };
   await redis.set(key.trip(hh, id), next);
   return next;
 }

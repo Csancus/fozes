@@ -25,6 +25,7 @@ export default async function TripPlanPage({
       <TripPlanner
         tripId={trip.id}
         initialDays={trip.days}
+        initialNote={trip.planNote ?? ""}
         action={saveTripDaysAction}
       />
     </main>

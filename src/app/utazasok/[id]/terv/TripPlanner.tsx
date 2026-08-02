@@ -2,7 +2,7 @@
 
 import { useMemo, useRef, useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
-import { SubmitButton } from "@/components/ui/SubmitButton";
+import { RichTextEditor } from "@/components/ui/RichTextEditor";
 import {
   Plus,
   X,
@@ -12,6 +12,7 @@ import {
   Loader2,
   Check,
   ExternalLink,
+  StickyNote,
 } from "lucide-react";
 import { TRIP_PLAN_COLUMNS } from "@/lib/types";
 import type { TripDay, TripPlanItem } from "@/lib/types";
@@ -75,24 +76,42 @@ const cellCls =
 export function TripPlanner({
   tripId,
   initialDays,
+  initialNote = "",
   action,
 }: {
   tripId: string;
   initialDays: TripDay[];
+  initialNote?: string;
   action: (fd: FormData) => void | Promise<void>;
 }) {
   const [days, setDays] = useState<TripDay[]>(
     initialDays.length > 0 ? initialDays : [emptyDay()]
   );
+  const [note, setNote] = useState(initialNote);
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
   const [pending, startTransition] = useTransition();
   const cleanRef = useRef(JSON.stringify(initialDays));
+  const cleanNoteRef = useRef(initialNote);
+  const noteRef = useRef(initialNote);
 
   function mutate(next: TripDay[]) {
     setDays(next);
-    setDirty(JSON.stringify(next) !== cleanRef.current);
+    setDirty(
+      JSON.stringify(next) !== cleanRef.current ||
+        noteRef.current !== cleanNoteRef.current
+    );
+    setSaved(false);
+  }
+
+  function changeNote(html: string) {
+    noteRef.current = html;
+    setNote(html);
+    setDirty(
+      html !== cleanNoteRef.current ||
+        JSON.stringify(days) !== cleanRef.current
+    );
     setSaved(false);
   }
 
@@ -146,11 +165,14 @@ export function TripPlanner({
 
   function save() {
     const fd = new FormData();
+    const currentNote = noteRef.current;
     fd.set("id", tripId);
     fd.set("days", JSON.stringify(days));
+    fd.set("planNote", currentNote);
     startTransition(async () => {
       await action(fd);
       cleanRef.current = JSON.stringify(days);
+      cleanNoteRef.current = currentNote;
       setDirty(false);
       setSaved(true);
     });
@@ -341,6 +363,19 @@ export function TripPlanner({
       >
         <Plus className="w-4 h-4" /> Új nap
       </button>
+
+      {/* Szabad jegyzet a terv alatt */}
+      <section className="mt-8">
+        <h2 className="mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] px-1">
+          <StickyNote className="w-3.5 h-3.5" /> Jegyzet
+        </h2>
+        <RichTextEditor
+          value={note}
+          onChange={changeNote}
+          placeholder="Szabad jegyzet a tervhez — ötletek, foglalási adatok, tennivalók…"
+          minHeight={180}
+        />
+      </section>
 
       {/* Mentés-sáv */}
       <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md md:pl-64">

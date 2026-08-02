@@ -2,6 +2,7 @@
 
 import { requireUser } from "@/lib/auth";
 import { saveTrip, saveTripDays, deleteTrip } from "@/lib/data";
+import { sanitizeRichText } from "@/lib/richtext";
 import type { TripDay } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -68,7 +69,8 @@ export async function saveTripDaysAction(fd: FormData) {
   } catch {
     days = [];
   }
-  await saveTripDays(me.householdId, id, days);
+  const planNote = sanitizeRichText(String(fd.get("planNote") ?? ""));
+  await saveTripDays(me.householdId, id, days, planNote);
   revalidatePath(`/utazasok/${id}/terv`);
   revalidatePath(`/utazasok/${id}`);
 }

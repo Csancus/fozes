@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { getTrip } from "@/lib/data";
+import { sanitizeRichText } from "@/lib/richtext";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -12,6 +13,7 @@ import {
   Map as MapIcon,
   ChevronRight,
   Route,
+  StickyNote,
 } from "lucide-react";
 
 export default async function TripDashboardPage({
@@ -94,6 +96,18 @@ export default async function TripDashboardPage({
         </div>
         <ChevronRight className="w-5 h-5 text-[var(--color-muted-foreground)] shrink-0" />
       </Link>
+
+      {trip.planNote && (
+        <>
+          <h2 className="mt-8 mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] px-1">
+            <StickyNote className="w-3.5 h-3.5" /> Jegyzet
+          </h2>
+          <div
+            className="rich-text rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 text-[15px] leading-relaxed"
+            dangerouslySetInnerHTML={{ __html: sanitizeRichText(trip.planNote) }}
+          />
+        </>
+      )}
 
       <div className="mt-8">
         <Button href={`/utazasok/${id}/terv`} size="lg" fullWidth leftIcon={<MapIcon className="w-4 h-4" />}>

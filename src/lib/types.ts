@@ -539,6 +539,7 @@ export type Trip = {
   startDate: string;    // kezdő dátum-címke (opcionális)
   endDate: string;      // záró dátum-címke (opcionális)
   note: string;
+  planNote?: string;    // szabad jegyzet a terv alatt (sanitizált HTML)
   imageUrl: string | null;
   days: TripDay[];
   createdAt: number;
