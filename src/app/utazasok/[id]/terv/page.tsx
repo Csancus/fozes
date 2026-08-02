@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { TripPlanner } from "./TripPlanner";
 import { saveTripDaysAction } from "../../actions";
+import { plainToRichText } from "@/lib/richtext";
 
 export default async function TripPlanPage({
   params,
@@ -25,7 +26,7 @@ export default async function TripPlanPage({
       <TripPlanner
         tripId={trip.id}
         initialDays={trip.days}
-        initialNote={trip.planNote ?? ""}
+        initialNote={trip.planNote || plainToRichText(trip.note)}
         action={saveTripDaysAction}
       />
     </main>

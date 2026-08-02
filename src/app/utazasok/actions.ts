@@ -24,7 +24,8 @@ export async function createTripAction(fd: FormData) {
     destination: String(fd.get("destination") ?? "").trim(),
     startDate: String(fd.get("startDate") ?? "").trim(),
     endDate: String(fd.get("endDate") ?? "").trim(),
-    note: String(fd.get("note") ?? "").trim(),
+    note: "",
+    planNote: sanitizeRichText(String(fd.get("planNote") ?? "")),
     imageUrl: null,
   });
   revalidatePath("/utazasok");
@@ -50,11 +51,14 @@ export async function updateTripAction(fd: FormData) {
     destination: String(fd.get("destination") ?? "").trim(),
     startDate: String(fd.get("startDate") ?? "").trim(),
     endDate: String(fd.get("endDate") ?? "").trim(),
-    note: String(fd.get("note") ?? "").trim(),
+    // A régi sima jegyzet beolvadt a rich-text jegyzetbe (a form már azt küldi).
+    note: "",
+    planNote: sanitizeRichText(String(fd.get("planNote") ?? "")),
     imageUrl: null,
   });
   revalidatePath("/utazasok");
   revalidatePath(`/utazasok/${id}`);
+  revalidatePath(`/utazasok/${id}/terv`);
   redirect(`/utazasok/${id}`);
 }
 

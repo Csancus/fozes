@@ -1459,6 +1459,8 @@ export async function saveTripDays(
     ...trip,
     days,
     planNote: planNote ?? trip.planNote ?? "",
+    // A tervező jegyzete átvette a régi sima jegyzetet (a szerkesztő előtöltötte).
+    note: planNote !== undefined ? "" : trip.note,
     updatedAt: Date.now(),
   };
   await redis.set(key.trip(hh, id), next);

@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import { getTrip } from "@/lib/data";
-import { sanitizeRichText } from "@/lib/richtext";
+import { plainToRichText, sanitizeRichText } from "@/lib/richtext";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -28,6 +28,10 @@ export default async function TripDashboardPage({
 
   const dateRange = [trip.startDate, trip.endDate].filter(Boolean).join(" – ");
   const stopCount = trip.days.reduce((n, d) => n + d.items.length, 0);
+  // A régi sima jegyzet is itt jelenik meg, amíg valaki át nem menti.
+  const noteHtml = sanitizeRichText(
+    trip.planNote || plainToRichText(trip.note)
+  );
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-3xl mx-auto">
@@ -63,11 +67,6 @@ export default async function TripDashboardPage({
               <CalendarDays className="w-4 h-4" /> {dateRange}
             </p>
           )}
-          {trip.note && (
-            <p className="pt-1 text-[15px] whitespace-pre-wrap leading-relaxed">
-              {trip.note}
-            </p>
-          )}
         </div>
       </div>
 
@@ -97,14 +96,14 @@ export default async function TripDashboardPage({
         <ChevronRight className="w-5 h-5 text-[var(--color-muted-foreground)] shrink-0" />
       </Link>
 
-      {trip.planNote && (
+      {noteHtml && (
         <>
           <h2 className="mt-8 mb-2 flex items-center gap-1.5 text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] px-1">
             <StickyNote className="w-3.5 h-3.5" /> Jegyzet
           </h2>
           <div
             className="rich-text rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 text-[15px] leading-relaxed"
-            dangerouslySetInnerHTML={{ __html: sanitizeRichText(trip.planNote) }}
+            dangerouslySetInnerHTML={{ __html: noteHtml }}
           />
         </>
       )}

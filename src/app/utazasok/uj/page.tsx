@@ -1,7 +1,8 @@
 import { requireUser } from "@/lib/auth";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { Input, Textarea, Field } from "@/components/ui/Input";
+import { Input, Field } from "@/components/ui/Input";
+import { TripNoteField } from "../TripNoteField";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Plane } from "lucide-react";
 import { createTripAction } from "../actions";
@@ -39,9 +40,7 @@ export default async function NewTripPage() {
               <Input name="endDate" placeholder="pl. máj. 5." />
             </Field>
           </div>
-          <Field label="Jegyzet">
-            <Textarea name="note" placeholder="Bármi, amit érdemes tudni az útról" />
-          </Field>
+          <TripNoteField />
           <SubmitButton size="lg" fullWidth leftIcon={<Plane className="w-4 h-4" />}>
             Utazás létrehozása
           </SubmitButton>

@@ -45,6 +45,27 @@ function escapeAttr(v: string): string {
     .replace(/>/g, "&gt;");
 }
 
+// Régi, sima szöveges jegyzet → rich-text HTML (bekezdésenként).
+export function plainToRichText(text: string): string {
+  const t = text.trim();
+  if (!t) return "";
+  return t
+    .split(/\n{2,}/)
+    .map(
+      (para) =>
+        `<p>${para
+          .split("\n")
+          .map((line) =>
+            line
+              .replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+          )
+          .join("<br>")}</p>`
+    )
+    .join("");
+}
+
 export function sanitizeRichText(input: string): string {
   if (!input) return "";
   let html = input.slice(0, 200_000);

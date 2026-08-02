@@ -3,7 +3,9 @@ import { getTrip } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
-import { Input, Textarea, Field } from "@/components/ui/Input";
+import { Input, Field } from "@/components/ui/Input";
+import { TripNoteField } from "../../TripNoteField";
+import { plainToRichText } from "@/lib/richtext";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Button } from "@/components/ui/Button";
 import { Trash2 } from "lucide-react";
@@ -50,9 +52,9 @@ export default async function EditTripPage({
               <Input name="endDate" defaultValue={trip.endDate} />
             </Field>
           </div>
-          <Field label="Jegyzet">
-            <Textarea name="note" defaultValue={trip.note} />
-          </Field>
+          <TripNoteField
+            initial={trip.planNote || plainToRichText(trip.note)}
+          />
           <SubmitButton size="lg" fullWidth>
             Mentés
           </SubmitButton>
