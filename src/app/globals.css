@@ -158,6 +158,15 @@ a {
 }
 
 /* Rich-text jegyzetek (szerkesztő + megjelenítés) */
+.rich-text {
+  /* Hosszú link / szóköz nélküli szöveg is törjön, ne lógjon ki a dobozból. */
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  min-width: 0;
+}
+.rich-text pre {
+  white-space: pre-wrap;
+}
 .rich-text > :first-child {
   margin-top: 0;
 }
