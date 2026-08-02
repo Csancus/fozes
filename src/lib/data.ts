@@ -1231,11 +1231,13 @@ export async function listSavedItems(hh: string): Promise<SavedItem[]> {
   );
   return items
     .filter((s): s is SavedItem => !!s)
+    .map((s) => ({ ...s, ownerId: s.ownerId ?? null }))
     .sort((a, b) => b.updatedAt - a.updatedAt);
 }
 
 export async function getSavedItem(hh: string, id: string) {
-  return redis.get<SavedItem>(key.savedItem(hh, id));
+  const item = await redis.get<SavedItem>(key.savedItem(hh, id));
+  return item ? { ...item, ownerId: item.ownerId ?? null } : item;
 }
 
 // ---- Bakancslista-típusok (bővíthető, saját ikonnal/színnel) ----

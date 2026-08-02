@@ -113,6 +113,9 @@ export function SavedForm({
     initial?.kind ?? types[0]?.id ?? "etterem"
   );
   const { open: openTypeCreator, modal: typeModal } = useTypeCreator();
+  const [ownerId, setOwnerId] = useState<string>(
+    initial ? initial.ownerId ?? "" : myId ?? ""
+  );
   const [surpriseFor, setSurpriseFor] = useState<string>(
     initial?.surpriseFor ?? ""
   );
@@ -191,6 +194,7 @@ export function SavedForm({
       />
       <input type="hidden" name="files" value={JSON.stringify(files)} />
       <input type="hidden" name="surpriseFor" value={surpriseFor} />
+      <input type="hidden" name="ownerId" value={ownerId} />
 
       {/* Típus */}
       {typeModal}
@@ -248,6 +252,23 @@ export function SavedForm({
           autoFocus={!initial}
         />
       </Field>
+
+      {members.length > 0 && (
+        <Field label="Kinek a listája?" hint="Külön szűrhető a listán">
+          <select
+            value={ownerId}
+            onChange={(e) => setOwnerId(e.target.value)}
+            className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+          >
+            <option value="">Közös</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>
+                {m.name}
+              </option>
+            ))}
+          </select>
+        </Field>
+      )}
 
       <Field label="Hol / cím" hint="Város, cím vagy hely — nem kötelező">
         <Input

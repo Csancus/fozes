@@ -72,6 +72,7 @@ type OcrDraft = {
   imageUrl?: string;
   links?: { url?: string; label?: string }[];
   surpriseFor?: string;
+  ownerId?: string;
 };
 
 export async function saveOcrDraftsAction(fd: FormData) {
@@ -122,6 +123,7 @@ export async function saveOcrDraftsAction(fd: FormData) {
       doneAt: null,
       journalEntryId: null,
       surpriseFor,
+      ownerId: String(d.ownerId ?? "").trim() || me.userId,
       createdAt: now,
       updatedAt: now,
     };
@@ -157,6 +159,7 @@ export async function saveSavedAction(fd: FormData) {
   const links = parseLinks(String(fd.get("links") ?? "[]"));
   const incoming = parseFiles(String(fd.get("files") ?? "[]"));
   const surpriseFor = String(fd.get("surpriseFor") ?? "").trim() || null;
+  const ownerRaw = String(fd.get("ownerId") ?? "").trim();
 
   if (!title) return;
 
@@ -193,6 +196,8 @@ export async function saveSavedAction(fd: FormData) {
     doneAt: existing?.doneAt ?? null,
     journalEntryId: existing?.journalEntryId ?? null,
     surpriseFor,
+    // Új tételnél alapból az enyém, ha a form nem küldött mást.
+    ownerId: ownerRaw || (existing ? existing.ownerId ?? null : me.userId),
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   };
@@ -208,6 +213,7 @@ type BatchRow = {
   location?: string;
   tags?: string;
   note?: string;
+  ownerId?: string;
 };
 
 export async function saveSavedBatchAction(fd: FormData) {
@@ -251,6 +257,7 @@ export async function saveSavedBatchAction(fd: FormData) {
       doneAt: null,
       journalEntryId: null,
       surpriseFor: null,
+      ownerId: String(r.ownerId ?? "").trim() || me.userId,
       createdAt: now,
       updatedAt: now,
     };

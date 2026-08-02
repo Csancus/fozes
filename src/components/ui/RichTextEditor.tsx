@@ -154,6 +154,12 @@ export function RichTextEditor({
     setActive(next);
   }, []);
 
+  // A kezdeti tartalmat CSAK mountkor írjuk be. (dangerouslySetInnerHTML-lel a
+  // React minden újrarendereléskor visszaírná a kezdeti HTML-t → törölné a gépelést.)
+  useEffect(() => {
+    if (ref.current && initial.current) ref.current.innerHTML = initial.current;
+  }, []);
+
   useEffect(() => {
     document.addEventListener("selectionchange", refreshActive);
     return () => document.removeEventListener("selectionchange", refreshActive);
@@ -263,7 +269,6 @@ export function RichTextEditor({
           onMouseUp={refreshActive}
           className="rich-text px-3.5 py-3 text-[15px] leading-relaxed outline-none"
           style={{ minHeight }}
-          dangerouslySetInnerHTML={{ __html: initial.current }}
         />
       </div>
     </div>

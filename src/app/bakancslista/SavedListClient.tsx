@@ -29,7 +29,14 @@ import {
   LayoutGrid,
 } from "lucide-react";
 
-type Entry = SavedItem & { surpriseForName?: string | null };
+type Entry = SavedItem & {
+  surpriseForName?: string | null;
+  ownerName?: string | null;
+};
+
+function initials(name: string): string {
+  return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
+}
 type KindFilter = "all" | string;
 
 type UnlockState = { ok: boolean; error?: string } | undefined;
@@ -40,6 +47,8 @@ export function SavedListClient({
   lockedCount,
   hasSurprisePw,
   members,
+  allMembers = [],
+  myId,
   unlockAction,
   setSurpriseBatchAction,
 }: {
@@ -48,11 +57,14 @@ export function SavedListClient({
   lockedCount: number;
   hasSurprisePw: boolean;
   members: { id: string; name: string }[];
+  allMembers?: { id: string; name: string }[];
+  myId?: string;
   unlockAction: (prev: UnlockState, fd: FormData) => Promise<UnlockState>;
   setSurpriseBatchAction: (fd: FormData) => void | Promise<void>;
 }) {
   const [done, setDone] = useState(false);
   const [kind, setKind] = useState<KindFilter>("all");
+  const [owner, setOwner] = useState<string>("all"); // all | __me | __shared | userId
   const [view, setView] = useState<"grid" | "list">("grid");
 
   // Kijelölés-mód a tömeges elrejtéshez
@@ -63,7 +75,34 @@ export function SavedListClient({
   // Feloldás modál
   const [showUnlock, setShowUnlock] = useState(false);
 
-  const pool = useMemo(() => items.filter((i) => i.done === done), [items, done]);
+  // Kinek a listája — szűrés a Felfedezni/Kész bontás ELŐTT (a számok is ezt követik).
+  const ownerPool = useMemo(
+    () =>
+      items.filter((i) => {
+        if (owner === "all") return true;
+        if (owner === "__me") return i.ownerId === myId;
+        if (owner === "__shared") return !i.ownerId;
+        return i.ownerId === owner;
+      }),
+    [items, owner, myId]
+  );
+
+  const ownerTabs = useMemo(() => {
+    const hasShared = items.some((i) => !i.ownerId);
+    return [
+      { id: "all", name: "Mind" },
+      ...(myId ? [{ id: "__me", name: "Enyém" }] : []),
+      ...allMembers
+        .filter((m) => m.id !== myId)
+        .map((m) => ({ id: m.id, name: m.name })),
+      ...(hasShared ? [{ id: "__shared", name: "Közös" }] : []),
+    ];
+  }, [allMembers, items, myId]);
+
+  const pool = useMemo(
+    () => ownerPool.filter((i) => i.done === done),
+    [ownerPool, done]
+  );
 
   const kindsInPool = useMemo(() => {
     const set = new Set<string>();
@@ -76,8 +115,8 @@ export function SavedListClient({
     [pool, kind]
   );
 
-  const todoCount = items.filter((i) => !i.done).length;
-  const doneCount = items.length - todoCount;
+  const todoCount = ownerPool.filter((i) => !i.done).length;
+  const doneCount = ownerPool.length - todoCount;
 
   function toggleSelect(id: string) {
     setSelected((cur) => {
@@ -133,8 +172,23 @@ export function SavedListClient({
         </div>
       )}
 
+      {/* Kinek a listája */}
+      {allMembers.length > 1 && (
+        <div className="mt-6 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {ownerTabs.map((o) => (
+            <FilterChip
+              key={o.id}
+              active={owner === o.id}
+              onClick={() => setOwner(o.id)}
+            >
+              {o.name}
+            </FilterChip>
+          ))}
+        </div>
+      )}
+
       {/* Todo / Kész + kijelölés */}
-      <div className="mt-6 flex items-center gap-2">
+      <div className="mt-4 flex items-center gap-2">
         <div className="flex-1 grid grid-cols-2 gap-1 p-1 rounded-xl bg-[var(--color-muted)]">
           <Tab active={!done} onClick={() => setDone(false)}>
             Felfedezni ({todoCount})
@@ -545,6 +599,14 @@ function SavedCard({
             <Gift className="w-3 h-3" /> Meglepetés · {item.surpriseForName} elől
           </p>
         )}
+        {item.ownerName && (
+          <p className="mt-1.5 inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
+            <span className="w-4 h-4 rounded-full brand-gradient text-white text-[8px] font-semibold flex items-center justify-center">
+              {initials(item.ownerName)}
+            </span>
+            {item.ownerName} listája
+          </p>
+        )}
         {(attachments > 0 || item.tags.length > 0) && (
           <div className="mt-2 flex items-center gap-2 text-[11px] text-[var(--color-muted-foreground)]">
             {item.links.length > 0 && (
@@ -655,6 +717,14 @@ function SavedRow({
           </p>
         )}
       </div>
+      {item.ownerName && (
+        <span
+          className="shrink-0 w-6 h-6 rounded-full brand-gradient text-white text-[9px] font-semibold flex items-center justify-center"
+          title={`${item.ownerName} listája`}
+        >
+          {initials(item.ownerName)}
+        </span>
+      )}
       {item.done && (
         <span className="w-6 h-6 rounded-full bg-emerald-500 text-white flex items-center justify-center shrink-0">
           <Check className="w-3.5 h-3.5" />

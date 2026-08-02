@@ -477,6 +477,7 @@ export type SavedItem = {
   doneAt: number | null;
   journalEntryId: string | null; // a "megcsináltuk" popupból létrejött Napló-bejegyzés
   surpriseFor: string | null; // userId who must NOT see it (grey "Meglepetés" + password)
+  ownerId: string | null;     // kinek a listája (userId); null = közös
   createdAt: number;
   updatedAt: number;
 };

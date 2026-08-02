@@ -46,6 +46,9 @@ export default async function BakancslistaPage() {
         i.surpriseFor && i.surpriseFor !== me.userId
           ? nameOf(i.surpriseFor)
           : null,
+      // A saját tételeimen nem mutatunk nevet — csak a másokén.
+      ownerName:
+        i.ownerId && i.ownerId !== me.userId ? nameOf(i.ownerId) : null,
     }));
 
   const otherMembers = members.filter((m) => m.id !== me.userId);
@@ -129,6 +132,8 @@ export default async function BakancslistaPage() {
           lockedCount={lockedCount}
           hasSurprisePw={hasSurprisePw}
           members={otherMembers}
+          allMembers={members}
+          myId={me.userId}
           unlockAction={unlockSurpriseAction}
           setSurpriseBatchAction={setSurpriseBatchAction}
         />
