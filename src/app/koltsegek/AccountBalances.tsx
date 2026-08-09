@@ -1,9 +1,19 @@
+import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { catColor, payIcon } from "@/lib/expense-visuals";
 import type { Expense, PaymentMethod } from "@/lib/types";
 
 function fmtFt(n: number): string {
   return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
+}
+
+// A tételek `spentAt`-je a nap dele, a kezdő egyenleg dátuma viszont bármikor
+// keletkezhetett a napon belül — ezért nap elejére kerekítjük, különben a
+// megadás napján rögzített tételek kimaradnának.
+function startOfDay(ts: number): number {
+  const d = new Date(ts);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
 }
 
 // Számla-állás: kezdő egyenleg + ide érkezett bevétel − innen fizetett kiadás.
@@ -17,9 +27,10 @@ export function AccountBalances({
 }) {
   const tracked = paymentMethods.filter((p) => p.openingAt !== null);
   if (tracked.length === 0) return null;
+  const untracked = paymentMethods.filter((p) => p.openingAt === null);
 
   const rows = tracked.map((pm) => {
-    const from = pm.openingAt ?? 0;
+    const from = startOfDay(pm.openingAt ?? 0);
     let delta = 0;
     for (const e of expenses) {
       if (e.paymentMethodId !== pm.id) continue;
@@ -86,6 +97,19 @@ export function AccountBalances({
           );
         })}
       </div>
+
+      {untracked.length > 0 && (
+        <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
+          Nincs kezdő egyenleg:{" "}
+          {untracked.map((p) => p.name).join(", ")} —{" "}
+          <Link
+            href="/koltsegek/bevezeto"
+            className="text-[var(--color-primary)] font-medium underline underline-offset-2"
+          >
+            megadom
+          </Link>
+        </p>
+      )}
     </section>
   );
 }

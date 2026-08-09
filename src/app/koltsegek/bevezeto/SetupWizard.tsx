@@ -218,6 +218,14 @@ export function SetupWizard({
             title="Miről költesz?"
             lead="Vedd fel a kártyáidat, számláidat, a készpénzt. Minden tételnél ki tudod majd választani, melyikről ment el a pénz. Bármikor bővíthető."
           >
+            {accounts.length === 0 && (
+              <p className="mb-3 rounded-2xl border border-amber-500/30 bg-amber-500/10 p-3 text-xs text-amber-900 dark:text-amber-200">
+                Most egy számlád sincs. Így is tudsz tételt rögzíteni, csak azt
+                nem fogod tudni megadni, miből fizettél — vegyél fel legalább
+                egyet lentről.
+              </p>
+            )}
+
             <div className="space-y-2">
               {accounts.map((a, i) => (
                 <div

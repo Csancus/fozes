@@ -25,10 +25,11 @@ import { AccountBalances } from "./AccountBalances";
 export default async function KoltsegekPage({
   searchParams,
 }: {
-  searchParams: Promise<{ bevezeto?: string }>;
+  searchParams: Promise<{ bevezeto?: string; megtartva?: string }>;
 }) {
   const me = await requireUser();
-  const { bevezeto } = await searchParams;
+  const { bevezeto, megtartva } = await searchParams;
+  const keptCount = Number(megtartva ?? 0) || 0;
 
   // Új háztartás: az első tétel előtt végigvezetjük a beállításon.
   const setup = await getCostSetup(me.householdId);
@@ -75,6 +76,13 @@ export default async function KoltsegekPage({
             <p className="text-sm font-semibold text-emerald-900 dark:text-emerald-200">
               Kész, minden be van állítva
             </p>
+            {keptCount > 0 && (
+              <p className="text-xs text-emerald-800/90 dark:text-emerald-300/90 mt-1">
+                {keptCount} elemet (számla / személy / kategória) megtartottunk,
+                mert már tartoznak hozzájuk rögzített tételek — ezeket a
+                Beállításokban tudod törölni.
+              </p>
+            )}
             <p className="text-xs text-emerald-800/80 dark:text-emerald-300/80 mt-0.5">
               Jöhet az első tétel. Ha valamit később módosítanál, a Beállításokban
               megteszed — a részletes leírás a{" "}

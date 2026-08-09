@@ -15,6 +15,7 @@ import {
   listIncomeCategories,
   createIncomeCategory,
   deleteIncomeCategory,
+  listExpenses,
   setCostSetup,
 } from "@/lib/data";
 import type { PaymentKind } from "@/lib/types";
@@ -50,6 +51,15 @@ function parsePayload(raw: string): SetupPayload {
   }
 }
 
+// A tételek `spentAt`-je a nap DELE (parseDate: "YYYY-MM-DDT12:00"), ezért a
+// kezdő egyenleg érvényessége a nap ELEJE — különben a megadás napján rögzített
+// tételek kimaradnának az egyenlegből.
+function startOfToday(): number {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+}
+
 function toAmount(v: number | string | undefined): number {
   if (typeof v === "number") return Number.isFinite(v) ? Math.round(v) : 0;
   const n = Number(String(v ?? "").replace(/\s/g, "").replace(",", "."));
@@ -62,12 +72,25 @@ export async function completeCostSetupAction(fd: FormData) {
   const hh = me.householdId;
   const payload = parsePayload(String(fd.get("payload") ?? "{}"));
   const now = Date.now();
+  const openingFrom = startOfToday();
 
   // --- Számlák / kártyák ---
   const accounts = (payload.accounts ?? []).filter((a) =>
     String(a.name ?? "").trim()
   );
   const existingAccounts = await listPaymentMethods(hh);
+  // Már rögzített tételek: amire hivatkoznak, azt nem töröljük ki alóluk.
+  const expenses = await listExpenses(hh);
+  const usedAccountIds = new Set(
+    expenses.map((e) => e.paymentMethodId).filter(Boolean) as string[]
+  );
+  const usedPersonIds = new Set(
+    expenses.map((e) => e.personId).filter(Boolean) as string[]
+  );
+  const usedCategoryIds = new Set(
+    expenses.map((e) => e.categoryId).filter(Boolean) as string[]
+  );
+  let kept = 0;
   const keptAccountIds = new Set(
     accounts.map((a) => a.id).filter((id): id is string => !!id)
   );
@@ -88,24 +111,27 @@ export async function completeCostSetupAction(fd: FormData) {
       const prev = existingAccounts.find((e) => e.id === a.id);
       await updatePaymentMethod(hh, a.id, {
         ...patch,
-        // A kezdő egyenleg dátuma: most, ha most kapott értéket.
+        // Változatlan összegnél marad a régi dátum, új összegnél a mai nap eleje.
         openingAt:
           patch.openingBalance === 0
             ? null
             : prev?.openingBalance === patch.openingBalance
-              ? prev?.openingAt ?? now
-              : now,
+              ? prev?.openingAt ?? openingFrom
+              : openingFrom,
       });
     } else {
       await createPaymentMethod(hh, {
         ...patch,
-        openingAt: patch.openingBalance === 0 ? null : now,
+        openingAt: patch.openingBalance === 0 ? null : openingFrom,
       });
     }
   }
-  // Amit a varázslóban kitörölt, azt itt is töröljük (új háztartás, nincs rá tétel).
+  // Amit a varázslóban kitörölt, azt itt is töröljük — kivéve, ha már van rá
+  // rögzített tétel (különben a tételekben árva hivatkozás maradna).
   for (const e of existingAccounts) {
-    if (!keptAccountIds.has(e.id)) await deletePaymentMethod(hh, e.id);
+    if (keptAccountIds.has(e.id)) continue;
+    if (usedAccountIds.has(e.id)) { kept += 1; continue; }
+    await deletePaymentMethod(hh, e.id);
   }
 
   // --- Ki költ (személyek) ---
@@ -124,7 +150,9 @@ export async function completeCostSetupAction(fd: FormData) {
     });
   }
   for (const e of existingPersons) {
-    if (!keptPersonIds.has(e.id)) await deletePerson(hh, e.id);
+    if (keptPersonIds.has(e.id)) continue;
+    if (usedPersonIds.has(e.id)) { kept += 1; continue; }
+    await deletePerson(hh, e.id);
   }
 
   // --- Kiadás-kategóriák ---
@@ -132,7 +160,9 @@ export async function completeCostSetupAction(fd: FormData) {
   const keepCats = new Set(cats.keepIds ?? []);
   const existingCats = await listExpenseCategories(hh);
   for (const c of existingCats) {
-    if (!keepCats.has(c.id)) await deleteExpenseCategory(hh, c.id);
+    if (keepCats.has(c.id)) continue;
+    if (usedCategoryIds.has(c.id)) { kept += 1; continue; }
+    await deleteExpenseCategory(hh, c.id);
   }
   for (const c of cats.added ?? []) {
     const name = String(c.name ?? "").trim();
@@ -149,7 +179,9 @@ export async function completeCostSetupAction(fd: FormData) {
   const keepInc = new Set(inc.keepIds ?? []);
   const existingInc = await listIncomeCategories(hh);
   for (const c of existingInc) {
-    if (!keepInc.has(c.id)) await deleteIncomeCategory(hh, c.id);
+    if (keepInc.has(c.id)) continue;
+    if (usedCategoryIds.has(c.id)) { kept += 1; continue; }
+    await deleteIncomeCategory(hh, c.id);
   }
   for (const c of inc.added ?? []) {
     const name = String(c.name ?? "").trim();
@@ -170,7 +202,7 @@ export async function completeCostSetupAction(fd: FormData) {
 
   revalidatePath("/koltsegek", "layout");
   revalidatePath("/");
-  redirect("/koltsegek?bevezeto=kesz");
+  redirect(`/koltsegek?bevezeto=kesz${kept > 0 ? `&megtartva=${kept}` : ""}`);
 }
 
 // „Kihagyom” — nem kérdezzük újra, az alapértelmezésekkel indul.

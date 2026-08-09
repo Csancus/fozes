@@ -228,6 +228,9 @@ function NoteCard({ note, myId }: { note: NoteEntry; myId: string }) {
   const col = catColor(note.color);
   const stats = checklistStats(note.body);
   const href = `/jegyzetek/${note.id}`;
+  // A kártyán levágjuk a hosszú tartalmat — jelezzük is, hogy van még.
+  const clipped =
+    richTextToPlain(note.body).length > 260 || stats.total > 8;
 
   function open(e: React.MouseEvent | React.KeyboardEvent) {
     const el = e.target as HTMLElement;
@@ -301,8 +304,15 @@ function NoteCard({ note, myId }: { note: NoteEntry; myId: string }) {
       </div>
 
       {note.body && (
-        <div className="mt-2 max-h-64 overflow-hidden">
-          <NoteBody html={note.body} onToggle={toggleCheck} />
+        <div>
+          <div className="mt-2 max-h-64 overflow-hidden">
+            <NoteBody html={note.body} onToggle={toggleCheck} />
+          </div>
+          {clipped && (
+            <p className="mt-1 text-[11px] font-medium text-[var(--color-muted-foreground)]">
+              … koppints a teljes jegyzetért
+            </p>
+          )}
         </div>
       )}
 
