@@ -13,7 +13,9 @@ import {
   ensureMerchantsFromHistory,
   getMerchantMap,
   projectSuggestionsFrom,
+  getCostSetup,
 } from "@/lib/data";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { SlidersHorizontal, ImagePlus } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -23,6 +25,13 @@ import { saveExpensesBatchAction } from "../actions";
 
 export default async function BatchPage() {
   const me = await requireUser();
+
+  // Új háztartás: az első tétel előtt a beállító varázsló jön.
+  const setup = await getCostSetup(me.householdId);
+  if (!setup.done) {
+    const existing = await listExpenses(me.householdId);
+    if (existing.length === 0) redirect("/koltsegek/bevezeto");
+  }
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);

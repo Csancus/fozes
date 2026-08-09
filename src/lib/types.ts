@@ -267,6 +267,9 @@ export type PaymentMethod = {
   kind: PaymentKind;
   color: string;          // szín token (expense-visuals)
   last4: string | null;   // kártya utolsó 4 számjegye (opcionális)
+  openingBalance: number; // kezdő egyenleg (0 = nem adta meg / nem követi)
+  openingAt: number | null; // mikortól él a kezdő egyenleg (ez előtti tételek nem számítanak)
+  forIncome: boolean;     // ide szokott bevétel érkezni (a bevétel-űrlap ezt ajánlja)
   createdAt: number;
 };
 
@@ -274,9 +277,40 @@ export const DEFAULT_PAYMENT_METHODS: Omit<
   PaymentMethod,
   "id" | "createdAt"
 >[] = [
-  { name: "Utalás", kind: "transfer", color: "sky", last4: null },
-  { name: "Készpénz", kind: "cash", color: "emerald", last4: null },
+  {
+    name: "Utalás",
+    kind: "transfer",
+    color: "sky",
+    last4: null,
+    openingBalance: 0,
+    openingAt: null,
+    forIncome: false,
+  },
+  {
+    name: "Készpénz",
+    kind: "cash",
+    color: "emerald",
+    last4: null,
+    openingBalance: 0,
+    openingAt: null,
+    forIncome: false,
+  },
 ];
+
+// A költségkezelő bevezető varázslójának állapota (háztartásonként egy).
+export type CostSetup = {
+  done: boolean;
+  skipped: boolean;       // „kihagyom, csak rögzítek” — nem kérdezzük újra
+  usesBalances: boolean;  // adott-e meg kezdő egyenleget (egyenleg-kártyák)
+  completedAt: number | null;
+};
+
+export const EMPTY_COST_SETUP: CostSetup = {
+  done: false,
+  skipped: false,
+  usesBalances: false,
+  completedAt: null,
+};
 
 // Ki költötte (pl. Anikó, Csanád)
 export type Person = {

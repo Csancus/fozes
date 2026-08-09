@@ -13,7 +13,9 @@ import {
   ensureMerchantsFromHistory,
   getMerchantMap,
   projectSuggestionsFrom,
+  getCostSetup,
 } from "@/lib/data";
+import { redirect } from "next/navigation";
 import { slug } from "@/lib/redis";
 import Link from "next/link";
 import { ImagePlus } from "lucide-react";
@@ -39,6 +41,13 @@ export default async function NewEntryPage({
   const defaultKind = tipus === "bevetel" ? "income" : "expense";
 
   const me = await requireUser();
+
+  // Új háztartás: az első tétel előtt a beállító varázsló jön.
+  const setup = await getCostSetup(me.householdId);
+  if (!setup.done) {
+    const existing = await listExpenses(me.householdId);
+    if (existing.length === 0) redirect("/koltsegek/bevezeto");
+  }
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   await ensureMerchantsFromHistory(me.householdId);

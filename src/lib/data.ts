@@ -19,6 +19,7 @@ import type {
   IncomeCategory,
   ExpenseKind,
   ExpenseNature,
+  CostSetup,
   SavedItem,
   SavedType,
   Trip,
@@ -36,6 +37,7 @@ import {
   DEFAULT_PAYMENT_METHODS,
   DEFAULT_INCOME_CATEGORIES,
   DEFAULT_SAVED_TYPES,
+  EMPTY_COST_SETUP,
 } from "./types";
 import { offloadImage, uploadDataUrl, isR2Configured } from "./r2";
 
@@ -683,6 +685,16 @@ export async function getProjectSuggestionMaps(hh: string) {
 
 // ============ PAYMENT METHODS ============
 
+// A kezdő egyenleg / bevétel-jelölő később került a modellbe.
+function normalizePaymentMethod(p: PaymentMethod): PaymentMethod {
+  return {
+    ...p,
+    openingBalance: p.openingBalance ?? 0,
+    openingAt: p.openingAt ?? null,
+    forIncome: p.forIncome ?? false,
+  };
+}
+
 export async function listPaymentMethods(
   hh: string
 ): Promise<PaymentMethod[]> {
@@ -693,16 +705,19 @@ export async function listPaymentMethods(
   );
   return items
     .filter((p): p is PaymentMethod => !!p)
+    .map(normalizePaymentMethod)
     .sort((a, b) => a.createdAt - b.createdAt);
 }
 
 export async function getPaymentMethod(hh: string, id: string) {
-  return redis.get<PaymentMethod>(key.paymentMethod(hh, id));
+  const p = await redis.get<PaymentMethod>(key.paymentMethod(hh, id));
+  return p ? normalizePaymentMethod(p) : null;
 }
 
 export async function createPaymentMethod(
   hh: string,
-  input: Pick<PaymentMethod, "name" | "kind" | "color" | "last4">
+  input: Pick<PaymentMethod, "name" | "kind" | "color" | "last4"> &
+    Partial<Pick<PaymentMethod, "openingBalance" | "openingAt" | "forIncome">>
 ): Promise<PaymentMethod> {
   const pm: PaymentMethod = {
     id: newId(),
@@ -710,6 +725,9 @@ export async function createPaymentMethod(
     kind: input.kind,
     color: input.color,
     last4: input.last4?.trim() || null,
+    openingBalance: input.openingBalance ?? 0,
+    openingAt: input.openingAt ?? null,
+    forIncome: input.forIncome ?? false,
     createdAt: Date.now(),
   };
   await redis.set(key.paymentMethod(hh, pm.id), pm);
@@ -720,7 +738,12 @@ export async function createPaymentMethod(
 export async function updatePaymentMethod(
   hh: string,
   id: string,
-  patch: Partial<Pick<PaymentMethod, "name" | "kind" | "color" | "last4">>
+  patch: Partial<
+    Pick<
+      PaymentMethod,
+      "name" | "kind" | "color" | "last4" | "openingBalance" | "openingAt" | "forIncome"
+    >
+  >
 ) {
   const cur = await getPaymentMethod(hh, id);
   if (!cur) return null;
@@ -743,6 +766,20 @@ export async function ensureDefaultPaymentMethods(
     await createPaymentMethod(hh, p);
   }
   return listPaymentMethods(hh);
+}
+
+// ============ KÖLTSÉGKEZELŐ BEVEZETŐ (varázsló állapota) ============
+
+export async function getCostSetup(hh: string): Promise<CostSetup> {
+  const s = await redis.get<CostSetup>(key.costSetup(hh));
+  return s ? { ...EMPTY_COST_SETUP, ...s } : { ...EMPTY_COST_SETUP };
+}
+
+export async function setCostSetup(hh: string, patch: Partial<CostSetup>) {
+  const cur = await getCostSetup(hh);
+  const next: CostSetup = { ...cur, ...patch };
+  await redis.set(key.costSetup(hh), next);
+  return next;
 }
 
 // ============ PERSONS (ki költötte) ============

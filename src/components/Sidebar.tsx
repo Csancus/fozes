@@ -28,6 +28,7 @@ import {
   Map as MapIcon,
   FolderKanban,
   Settings,
+  HelpCircle,
 } from "lucide-react";
 import { cn } from "@/lib/cn";
 import type { LucideIcon } from "lucide-react";
@@ -77,6 +78,7 @@ const costs: NavItem[] = [
   { href: "/koltsegek/csoportok", label: "Csoportok", icon: Layers },
   { href: "/koltsegek/teendok", label: "Teendők", icon: ListChecks },
   { href: "/koltsegek/beallitasok", label: "Beállítások", icon: SlidersHorizontal },
+  { href: "/koltsegek/sugo", label: "Hogyan működik", icon: HelpCircle },
   { href: "/beallitasok", label: "Célok és projektek", icon: FolderKanban },
 ];
 

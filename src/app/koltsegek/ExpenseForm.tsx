@@ -92,7 +92,14 @@ export function ExpenseForm({
     initial?.categoryId ?? null
   );
   const [paymentMethodId, setPaymentMethodId] = useState<string | null>(
-    initial?.paymentMethodId ?? null
+    initial?.paymentMethodId ??
+      // Új bevételnél a varázslóban megjelölt bevétel-számlát ajánljuk,
+      // ha csak egy ilyen van.
+      (() => {
+        if ((defaultKind ?? initial?.kind ?? "expense") !== "income") return null;
+        const targets = paymentMethods.filter((p) => p.forIncome);
+        return targets.length === 1 ? targets[0].id : null;
+      })()
   );
   const [personId, setPersonId] = useState<string | null>(
     initial?.personId ?? null

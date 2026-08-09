@@ -12,7 +12,7 @@ import {
   ensureMerchantsFromHistory,
 } from "@/lib/data";
 import Link from "next/link";
-import { RotateCcw, FolderKanban, ChevronRight } from "lucide-react";
+import { RotateCcw, FolderKanban, ChevronRight, Sparkles, HelpCircle } from "lucide-react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CollapsiblePanel } from "@/components/ui/CollapsiblePanel";
@@ -38,6 +38,7 @@ import {
   updateGroupAction,
   deleteGroupAction,
 } from "../actions";
+import { restartCostSetupAction } from "../bevezeto/actions";
 
 export default async function BeallitasokPage() {
   const me = await requireUser();
@@ -80,6 +81,45 @@ export default async function BeallitasokPage() {
         </div>
         <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)]" />
       </Link>
+
+      <Link
+        href="/koltsegek/sugo"
+        className="mt-3 flex items-center justify-between rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-4 hover:border-[var(--color-primary)]/40 transition"
+      >
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center">
+            <HelpCircle className="w-4.5 h-4.5" />
+          </div>
+          <div>
+            <p className="text-sm font-medium">Hogyan működik a Költségkezelő</p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              Tömör leírás minden funkcióról
+            </p>
+          </div>
+        </div>
+        <ChevronRight className="w-4 h-4 text-[var(--color-muted-foreground)]" />
+      </Link>
+
+      <form
+        action={restartCostSetupAction}
+        className="mt-3 flex items-center justify-between gap-3 rounded-2xl border border-dashed border-[var(--color-border)] p-4"
+      >
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-muted)] text-[var(--color-muted-foreground)] flex items-center justify-center shrink-0">
+            <Sparkles className="w-4.5 h-4.5" />
+          </div>
+          <div className="min-w-0">
+            <p className="text-sm font-medium">Beállító varázsló</p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              Számlák, kezdő egyenlegek, ki költ, kategóriák — a meglévő
+              adataiddal előtöltve
+            </p>
+          </div>
+        </div>
+        <SubmitButton variant="secondary" size="sm" pendingText="Indítás…">
+          Indítás
+        </SubmitButton>
+      </form>
 
       <div className="mt-3 space-y-3">
         <CollapsiblePanel title="Kategóriák" count={categories.length}>
