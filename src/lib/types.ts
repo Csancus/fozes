@@ -578,6 +578,25 @@ export type TaskFileMeta = {
   size: number; // bytes (approx)
 };
 
+// ============ JEGYZETEK (Notes) ============
+
+// Egy jegyzet: rich-text törzs (benne pipálható lista is), szín, címkék,
+// opcionális emlékeztető, és a bakancslistáról ismert „Meglepetés" elrejtés.
+export type Note = {
+  id: string;
+  title: string;
+  body: string;                // rich-text HTML (sanitizeRichText-tel tisztítva)
+  color: string;               // CAT_COLORS kulcs (expense-visuals)
+  tags: string[];
+  pinned: boolean;
+  reminderAt: number | null;   // epoch ms (kliensen számolva a helyi időből)
+  reminderDone: boolean;       // az emlékeztetőt elintézettnek jelöltük
+  ownerId: string | null;      // kié a jegyzet; null = közös
+  surpriseFor: string | null;  // userId, aki NEM láthatja (közös jelszóval oldható)
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type Task = {
   id: string;
   title: string;

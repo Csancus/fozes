@@ -22,7 +22,7 @@ import {
   toggleSubtaskAction,
   deleteTaskAction,
 } from "../actions";
-import { DeleteTaskButton } from "../DeleteTaskButton";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 
 function fmtSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -232,7 +232,7 @@ export default async function TaskDetailPage({
       )}
 
       <div className="mt-8">
-        <DeleteTaskButton id={task.id} title={task.title} deleteAction={deleteTaskAction} />
+        <ConfirmDeleteButton id={task.id} title={task.title} deleteAction={deleteTaskAction} />
       </div>
     </main>
   );

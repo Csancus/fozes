@@ -95,6 +95,10 @@ export const key = {
   savedTypes: (hh: string) => `hh:${hh}:saved-types`,
   savedType: (hh: string, id: string) => `hh:${hh}:saved-type:${id}`,
 
+  // Jegyzetek
+  notes: (hh: string) => `hh:${hh}:notes`,
+  note: (hh: string, id: string) => `hh:${hh}:note:${id}`,
+
   // Napló
   journalEntries: (hh: string) => `hh:${hh}:journal`,
   journalEntry: (hh: string, id: string) => `hh:${hh}:journal:${id}`,

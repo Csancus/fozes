@@ -5,7 +5,8 @@ import { X, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 
-export function DeleteTaskButton({
+// Általános törlés-gomb megerősítő modállal (teendő, jegyzet, bármi).
+export function ConfirmDeleteButton({
   id,
   title,
   deleteAction,

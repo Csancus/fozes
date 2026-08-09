@@ -2,15 +2,17 @@
 
 import { useActionState } from "react";
 import { Gift, Lock, Loader2 } from "lucide-react";
+import type { UnlockAction, UnlockState } from "./SurpriseUnlockModal";
 
-type UnlockState = { ok: boolean; error?: string } | undefined;
-
+// Teljes oldalt kitöltő feloldó (egy konkrét elrejtett tétel megnyitásakor).
 export function SurpriseUnlock({
   hasSurprisePw,
   unlockAction,
+  description = "Ezt valaki elrejtette előled. A tartalom feloldásához add meg a közös Meglepetés-jelszót.",
 }: {
   hasSurprisePw: boolean;
-  unlockAction: (prev: UnlockState, fd: FormData) => Promise<UnlockState>;
+  unlockAction: UnlockAction;
+  description?: string;
 }) {
   const [state, formAction, pending] = useActionState<UnlockState, FormData>(
     unlockAction,
@@ -24,8 +26,7 @@ export function SurpriseUnlock({
       </div>
       <h1 className="mt-5 text-xl font-bold">Meglepetés</h1>
       <p className="mt-1 text-sm text-[var(--color-muted-foreground)] max-w-xs">
-        Ezt valaki elrejtette előled. A tartalom feloldásához add meg a közös
-        Meglepetés-jelszót.
+        {description}
       </p>
 
       {hasSurprisePw ? (

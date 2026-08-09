@@ -15,6 +15,7 @@ import {
   Link2,
   Link2Off,
   Eraser,
+  ListChecks,
 } from "lucide-react";
 
 type Cmd = {
@@ -98,6 +99,45 @@ const COMMANDS: Cmd[][] = [
   ],
 ];
 
+// A pipa-négyzet (::before) szélessége — ekkora sávon belüli kattintás billent,
+// azon túl a szövegbe áll a kurzor.
+const CHECKBOX_HIT = 26;
+
+// A kijelölés helyén álló elem (szöveg-node helyett a szülő elem).
+function selectionElement(root: HTMLElement): HTMLElement | null {
+  const sel = document.getSelection();
+  if (!sel || sel.rangeCount === 0) return null;
+  let node: Node | null = sel.anchorNode;
+  if (!node || !root.contains(node)) return null;
+  if (node.nodeType === Node.TEXT_NODE) node = node.parentNode;
+  // Elem-szintű kijelölésnél (pl. üres szerkesztőben frissen létrehozott lista)
+  // az anchorNode maga a szerkesztő doboz — az offset mutatja a valódi blokkot.
+  if (node && node.nodeType === Node.ELEMENT_NODE) {
+    const el = node as HTMLElement;
+    const child = el.childNodes[Math.min(sel.anchorOffset, el.childNodes.length - 1)];
+    if (child && child.nodeType === Node.ELEMENT_NODE) return child as HTMLElement;
+  }
+  return (node as HTMLElement) ?? null;
+}
+
+// A pipálható listák invariánsa: minden <ul data-check> alatti <li>-nek van
+// data-checked-je, és üres sor sosem marad kipipálva (Enterre a böngésző
+// átmásolhatja az előző sor attribútumait).
+function normalizeChecklists(root: HTMLElement) {
+  root.querySelectorAll("ul[data-check]").forEach((ul) => {
+    ul.querySelectorAll(":scope > li").forEach((li) => {
+      const text = (li.textContent ?? "").replace(/​/g, "").trim();
+      const checked = li.getAttribute("data-checked") === "true";
+      li.setAttribute("data-checked", checked && text ? "true" : "false");
+    });
+  });
+  root.querySelectorAll("li[data-checked]").forEach((li) => {
+    if (!li.parentElement?.hasAttribute("data-check")) {
+      li.removeAttribute("data-checked");
+    }
+  });
+}
+
 export function RichTextEditor({
   value,
   onChange,
@@ -121,6 +161,7 @@ export function RichTextEditor({
   const emit = useCallback(() => {
     const el = ref.current;
     if (!el) return;
+    normalizeChecklists(el);
     const html = el.innerHTML === "<br>" ? "" : el.innerHTML;
     setEmpty(!html.replace(/<[^>]*>/g, "").replace(/&nbsp;/g, " ").trim());
     onChange(html);
@@ -151,6 +192,10 @@ export function RichTextEditor({
         }
       }
     }
+    const inCheck = !!selectionElement(el)?.closest("ul[data-check]");
+    next.checklist = inCheck;
+    // A pipálható lista technikailag <ul>, de ne világítson tőle a felsorolás gomb.
+    if (inCheck) next.ul = false;
     setActive(next);
   }, []);
 
@@ -181,6 +226,45 @@ export function RichTextEditor({
     // Ha már ilyen blokk, vissza sima bekezdésre.
     if (cmd.block && active[cmd.key]) exec("formatBlock", "<p>");
     else cmd.run(exec);
+  }
+
+  // Pipálható lista be/ki. Sima szövegből előbb felsorolást csinálunk, majd
+  // megjelöljük — így a böngésző natív lista-kezelése (Enter, Tab) megmarad.
+  function toggleChecklist() {
+    const root = ref.current;
+    if (!root) return;
+    root.focus();
+    let ul = selectionElement(root)?.closest("ul") ?? null;
+    if (!ul || !root.contains(ul)) {
+      document.execCommand("insertUnorderedList");
+      ul = selectionElement(root)?.closest("ul") ?? null;
+    }
+    if (!ul || !root.contains(ul)) return;
+
+    if (ul.hasAttribute("data-check")) {
+      ul.removeAttribute("data-check");
+      ul.querySelectorAll("li").forEach((li) => li.removeAttribute("data-checked"));
+    } else {
+      ul.setAttribute("data-check", "1");
+    }
+    emit();
+    refreshActive();
+  }
+
+  // A pipa-négyzetre kattintás billent, a sor többi része szerkeszthető marad.
+  function onClick(e: React.MouseEvent<HTMLDivElement>) {
+    const root = ref.current;
+    const li = (e.target as HTMLElement).closest?.("li[data-checked]") as
+      | HTMLElement
+      | null;
+    if (!li || !root?.contains(li)) return;
+    if (e.clientX > li.getBoundingClientRect().left + CHECKBOX_HIT) return;
+    e.preventDefault();
+    li.setAttribute(
+      "data-checked",
+      li.getAttribute("data-checked") === "true" ? "false" : "true"
+    );
+    emit();
   }
 
   function addLink() {
@@ -231,6 +315,12 @@ export function RichTextEditor({
             ))}
           </div>
         ))}
+        <ToolButton
+          label="Pipálható lista"
+          icon={ListChecks}
+          active={!!active.checklist}
+          onClick={toggleChecklist}
+        />
         <span className="mx-1 h-5 w-px bg-[var(--color-border)]" aria-hidden />
         <ToolButton label="Link" icon={Link2} onClick={addLink} />
         <ToolButton
@@ -265,6 +355,7 @@ export function RichTextEditor({
           onInput={emit}
           onBlur={emit}
           onPaste={onPaste}
+          onClick={onClick}
           onKeyUp={refreshActive}
           onMouseUp={refreshActive}
           className="rich-text px-3.5 py-3 text-[15px] leading-relaxed outline-none"

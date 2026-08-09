@@ -9,7 +9,7 @@ import { getSession } from "@/lib/session";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
-import { SurpriseUnlock } from "../SurpriseUnlock";
+import { SurpriseUnlock } from "@/components/ui/SurpriseUnlock";
 import { SavedCover } from "../SavedCover";
 import { CompletionArea } from "../CompletionArea";
 import { unlockSurpriseAction } from "../actions";

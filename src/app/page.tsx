@@ -10,6 +10,7 @@ import {
   listSavedItems,
   listTasks,
   listJournalEntries,
+  listNotes,
 } from "@/lib/data";
 import Link from "next/link";
 import {
@@ -20,6 +21,7 @@ import {
   Plane,
   ListTodo,
   NotebookPen,
+  StickyNote,
   LogOut,
   AlertTriangle,
   ChevronRight,
@@ -39,15 +41,17 @@ export default async function Home() {
   const me = await currentUser();
   if (!me) redirect("/belepes");
 
-  const [hh, pantry, recipes, expenses, saved, tasks, journalEntries] = await Promise.all([
-    redis.get<Household>(key.household(me.householdId)),
-    listPantry(me.householdId),
-    listRecipes(me.householdId),
-    listExpenses(me.householdId),
-    listSavedItems(me.householdId),
-    listTasks(me.householdId),
-    listJournalEntries(me.householdId),
-  ]);
+  const [hh, pantry, recipes, expenses, saved, tasks, journalEntries, notes] =
+    await Promise.all([
+      redis.get<Household>(key.household(me.householdId)),
+      listPantry(me.householdId),
+      listRecipes(me.householdId),
+      listExpenses(me.householdId),
+      listSavedItems(me.householdId),
+      listTasks(me.householdId),
+      listJournalEntries(me.householdId),
+      listNotes(me.householdId),
+    ]);
 
   const now = Date.now();
   const todayStr = (() => {
@@ -71,6 +75,12 @@ export default async function Home() {
     .reduce((s, e) => s + e.amount, 0);
 
   const savedTodo = saved.filter((s) => !s.done);
+
+  // Az előlem elrejtett jegyzetek a főoldalon sem számítanak bele.
+  const myNotes = notes.filter((n) => n.surpriseFor !== me.userId);
+  const dueReminderCount = myNotes.filter(
+    (n) => n.reminderAt !== null && !n.reminderDone && n.reminderAt <= now
+  ).length;
 
   const initials = me.name
     .split(" ")
@@ -184,6 +194,19 @@ export default async function Home() {
           stat="Tervezd meg a következő utat"
         />
         <AreaTile
+          href="/jegyzetek"
+          icon={StickyNote}
+          title="Jegyzetek"
+          desc="Listák, feljegyzések, emlékeztetők"
+          stat={
+            myNotes.length
+              ? `${myNotes.length} jegyzet`
+              : "Írd fel, ne feledd el"
+          }
+          badge={dueReminderCount ? String(dueReminderCount) : undefined}
+          badgeTone="warning"
+        />
+        <AreaTile
           href="/naplo"
           icon={NotebookPen}
           title="Napló"
@@ -250,6 +273,7 @@ export default async function Home() {
       <div className="mt-6 flex flex-wrap justify-center gap-2">
         <QuickAdd href="/koltsegek/uj" label="Új kiadás" />
         <QuickAdd href="/bakancslista/uj" label="Új mentés" />
+        <QuickAdd href="/jegyzetek/uj" label="Új jegyzet" />
       </div>
     </main>
   );

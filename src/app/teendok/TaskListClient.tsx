@@ -14,7 +14,7 @@ import {
   ChevronRight,
   Image as ImageIcon,
 } from "lucide-react";
-import { DeleteTaskButton } from "./DeleteTaskButton";
+import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 
 type Entry = Task & { ownerName: string | null };
 
@@ -301,7 +301,7 @@ function TaskCard({
         </span>
       )}
 
-      <DeleteTaskButton id={task.id} title={task.title} deleteAction={deleteAction} variant="icon" />
+      <ConfirmDeleteButton id={task.id} title={task.title} deleteAction={deleteAction} variant="icon" />
     </div>
   );
 }

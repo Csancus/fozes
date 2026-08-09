@@ -25,6 +25,7 @@ import type {
   TripDay,
   Task,
   TaskFileMeta,
+  Note,
   User,
   JournalEntry,
   JournalFile,
@@ -1528,6 +1529,50 @@ export async function deleteTaskFile(
   fileId: string
 ) {
   await redis.del(key.taskFile(hh, taskId, fileId));
+}
+
+// ============ JEGYZETEK (Notes) ============
+
+// Régi/hiányos rekordok normalizálása (a modul később kapott mezőket).
+function normalizeNote(n: Note): Note {
+  return {
+    ...n,
+    tags: n.tags ?? [],
+    color: n.color || "amber",
+    pinned: n.pinned ?? false,
+    reminderAt: n.reminderAt ?? null,
+    reminderDone: n.reminderDone ?? false,
+    ownerId: n.ownerId ?? null,
+    surpriseFor: n.surpriseFor ?? null,
+  };
+}
+
+export async function listNotes(hh: string): Promise<Note[]> {
+  const ids = await redis.smembers(key.notes(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<Note>(key.note(hh, id)))
+  );
+  return items
+    .filter((n): n is Note => !!n)
+    .map(normalizeNote)
+    .sort((a, b) => b.updatedAt - a.updatedAt);
+}
+
+export async function getNote(hh: string, id: string): Promise<Note | null> {
+  const n = await redis.get<Note>(key.note(hh, id));
+  return n ? normalizeNote(n) : null;
+}
+
+export async function saveNote(hh: string, note: Note) {
+  await redis.set(key.note(hh, note.id), note);
+  await redis.sadd(key.notes(hh), note.id);
+  return note;
+}
+
+export async function deleteNote(hh: string, id: string) {
+  await redis.del(key.note(hh, id));
+  await redis.srem(key.notes(hh), id);
 }
 
 // ============ NAPLÓ (Journal) ============
