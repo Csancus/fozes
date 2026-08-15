@@ -631,6 +631,22 @@ export type Note = {
   updatedAt: number;
 };
 
+// A teendő felelőse lehet konkrét háztartás-tag, „Közös" (mindenkié) —
+// ez a sentinel érték az ownerId-ben —, vagy null = nincs felelős.
+export const SHARED_OWNER = "__shared";
+
+// Opcionális állapot a teendőkön (a tábla/kanban nézet ebből épül).
+export type TaskStatus = "todo" | "doing" | "blocked" | "done";
+
+export const TASK_STATUSES: TaskStatus[] = ["todo", "doing", "blocked", "done"];
+
+export const TASK_STATUS_LABEL: Record<TaskStatus, string> = {
+  todo: "Teendő",
+  doing: "Folyamatban",
+  blocked: "Elakadt",
+  done: "Kész",
+};
+
 // Teendő-lista: egy csomag összetartozó teendő (pl. „Csomagolás", „Intéznivalók").
 // Köthető meglévő projekthez VAGY utazáshoz — vagy állhat önmagában is.
 export type TaskList = {
@@ -640,6 +656,8 @@ export type TaskList = {
   color: string;             // CAT_COLORS kulcs (expense-visuals)
   projectId: string | null;  // Project.id
   tripId: string | null;     // Trip.id
+  tags: string[];            // a lista címkéi
+  inheritTags: boolean;      // öröklődjenek-e a benne lévő teendőkre
   createdAt: number;
   updatedAt: number;
 };
@@ -652,6 +670,8 @@ export type Task = {
   dueDate: string | null;    // YYYY-MM-DD, vagy null = nincs határidő
   projectId: string | null;  // opcionális projekt (Project.id)
   listId: string | null;     // opcionális teendő-lista (TaskList.id)
+  status: TaskStatus;        // todo | doing | blocked | done (a done a `done` flaggel jár együtt)
+  tags: string[];            // saját címkék (a lista címkéi ehhez jönnek hozzá, ha öröklődnek)
   imageUrl: string | null;   // R2/inline borítókép
   files: TaskFileMeta[];     // csatolt fájlok (blob külön kulcson)
   subtasks: Subtask[];       // pipálható alteendők

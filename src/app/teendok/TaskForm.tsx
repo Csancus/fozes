@@ -4,7 +4,10 @@ import { useRef, useState } from "react";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { cn } from "@/lib/cn";
-import type { Task, Project, TaskList } from "@/lib/types";
+import type { Task, Project, TaskList, TaskStatus, Trip } from "@/lib/types";
+import { SHARED_OWNER, TASK_STATUSES } from "@/lib/types";
+import { STATUS_VISUAL } from "@/lib/task-visuals";
+import { createTaskListInline } from "./actions";
 import {
   Image as ImageIcon,
   X,
@@ -15,6 +18,7 @@ import {
   Music,
   File as FileIcon,
   Check,
+  ListTodo,
 } from "lucide-react";
 
 const MAX_DIM = 1400;
@@ -85,12 +89,36 @@ function fileIcon(mime: string) {
   return FileIcon;
 }
 
+function ProjectOptions({ projects }: { projects: Project[] }) {
+  const taskish = projects.filter((p) => p.scope !== "expense");
+  const expenseOnly = projects.filter((p) => p.scope === "expense");
+  return (
+    <>
+      {taskish.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.name}
+        </option>
+      ))}
+      {expenseOnly.length > 0 && (
+        <optgroup label="Költség-projektek">
+          {expenseOnly.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </>
+  );
+}
+
 export function TaskForm({
   action,
   initial,
   members = [],
   projects = [],
   lists = [],
+  trips = [],
   defaultListId,
   myId,
 }: {
@@ -99,6 +127,7 @@ export function TaskForm({
   members?: { id: string; name: string }[];
   projects?: Project[];
   lists?: TaskList[];
+  trips?: Trip[];
   defaultListId?: string;
   myId?: string;
 }) {
@@ -115,6 +144,32 @@ export function TaskForm({
   );
   const coverRef = useRef<HTMLInputElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const [status, setStatus] = useState<TaskStatus>(initial?.status ?? "todo");
+  // A listak helyben bovithetok ("+ Uj lista..."), ezert lokal allapotban vannak.
+  const [listOptions, setListOptions] = useState<TaskList[]>(lists);
+  const [listId, setListId] = useState<string>(initial?.listId ?? defaultListId ?? "");
+  const [newList, setNewList] = useState<{ name: string; parent: string } | null>(null);
+  const [creating, setCreating] = useState(false);
+
+  async function createList() {
+    if (!newList || !newList.name.trim() || creating) return;
+    setCreating(true);
+    try {
+      const parent = newList.parent;
+      const created = await createTaskListInline({
+        name: newList.name,
+        projectId: parent.startsWith("project:") ? parent.slice(8) : null,
+        tripId: parent.startsWith("trip:") ? parent.slice(5) : null,
+      });
+      if (created) {
+        setListOptions((cur) => [...cur, created]);
+        setListId(created.id);
+      }
+      setNewList(null);
+    } finally {
+      setCreating(false);
+    }
+  }
 
   async function onCover(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -164,6 +219,8 @@ export function TaskForm({
     <form action={action} className="space-y-6">
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="ownerId" value={ownerId} />
+      <input type="hidden" name="listId" value={listId} />
+      <input type="hidden" name="status" value={status} />
       <input type="hidden" name="imageUrl" value={cover ?? ""} />
       <input type="hidden" name="files" value={JSON.stringify(files)} />
       <input
@@ -187,13 +244,14 @@ export function TaskForm({
           <Input type="date" name="dueDate" defaultValue={initial?.dueDate ?? ""} />
         </Field>
         {members.length > 0 && (
-          <Field label="Kié?">
+          <Field label="Kié a teendő?">
             <select
               value={ownerId}
               onChange={(e) => setOwnerId(e.target.value)}
               className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
             >
-              <option value="">Bárki</option>
+              <option value="">Nincs felelős</option>
+              <option value={SHARED_OWNER}>Közös (mindenkié)</option>
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
@@ -204,22 +262,130 @@ export function TaskForm({
         )}
       </div>
 
-      {lists.length > 0 && (
-        <Field label="Lista" hint="melyik teendő-listába kerüljön">
-          <select
-            name="listId"
-            defaultValue={initial?.listId ?? defaultListId ?? ""}
-            className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
-          >
-            <option value="">— Nincs (önálló teendő) —</option>
-            {lists.map((l) => (
-              <option key={l.id} value={l.id}>
-                {l.name}
-              </option>
-            ))}
-          </select>
-        </Field>
+      <Field label="Lista" hint="melyik teendő-listába kerüljön">
+        <select
+          value={listId}
+          onChange={(e) => {
+            if (e.target.value === "__new") {
+              setNewList({ name: "", parent: "" });
+              return;
+            }
+            setListId(e.target.value);
+          }}
+          className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+        >
+          <option value="">— Nincs (önálló teendő) —</option>
+          {listOptions.map((l) => (
+            <option key={l.id} value={l.id}>
+              {l.name}
+            </option>
+          ))}
+          <option value="__new">+ Új lista…</option>
+        </select>
+      </Field>
+
+      {/* Új lista modál — az űrlap elhagyása nélkül */}
+      {newList && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-xl">
+            <p className="mb-3 flex items-center gap-2 font-semibold">
+              <ListTodo className="w-4 h-4 text-[var(--color-primary)]" /> Új teendő-lista
+            </p>
+            <Input
+              autoFocus
+              value={newList.name}
+              onChange={(e) => setNewList({ ...newList, name: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  createList();
+                }
+                if (e.key === "Escape") setNewList(null);
+              }}
+              placeholder="pl. Csomagolás"
+            />
+            {(projects.length > 0 || trips.length > 0) && (
+              <select
+                value={newList.parent}
+                onChange={(e) => setNewList({ ...newList, parent: e.target.value })}
+                className="mt-3 w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+              >
+                <option value="">Mihez tartozik? — Önálló</option>
+                {projects.length > 0 && (
+                  <optgroup label="Projekt">
+                    {projects.map((p) => (
+                      <option key={p.id} value={"project:" + p.id}>
+                        {p.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {trips.length > 0 && (
+                  <optgroup label="Utazás">
+                    {trips.map((t) => (
+                      <option key={t.id} value={"trip:" + t.id}>
+                        {t.year} · {t.name}
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+              </select>
+            )}
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setNewList(null)}
+                className="h-11 rounded-xl border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-muted)]"
+              >
+                Mégse
+              </button>
+              <button
+                type="button"
+                onClick={createList}
+                disabled={!newList.name.trim() || creating}
+                className="h-11 rounded-xl bg-[var(--color-primary)] text-[var(--color-primary-foreground)] text-sm font-medium disabled:opacity-50"
+              >
+                {creating ? "Létrehozás…" : "Létrehozás"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
+      {/* Státusz (nem kötelező — alapból Teendő) */}
+      <div>
+        <span className="block text-sm font-medium mb-2">Státusz</span>
+        <div className="grid grid-cols-4 gap-2">
+          {TASK_STATUSES.map((s) => {
+            const v = STATUS_VISUAL[s];
+            const Icon = v.icon;
+            return (
+              <button
+                key={s}
+                type="button"
+                onClick={() => setStatus(s)}
+                className={cn(
+                  "h-14 rounded-xl border flex flex-col items-center justify-center gap-1 text-[11px] font-medium transition",
+                  status === s
+                    ? cn("border-transparent", v.soft, v.text)
+                    : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {v.label}
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      <Field label="Címkék" hint="vesszővel elválasztva — pl. sürgős, otthon">
+        <Input
+          name="tags"
+          defaultValue={initial?.tags?.join(", ") ?? ""}
+          placeholder="sürgős, ügyintézés"
+        />
+      </Field>
 
       {projects.length > 0 && (
         <Field label="Projekt" hint="nem kötelező">
@@ -229,11 +395,7 @@ export function TaskForm({
             className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
           >
             <option value="">— Nincs —</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
+            <ProjectOptions projects={projects} />
           </select>
         </Field>
       )}

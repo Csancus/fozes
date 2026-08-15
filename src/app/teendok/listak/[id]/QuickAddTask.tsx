@@ -2,6 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
+import { SHARED_OWNER } from "@/lib/types";
 import { Plus, CalendarDays, User as UserIcon, Loader2 } from "lucide-react";
 
 // Gyors hozzáadás a lista oldalán: Enter = mentés, Shift+Enter = új sor
@@ -107,7 +108,8 @@ export function QuickAddTask({
               onChange={(e) => setOwnerId(e.target.value)}
               className="w-full bg-transparent text-sm focus:outline-none"
             >
-              <option value="">Bárki</option>
+              <option value="">Nincs felelős</option>
+              <option value={SHARED_OWNER}>Közös</option>
               {members.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}

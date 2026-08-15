@@ -2,7 +2,7 @@ import { requireUser } from "@/lib/auth";
 import {
   listTasks,
   listHouseholdMembers,
-  listTaskProjects,
+  listProjects,
   listTaskLists,
   listTrips,
 } from "@/lib/data";
@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { catColor } from "@/lib/expense-visuals";
+import { TagChips } from "@/components/ui/TagChips";
 import {
   ListChecks,
   Plus,
@@ -22,14 +23,18 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { TaskListClient } from "./TaskListClient";
-import { toggleTaskDoneAction, deleteTaskFromListAction } from "./actions";
+import {
+  toggleTaskDoneAction,
+  deleteTaskFromListAction,
+  setTaskStatusAction,
+} from "./actions";
 
 export default async function TeendokPage() {
   const me = await requireUser();
   const [tasks, members, projects, lists, trips] = await Promise.all([
     listTasks(me.householdId),
     listHouseholdMembers(me.householdId),
-    listTaskProjects(me.householdId),
+    listProjects(me.householdId),
     listTaskLists(me.householdId),
     listTrips(me.householdId),
   ]);
@@ -154,6 +159,7 @@ export default async function TeendokPage() {
                         <span className="text-[var(--color-muted-foreground)] tabular-nums">
                           {done}/{total} kész
                         </span>
+                        <TagChips tags={list.tags} />
                       </div>
                     </div>
                   </div>
@@ -189,6 +195,7 @@ export default async function TeendokPage() {
           myId={me.userId}
           toggleDoneAction={toggleTaskDoneAction}
           deleteAction={deleteTaskFromListAction}
+          statusAction={setTaskStatusAction}
         />
       )}
     </main>

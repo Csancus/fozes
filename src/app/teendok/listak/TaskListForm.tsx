@@ -7,8 +7,34 @@ import { cn } from "@/lib/cn";
 import { CAT_COLORS, COLOR_KEYS } from "@/lib/expense-visuals";
 import type { Project, TaskList, Trip } from "@/lib/types";
 import { FolderKanban, Plane, Sparkles, Minus } from "lucide-react";
+import { InfoTip } from "@/components/ui/InfoTip";
 
 type ParentMode = "none" | "project" | "trip" | "new";
+
+// A Költségeknél létrehozott projektek (pl. „Autó") is választhatók — ha
+// teendőhöz kötjük őket, a hatókörük automatikusan „Mindkettő" lesz.
+function ProjectOptions({ projects }: { projects: Project[] }) {
+  const taskish = projects.filter((p) => p.scope !== "expense");
+  const expenseOnly = projects.filter((p) => p.scope === "expense");
+  return (
+    <>
+      {taskish.map((p) => (
+        <option key={p.id} value={p.id}>
+          {p.name}
+        </option>
+      ))}
+      {expenseOnly.length > 0 && (
+        <optgroup label="Költség-projektek">
+          {expenseOnly.map((p) => (
+            <option key={p.id} value={p.id}>
+              {p.name}
+            </option>
+          ))}
+        </optgroup>
+      )}
+    </>
+  );
+}
 
 // Egy teendő-lista létrehozása/szerkesztése: név, szín, és hogy MIHEZ tartozik
 // (meglévő projekt / utazás / most létrehozott teendő-projekt).
@@ -38,6 +64,7 @@ export function TaskListForm({
   const [projectId, setProjectId] = useState(startProject);
   const [tripId, setTripId] = useState(startTrip);
   const [color, setColor] = useState(initial?.color ?? "sky");
+  const [inheritTags, setInheritTags] = useState(initial?.inheritTags ?? false);
 
   const parentValue =
     mode === "project" && projectId
@@ -60,6 +87,7 @@ export function TaskListForm({
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="parent" value={parentValue} />
       <input type="hidden" name="color" value={color} />
+      <input type="hidden" name="inheritTags" value={inheritTags ? "1" : "0"} />
 
       <Field label="A lista neve" required>
         <Input
@@ -109,11 +137,7 @@ export function TaskListForm({
             className="mt-3 w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
           >
             <option value="">— Válassz projektet —</option>
-            {projects.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.name}
-              </option>
-            ))}
+            <ProjectOptions projects={projects} />
           </select>
         )}
 
@@ -169,6 +193,47 @@ export function TaskListForm({
             );
           })}
         </div>
+      </div>
+
+      {/* Címkék + öröklődés */}
+      <div>
+        <Field label="Címkék" hint="vesszővel elválasztva — pl. utazás, sürgős">
+          <Input
+            name="tags"
+            defaultValue={initial?.tags?.join(", ") ?? ""}
+            placeholder="utazás, csomagolás"
+          />
+        </Field>
+        <button
+          type="button"
+          onClick={() => setInheritTags((v) => !v)}
+          className={cn(
+            "mt-3 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
+            inheritTags
+              ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)]"
+              : "border-[var(--color-border)] hover:bg-[var(--color-muted)]"
+          )}
+        >
+          <span
+            className={cn(
+              "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition",
+              inheritTags
+                ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-primary-foreground)]"
+                : "border-[var(--color-border)] text-transparent"
+            )}
+          >
+            ✓
+          </span>
+          <span className="flex-1 text-sm font-medium">Címkék öröklődnek</span>
+          <span onClick={(e) => e.stopPropagation()}>
+            <InfoTip label="Mit jelent az öröklődés?">
+              Ha bekapcsolod, a lista címkéit <b>minden benne lévő teendő</b> — és a
+              teendők alteendői is — megkapják. Az örökölt címkék szaggatott
+              kerettel látszanak, és automatikusan követik, ha a listán
+              módosítod őket. Kikapcsolva a címkék csak magán a listán maradnak.
+            </InfoTip>
+          </span>
+        </button>
       </div>
 
       <Field label="Leírás" hint="nem kötelező">

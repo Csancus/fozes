@@ -1,5 +1,10 @@
 import { requireUser } from "@/lib/auth";
-import { listHouseholdMembers, listTaskProjects, listTaskLists } from "@/lib/data";
+import {
+  listHouseholdMembers,
+  listProjects,
+  listTaskLists,
+  listTrips,
+} from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
 import { TaskForm } from "../TaskForm";
@@ -12,10 +17,11 @@ export default async function NewTaskPage({
 }) {
   const { lista } = await searchParams;
   const me = await requireUser();
-  const [members, projects, lists] = await Promise.all([
+  const [members, projects, lists, trips] = await Promise.all([
     listHouseholdMembers(me.householdId),
-    listTaskProjects(me.householdId),
+    listProjects(me.householdId),
     listTaskLists(me.householdId),
+    listTrips(me.householdId),
   ]);
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
@@ -29,6 +35,7 @@ export default async function NewTaskPage({
           members={members}
           projects={projects}
           lists={lists}
+          trips={trips}
           defaultListId={lista}
           myId={me.userId}
         />

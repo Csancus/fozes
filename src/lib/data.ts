@@ -26,6 +26,7 @@ import type {
   TripDay,
   Task,
   TaskList,
+  TaskStatus,
   TaskFileMeta,
   Note,
   User,
@@ -896,6 +897,15 @@ export async function updateProject(
   return next;
 }
 
+// Ha egy csak-Költségek projektet a Teendőknél választanak (pl. „Autó"),
+// a hatóköre automatikusan „Mindkettő" lesz — így ott is megmarad a listában.
+export async function ensureTaskProject(hh: string, id: string) {
+  const p = await getProject(hh, id);
+  if (!p) return null;
+  if (p.scope === "expense") return updateProject(hh, id, { scope: "both" });
+  return p;
+}
+
 export async function deleteProject(hh: string, id: string) {
   await redis.del(key.project(hh, id));
   await redis.srem(key.projects(hh), id);
@@ -1513,6 +1523,18 @@ export async function deleteTrip(hh: string, id: string) {
 
 // ============ TEENDŐK (Tasks) ============
 
+// Régi rekordok: nincs listId/status — a `done` flagből származtatjuk.
+function normalizeTask(t: Task): Task {
+  const status: TaskStatus = t.status ?? (t.done ? "done" : "todo");
+  return {
+    ...t,
+    projectId: t.projectId ?? null,
+    listId: t.listId ?? null,
+    status,
+    tags: t.tags ?? [],
+  };
+}
+
 export async function listTasks(hh: string): Promise<Task[]> {
   const ids = await redis.smembers(key.tasks(hh));
   if (ids.length === 0) return [];
@@ -1521,13 +1543,12 @@ export async function listTasks(hh: string): Promise<Task[]> {
   );
   return items
     .filter((t): t is Task => !!t)
-    .map((t) => ({ ...t, projectId: t.projectId ?? null, listId: t.listId ?? null }));
+    .map(normalizeTask);
 }
 
 export async function getTask(hh: string, id: string) {
   const t = await redis.get<Task>(key.task(hh, id));
-  if (!t) return null;
-  return { ...t, projectId: t.projectId ?? null, listId: t.listId ?? null };
+  return t ? normalizeTask(t) : null;
 }
 
 export async function saveTask(hh: string, task: Task) {
@@ -1578,6 +1599,8 @@ function normalizeTaskList(l: TaskList): TaskList {
     color: l.color || "sky",
     projectId: l.projectId ?? null,
     tripId: l.tripId ?? null,
+    tags: l.tags ?? [],
+    inheritTags: l.inheritTags ?? false,
   };
 }
 
@@ -1610,6 +1633,8 @@ export async function createTaskList(
     color: input.color || "sky",
     projectId: input.projectId ?? null,
     tripId: input.tripId ?? null,
+    tags: input.tags ?? [],
+    inheritTags: input.inheritTags ?? false,
     createdAt: now,
     updatedAt: now,
   };
@@ -1621,7 +1646,12 @@ export async function createTaskList(
 export async function updateTaskList(
   hh: string,
   id: string,
-  patch: Partial<Pick<TaskList, "name" | "description" | "color" | "projectId" | "tripId">>
+  patch: Partial<
+    Pick<
+      TaskList,
+      "name" | "description" | "color" | "projectId" | "tripId" | "tags" | "inheritTags"
+    >
+  >
 ) {
   const cur = await getTaskList(hh, id);
   if (!cur) return null;

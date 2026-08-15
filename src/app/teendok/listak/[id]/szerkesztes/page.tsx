@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { getTaskList, listTaskProjects, listTrips, listTasks } from "@/lib/data";
+import { getTaskList, listProjects, listTrips, listTasks } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -18,7 +18,7 @@ export default async function EditTaskListPage({
   if (!list) notFound();
 
   const [projects, trips, allTasks] = await Promise.all([
-    listTaskProjects(me.householdId),
+    listProjects(me.householdId),
     listTrips(me.householdId),
     listTasks(me.householdId),
   ]);

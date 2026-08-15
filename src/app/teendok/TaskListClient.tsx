@@ -1,9 +1,10 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import type { Task, Project, TaskList } from "@/lib/types";
+import { SHARED_OWNER } from "@/lib/types";
 import { catColor } from "@/lib/expense-visuals";
 import {
   Check,
@@ -14,8 +15,14 @@ import {
   ChevronRight,
   Image as ImageIcon,
   ListTodo,
+  Users,
+  LayoutGrid,
+  List as ListIcon,
 } from "lucide-react";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
+import { StatusControl } from "@/components/ui/StatusControl";
+import { TagChips } from "@/components/ui/TagChips";
+import { TaskBoard } from "./TaskBoard";
 
 type Entry = Task & { ownerName: string | null };
 
@@ -50,6 +57,7 @@ export function TaskListClient({
   myId,
   toggleDoneAction,
   deleteAction,
+  statusAction,
 }: {
   tasks: Entry[];
   members: { id: string; name: string }[];
@@ -58,19 +66,55 @@ export function TaskListClient({
   myId?: string;
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
+  statusAction: (fd: FormData) => void | Promise<void>;
 }) {
   const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
   const listById = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists]);
-  const [owner, setOwner] = useState<string>("all"); // all | userId | me
+  const [owner, setOwner] = useState<string>("all"); // all | __me | __shared | userId
+  const [tag, setTag] = useState<string>("all");
   const [showDone, setShowDone] = useState(false);
+  const [view, setView] = useState<"list" | "board">("list");
+
+  // Nézetválasztás megjegyzése (mint az oszlop-kapcsolónál).
+  useEffect(() => {
+    const saved = localStorage.getItem("teendok-view");
+    if (saved === "board" || saved === "list") setView(saved);
+  }, []);
+  function pickView(v: "list" | "board") {
+    setView(v);
+    localStorage.setItem("teendok-view", v);
+  }
+
+  // A teendő címkéi + a listától örökölt címkék.
+  const inheritedOf = (t: Entry): string[] => {
+    const l = t.listId ? listById.get(t.listId) : null;
+    return l?.inheritTags ? l.tags : [];
+  };
+
+  const allTags = useMemo(() => {
+    const set = new Set<string>();
+    tasks.forEach((t) => {
+      t.tags.forEach((x) => set.add(x));
+      inheritedOf(t).forEach((x) => set.add(x));
+    });
+    return [...set].sort((a, b) => a.localeCompare(b, "hu"));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tasks, lists]);
 
   const filtered = useMemo(() => {
     return tasks.filter((t) => {
-      if (owner === "all") return true;
-      if (owner === "__me") return t.ownerId === myId;
-      return t.ownerId === owner;
+      if (owner === "__me" && t.ownerId !== myId) return false;
+      if (owner === "__shared" && t.ownerId !== SHARED_OWNER) return false;
+      if (owner === "__none" && t.ownerId) return false;
+      if (owner !== "all" && !owner.startsWith("__") && t.ownerId !== owner) return false;
+      if (tag !== "all") {
+        const l = t.listId ? listById.get(t.listId) : null;
+        const inh = l?.inheritTags ? l.tags : [];
+        if (!t.tags.includes(tag) && !inh.includes(tag)) return false;
+      }
+      return true;
     });
-  }, [tasks, owner, myId]);
+  }, [tasks, owner, myId, tag, listById]);
 
   const open = filtered.filter((t) => !t.done);
   const done = filtered.filter((t) => t.done);
@@ -110,14 +154,16 @@ export function TaskListClient({
   const ownerTabs = [
     { id: "all", name: "Mind" },
     ...(myId ? [{ id: "__me", name: "Enyém" }] : []),
+    { id: SHARED_OWNER, name: "Közös" },
     ...members.filter((m) => m.id !== myId).map((m) => ({ id: m.id, name: m.name })),
-  ];
+    { id: "__none", name: "Nincs felelős" },
+  ].map((o) => (o.id === SHARED_OWNER ? { id: "__shared", name: o.name } : o));
 
   return (
     <div>
-      {/* Owner szűrő */}
-      {members.length > 0 && (
-        <div className="mt-5 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+      {/* Szűrők + nézetváltó */}
+      <div className="mt-5 flex items-center gap-2">
+        <div className="flex flex-1 gap-2 overflow-x-auto pb-1 -mx-1 px-1">
           {ownerTabs.map((o) => (
             <button
               key={o.id}
@@ -134,9 +180,59 @@ export function TaskListClient({
             </button>
           ))}
         </div>
+        <div className="shrink-0 flex rounded-xl border border-[var(--color-border)] p-0.5">
+          {([
+            { id: "list", icon: ListIcon, label: "Lista nézet" },
+            { id: "board", icon: LayoutGrid, label: "Tábla nézet" },
+          ] as const).map((v) => {
+            const Icon = v.icon;
+            return (
+              <button
+                key={v.id}
+                type="button"
+                aria-label={v.label}
+                title={v.label}
+                onClick={() => pickView(v.id)}
+                className={cn(
+                  "h-8 w-8 rounded-lg flex items-center justify-center transition",
+                  view === v.id
+                    ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)]"
+                    : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Címke-szűrő */}
+      {allTags.length > 0 && (
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {[{ id: "all", name: "Minden címke" }, ...allTags.map((t) => ({ id: t, name: t }))].map(
+            (t) => (
+              <button
+                key={t.id}
+                type="button"
+                onClick={() => setTag(t.id)}
+                className={cn(
+                  "shrink-0 h-7 px-2.5 rounded-full text-[12px] font-medium border transition whitespace-nowrap",
+                  tag === t.id
+                    ? "bg-[var(--color-foreground)]/10 text-[var(--color-foreground)] border-transparent"
+                    : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                {t.name}
+              </button>
+            )
+          )}
+        </div>
       )}
 
-      {open.length === 0 ? (
+      {view === "board" ? (
+        <TaskBoard tasks={filtered} statusAction={statusAction} />
+      ) : open.length === 0 ? (
         <p className="mt-10 text-center text-sm text-[var(--color-muted-foreground)]">
           Minden kész! 🎉 Nincs nyitott teendő.
         </p>
@@ -167,6 +263,7 @@ export function TaskListClient({
                     list={t.listId ? listById.get(t.listId) ?? null : null}
                     toggleDoneAction={toggleDoneAction}
                     deleteAction={deleteAction}
+                    statusAction={statusAction}
                   />
                 ))}
               </div>
@@ -176,7 +273,7 @@ export function TaskListClient({
       )}
 
       {/* Kész */}
-      {done.length > 0 && (
+      {view === "list" && done.length > 0 && (
         <div className="mt-8">
           <button
             type="button"
@@ -196,6 +293,7 @@ export function TaskListClient({
                   list={t.listId ? listById.get(t.listId) ?? null : null}
                   toggleDoneAction={toggleDoneAction}
                   deleteAction={deleteAction}
+                  statusAction={statusAction}
                 />
               ))}
             </div>
@@ -212,16 +310,20 @@ function TaskCard({
   list,
   toggleDoneAction,
   deleteAction,
+  statusAction,
 }: {
   task: Entry;
   project?: Project | null;
   list?: TaskList | null;
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
+  statusAction: (fd: FormData) => void | Promise<void>;
 }) {
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;
   const overdue = !task.done && task.dueDate && daysFromToday(task.dueDate) < 0;
+  const inherited = list?.inheritTags ? list.tags : [];
+  const shared = task.ownerId === SHARED_OWNER;
 
   return (
     <div
@@ -247,77 +349,91 @@ function TaskCard({
         </button>
       </form>
 
-      {/* Tartalom (Link a detailre) */}
-      <Link href={`/teendok/${task.id}`} className="flex-1 min-w-0">
-        <p className={cn("font-semibold text-[15px] leading-tight", task.done && "line-through")}>
-          {task.title}
-        </p>
-        {task.description && !task.done && (
-          <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)] line-clamp-1">
-            {task.description}
+      <div className="flex-1 min-w-0">
+        <Link href={`/teendok/${task.id}`} className="block">
+          <p className={cn("font-semibold text-[15px] leading-tight", task.done && "line-through")}>
+            {task.title}
           </p>
-        )}
-        <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
-          {task.dueDate && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                overdue
-                  ? "bg-red-500/12 text-red-600 dark:text-red-400"
-                  : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
-              )}
-            >
-              <CalendarDays className="w-3 h-3" /> {fmtDue(task.dueDate)}
-            </span>
+          {task.description && !task.done && (
+            <p className="mt-0.5 text-xs text-[var(--color-muted-foreground)] line-clamp-1">
+              {task.description}
+            </p>
           )}
-          {subTotal > 0 && (
-            <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
-              <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
-            </span>
-          )}
-          {task.imageUrl && (
-            <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
-              <ImageIcon className="w-3 h-3" />
-            </span>
-          )}
-          {task.files.length > 0 && (
-            <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
-              <Paperclip className="w-3 h-3" /> {task.files.length}
-            </span>
-          )}
-          {list && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                catColor(list.color).soft,
-                catColor(list.color).text
-              )}
-            >
-              <ListTodo className="w-3 h-3" /> {list.name}
-            </span>
-          )}
-          {project && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                catColor(project.color).soft,
-                catColor(project.color).text
-              )}
-            >
-              <FolderKanban className="w-3 h-3" /> {project.name}
-            </span>
-          )}
+          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
+            {task.dueDate && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
+                  overdue
+                    ? "bg-red-500/12 text-red-600 dark:text-red-400"
+                    : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
+                )}
+              >
+                <CalendarDays className="w-3 h-3" /> {fmtDue(task.dueDate)}
+              </span>
+            )}
+            {subTotal > 0 && (
+              <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
+                <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
+              </span>
+            )}
+            {task.imageUrl && (
+              <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
+                <ImageIcon className="w-3 h-3" />
+              </span>
+            )}
+            {task.files.length > 0 && (
+              <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
+                <Paperclip className="w-3 h-3" /> {task.files.length}
+              </span>
+            )}
+            {list && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
+                  catColor(list.color).soft,
+                  catColor(list.color).text
+                )}
+              >
+                <ListTodo className="w-3 h-3" /> {list.name}
+              </span>
+            )}
+            {project && (
+              <span
+                className={cn(
+                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
+                  catColor(project.color).soft,
+                  catColor(project.color).text
+                )}
+              >
+                <FolderKanban className="w-3 h-3" /> {project.name}
+              </span>
+            )}
+            <TagChips tags={task.tags} inherited={inherited} />
+          </div>
+        </Link>
+        <div className="mt-2">
+          <StatusControl id={task.id} status={task.status} statusAction={statusAction} />
         </div>
-      </Link>
+      </div>
 
-      {/* Owner avatar */}
-      {task.ownerName && (
+      {/* Felelős */}
+      {shared ? (
         <span
-          className="shrink-0 w-7 h-7 rounded-full brand-gradient text-white text-[10px] font-semibold flex items-center justify-center"
-          title={task.ownerName}
+          className="shrink-0 w-7 h-7 rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] flex items-center justify-center"
+          title="Közös"
         >
-          {initials(task.ownerName)}
+          <Users className="w-4 h-4" />
         </span>
+      ) : (
+        task.ownerName && (
+          <span
+            className="shrink-0 w-7 h-7 rounded-full brand-gradient text-white text-[10px] font-semibold flex items-center justify-center"
+            title={task.ownerName}
+          >
+            {initials(task.ownerName)}
+          </span>
+        )
       )}
 
       <ConfirmDeleteButton id={task.id} title={task.title} deleteAction={deleteAction} variant="icon" />

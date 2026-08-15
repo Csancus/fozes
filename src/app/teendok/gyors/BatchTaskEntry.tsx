@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Plus, X, CopyPlus } from "lucide-react";
 import type { Project, TaskList } from "@/lib/types";
+import { SHARED_OWNER } from "@/lib/types";
 
 type Row = {
   key: string;
@@ -163,7 +164,8 @@ export function BatchTaskEntry({
                       onChange={(e) => update(r.key, { ownerId: e.target.value })}
                       className={ctrl}
                     >
-                      <option value="">Bárki</option>
+                      <option value="">Nincs felelős</option>
+                      <option value={SHARED_OWNER}>Közös</option>
                       {members.map((m) => (
                         <option key={m.id} value={m.id}>
                           {m.name}
@@ -180,11 +182,24 @@ export function BatchTaskEntry({
                       className={ctrl}
                     >
                       <option value="">— Nincs —</option>
-                      {projects.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.name}
-                        </option>
-                      ))}
+                      {projects
+                        .filter((p) => p.scope !== "expense")
+                        .map((p) => (
+                          <option key={p.id} value={p.id}>
+                            {p.name}
+                          </option>
+                        ))}
+                      {projects.some((p) => p.scope === "expense") && (
+                        <optgroup label="Költség-projektek">
+                          {projects
+                            .filter((p) => p.scope === "expense")
+                            .map((p) => (
+                              <option key={p.id} value={p.id}>
+                                {p.name}
+                              </option>
+                            ))}
+                        </optgroup>
+                      )}
                     </select>
                   </td>
                 )}

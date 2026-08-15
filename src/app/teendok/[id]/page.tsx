@@ -18,6 +18,7 @@ import {
   RotateCcw,
   CalendarDays,
   User as UserIcon,
+  Users,
   FolderKanban,
   ListTodo,
   FileText,
@@ -28,7 +29,11 @@ import {
   toggleTaskDoneAction,
   toggleSubtaskAction,
   deleteTaskAction,
+  setTaskStatusAction,
 } from "../actions";
+import { StatusControl } from "@/components/ui/StatusControl";
+import { TagChips } from "@/components/ui/TagChips";
+import { SHARED_OWNER } from "@/lib/types";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 
 function fmtSize(bytes: number): string {
@@ -65,9 +70,12 @@ export default async function TaskDetailPage({
     task.projectId ? getProject(me.householdId, task.projectId) : null,
     task.listId ? getTaskList(me.householdId, task.listId) : null,
   ]);
-  const ownerName = task.ownerId
-    ? members.find((m) => m.id === task.ownerId)?.name ?? null
-    : null;
+  const shared = task.ownerId === SHARED_OWNER;
+  const ownerName =
+    task.ownerId && !shared
+      ? members.find((m) => m.id === task.ownerId)?.name ?? null
+      : null;
+  const inherited = list?.inheritTags ? list.tags : [];
 
   const subDone = task.subtasks.filter((s) => s.done).length;
 
@@ -109,6 +117,17 @@ export default async function TaskDetailPage({
             <UserIcon className="w-4 h-4" /> {ownerName}
           </span>
         )}
+        {shared && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-muted)] px-3 py-1 text-[var(--color-muted-foreground)]">
+            <Users className="w-4 h-4" /> Közös
+          </span>
+        )}
+        <StatusControl
+          id={task.id}
+          status={task.status}
+          statusAction={setTaskStatusAction}
+          size="md"
+        />
         {list && (
           <Link
             href={`/teendok/listak/${list.id}`}
@@ -133,6 +152,12 @@ export default async function TaskDetailPage({
           </span>
         )}
       </div>
+
+      {(task.tags.length > 0 || inherited.length > 0) && (
+        <div className="mt-3">
+          <TagChips tags={task.tags} inherited={inherited} size="md" />
+        </div>
+      )}
 
       {/* Done toggle */}
       <form action={toggleTaskDoneAction} className="mt-4">
