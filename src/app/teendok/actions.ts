@@ -3,6 +3,7 @@
 import { requireUser } from "@/lib/auth";
 import {
   getTask,
+  listTasks,
   saveTask,
   deleteTask,
   setTaskFile,
@@ -10,6 +11,12 @@ import {
   createGoal,
   updateGoal,
   deleteGoal,
+  createProject,
+  getTaskList,
+  listTaskLists,
+  createTaskList,
+  updateTaskList,
+  deleteTaskList,
 } from "@/lib/data";
 import { offloadImage } from "@/lib/r2";
 import { newId } from "@/lib/redis";
@@ -64,7 +71,11 @@ export async function saveTaskAction(fd: FormData) {
   const description = String(fd.get("description") ?? "").trim();
   const ownerId = String(fd.get("ownerId") ?? "").trim() || null;
   const dueDate = String(fd.get("dueDate") ?? "").trim() || null;
-  const projectId = String(fd.get("projectId") ?? "").trim() || null;
+  const listId = String(fd.get("listId") ?? "").trim() || null;
+  // Ha listához tartozik és nincs külön projekt megadva, a listáét örökli.
+  const list = listId ? await getTaskList(hh, listId) : null;
+  const projectId =
+    String(fd.get("projectId") ?? "").trim() || list?.projectId || null;
   const subtasks = parseSubtasks(String(fd.get("subtasks") ?? "[]"));
   const incoming = parseFiles(String(fd.get("files") ?? "[]"));
 
@@ -97,6 +108,7 @@ export async function saveTaskAction(fd: FormData) {
     ownerId,
     dueDate,
     projectId,
+    listId,
     imageUrl,
     files: keptMeta,
     subtasks,
@@ -108,6 +120,10 @@ export async function saveTaskAction(fd: FormData) {
   await saveTask(hh, task);
   revalidatePath("/teendok");
   revalidatePath("/");
+  if (listId) revalidatePath(`/teendok/listak/${listId}`);
+  if (existing?.listId && existing.listId !== listId) {
+    revalidatePath(`/teendok/listak/${existing.listId}`);
+  }
   redirect(`/teendok/${id}`);
 }
 
@@ -126,6 +142,7 @@ export async function toggleTaskDoneAction(fd: FormData) {
   });
   revalidatePath("/teendok");
   revalidatePath(`/teendok/${id}`);
+  if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
   revalidatePath("/");
 }
 
@@ -143,15 +160,21 @@ export async function toggleSubtaskAction(fd: FormData) {
   await saveTask(me.householdId, { ...task, subtasks, updatedAt: Date.now() });
   revalidatePath(`/teendok/${id}`);
   revalidatePath("/teendok");
+  if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
 }
 
 export async function deleteTaskAction(fd: FormData) {
   const me = await requireUser();
   const id = String(fd.get("id") ?? "");
   if (!id) return;
+  const task = await getTask(me.householdId, id);
   await deleteTask(me.householdId, id);
   revalidatePath("/teendok");
   revalidatePath("/");
+  if (task?.listId) {
+    revalidatePath(`/teendok/listak/${task.listId}`);
+    redirect(`/teendok/listak/${task.listId}`);
+  }
   redirect("/teendok");
 }
 
@@ -160,9 +183,11 @@ export async function deleteTaskFromListAction(fd: FormData) {
   const me = await requireUser();
   const id = String(fd.get("id") ?? "");
   if (!id) return;
+  const task = await getTask(me.householdId, id);
   await deleteTask(me.householdId, id);
   revalidatePath("/teendok");
   revalidatePath("/");
+  if (task?.listId) revalidatePath(`/teendok/listak/${task.listId}`);
 }
 
 type BatchTaskRow = {
@@ -171,6 +196,7 @@ type BatchTaskRow = {
   ownerId: unknown;
   dueDate: unknown;
   projectId: unknown;
+  listId?: unknown;
 };
 
 // Több teendő egyszerre (táblázatos gyors felvitel).
@@ -195,6 +221,7 @@ export async function saveTasksBatchAction(fd: FormData) {
       ownerId: String(r.ownerId ?? "").trim() || null,
       dueDate: String(r.dueDate ?? "").trim() || null,
       projectId: String(r.projectId ?? "").trim() || null,
+      listId: String(r.listId ?? "").trim() || null,
       imageUrl: null,
       files: [],
       subtasks: [],
@@ -208,6 +235,208 @@ export async function saveTasksBatchAction(fd: FormData) {
   revalidatePath("/teendok");
   revalidatePath("/");
   redirect("/teendok");
+}
+
+// ============ TEENDŐ-LISTÁK ============
+
+// A lista „szülője": meglévő projekt, utazás, vagy egy most létrehozott
+// teendő-projekt (scope="task"). A form egy mezőben küldi: parent =
+// "" | "project:<id>" | "trip:<id>" | "new".
+async function resolveParent(
+  hh: string,
+  fd: FormData
+): Promise<{ projectId: string | null; tripId: string | null }> {
+  const parent = String(fd.get("parent") ?? "").trim();
+  if (parent === "new") {
+    const name = String(fd.get("newProjectName") ?? "").trim();
+    if (!name) return { projectId: null, tripId: null };
+    const color = String(fd.get("color") ?? "sky").trim();
+    const project = await createProject(hh, { name, color, scope: "task" });
+    return { projectId: project.id, tripId: null };
+  }
+  if (parent.startsWith("project:")) {
+    return { projectId: parent.slice("project:".length) || null, tripId: null };
+  }
+  if (parent.startsWith("trip:")) {
+    return { projectId: null, tripId: parent.slice("trip:".length) || null };
+  }
+  return { projectId: null, tripId: null };
+}
+
+export async function createTaskListAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+  const name = String(fd.get("name") ?? "").trim();
+  if (!name) return;
+  const color = String(fd.get("color") ?? "sky").trim();
+  const description = String(fd.get("description") ?? "").trim();
+  const { projectId, tripId } = await resolveParent(hh, fd);
+
+  const list = await createTaskList(hh, {
+    name,
+    description,
+    color,
+    projectId,
+    tripId,
+  });
+
+  // Kezdő tételek: soronként egy teendő.
+  const titles = String(fd.get("items") ?? "")
+    .split("\n")
+    .map((s) => s.replace(/^[-*•\s]+/, "").trim())
+    .filter(Boolean);
+  const now = Date.now();
+  for (const title of titles) {
+    await saveTask(hh, {
+      id: newId(),
+      title,
+      description: "",
+      ownerId: null,
+      dueDate: null,
+      projectId,
+      listId: list.id,
+      imageUrl: null,
+      files: [],
+      subtasks: [],
+      done: false,
+      doneAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+
+  revalidatePath("/teendok");
+  revalidatePath("/");
+  if (tripId) revalidatePath(`/utazasok/${tripId}`);
+  redirect(`/teendok/listak/${list.id}`);
+}
+
+export async function updateTaskListAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+  const id = String(fd.get("id") ?? "").trim();
+  const name = String(fd.get("name") ?? "").trim();
+  if (!id || !name) return;
+  const before = await getTaskList(hh, id);
+  const { projectId, tripId } = await resolveParent(hh, fd);
+  await updateTaskList(hh, id, {
+    name,
+    description: String(fd.get("description") ?? "").trim(),
+    color: String(fd.get("color") ?? "sky").trim(),
+    projectId,
+    tripId,
+  });
+  revalidatePath("/teendok");
+  revalidatePath(`/teendok/listak/${id}`);
+  if (tripId) revalidatePath(`/utazasok/${tripId}`);
+  if (before?.tripId && before.tripId !== tripId) {
+    revalidatePath(`/utazasok/${before.tripId}`);
+  }
+  redirect(`/teendok/listak/${id}`);
+}
+
+export async function deleteTaskListAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+  const id = String(fd.get("id") ?? "").trim();
+  if (!id) return;
+  const list = await getTaskList(hh, id);
+  const withTasks = String(fd.get("withTasks") ?? "") === "1";
+  await deleteTaskList(hh, id, { withTasks });
+  revalidatePath("/teendok");
+  revalidatePath("/");
+  if (list?.tripId) revalidatePath(`/utazasok/${list.tripId}`);
+  redirect("/teendok");
+}
+
+// Gyors hozzáadás a lista oldalán: egy soros teendő (több sor is beilleszthető).
+export async function addTaskToListAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+  const listId = String(fd.get("listId") ?? "").trim();
+  const raw = String(fd.get("title") ?? "");
+  if (!listId || !raw.trim()) return;
+  const list = await getTaskList(hh, listId);
+  if (!list) return;
+
+  const titles = raw
+    .split("\n")
+    .map((s) => s.replace(/^[-*•\s]+/, "").trim())
+    .filter(Boolean);
+  const dueDate = String(fd.get("dueDate") ?? "").trim() || null;
+  const ownerId = String(fd.get("ownerId") ?? "").trim() || null;
+  const now = Date.now();
+  for (const title of titles) {
+    await saveTask(hh, {
+      id: newId(),
+      title,
+      description: "",
+      ownerId,
+      dueDate,
+      projectId: list.projectId,
+      listId,
+      imageUrl: null,
+      files: [],
+      subtasks: [],
+      done: false,
+      doneAt: null,
+      createdAt: now,
+      updatedAt: now,
+    });
+  }
+  revalidatePath(`/teendok/listak/${listId}`);
+  revalidatePath("/teendok");
+  revalidatePath("/");
+}
+
+// Meglévő teendő beemelése egy listába / kivétele belőle.
+export async function setTaskListAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+  const id = String(fd.get("id") ?? "").trim();
+  if (!id) return;
+  const task = await getTask(hh, id);
+  if (!task) return;
+  const listId = String(fd.get("listId") ?? "").trim() || null;
+  const list = listId ? await getTaskList(hh, listId) : null;
+  await saveTask(hh, {
+    ...task,
+    listId,
+    projectId: list?.projectId ?? task.projectId,
+    updatedAt: Date.now(),
+  });
+  revalidatePath("/teendok");
+  revalidatePath(`/teendok/${id}`);
+  if (listId) revalidatePath(`/teendok/listak/${listId}`);
+  if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
+}
+
+// A lista összes nyitott teendője kész (vagy vissza).
+export async function completeTaskListAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+  const listId = String(fd.get("listId") ?? "").trim();
+  if (!listId) return;
+  const undo = String(fd.get("undo") ?? "") === "1";
+  const lists = await listTaskLists(hh);
+  if (!lists.some((l) => l.id === listId)) return;
+  const all = await listTasks(hh);
+  const now = Date.now();
+  await Promise.all(
+    all
+      .filter((t) => t.listId === listId && t.done === undo)
+      .map((t) =>
+        saveTask(hh, {
+          ...t,
+          done: !undo,
+          doneAt: undo ? null : now,
+          updatedAt: now,
+        })
+      )
+  );
+  revalidatePath(`/teendok/listak/${listId}`);
+  revalidatePath("/teendok");
+  revalidatePath("/");
 }
 
 // ============ CÉLOK ============

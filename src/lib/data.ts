@@ -25,6 +25,7 @@ import type {
   Trip,
   TripDay,
   Task,
+  TaskList,
   TaskFileMeta,
   Note,
   User,
@@ -1520,13 +1521,13 @@ export async function listTasks(hh: string): Promise<Task[]> {
   );
   return items
     .filter((t): t is Task => !!t)
-    .map((t) => ({ ...t, projectId: t.projectId ?? null }));
+    .map((t) => ({ ...t, projectId: t.projectId ?? null, listId: t.listId ?? null }));
 }
 
 export async function getTask(hh: string, id: string) {
   const t = await redis.get<Task>(key.task(hh, id));
   if (!t) return null;
-  return { ...t, projectId: t.projectId ?? null };
+  return { ...t, projectId: t.projectId ?? null, listId: t.listId ?? null };
 }
 
 export async function saveTask(hh: string, task: Task) {
@@ -1566,6 +1567,85 @@ export async function deleteTaskFile(
   fileId: string
 ) {
   await redis.del(key.taskFile(hh, taskId, fileId));
+}
+
+// ============ TEENDŐ-LISTÁK (TaskList) ============
+
+function normalizeTaskList(l: TaskList): TaskList {
+  return {
+    ...l,
+    description: l.description ?? "",
+    color: l.color || "sky",
+    projectId: l.projectId ?? null,
+    tripId: l.tripId ?? null,
+  };
+}
+
+export async function listTaskLists(hh: string): Promise<TaskList[]> {
+  const ids = await redis.smembers(key.taskLists(hh));
+  if (ids.length === 0) return [];
+  const items = await Promise.all(
+    ids.map((id) => redis.get<TaskList>(key.taskList(hh, id)))
+  );
+  return items
+    .filter((l): l is TaskList => !!l)
+    .map(normalizeTaskList)
+    .sort((a, b) => a.createdAt - b.createdAt);
+}
+
+export async function getTaskList(hh: string, id: string) {
+  const l = await redis.get<TaskList>(key.taskList(hh, id));
+  return l ? normalizeTaskList(l) : null;
+}
+
+export async function createTaskList(
+  hh: string,
+  input: Pick<TaskList, "name"> & Partial<Omit<TaskList, "id" | "createdAt" | "updatedAt">>
+): Promise<TaskList> {
+  const now = Date.now();
+  const l: TaskList = {
+    id: newId(),
+    name: input.name.trim(),
+    description: input.description?.trim() ?? "",
+    color: input.color || "sky",
+    projectId: input.projectId ?? null,
+    tripId: input.tripId ?? null,
+    createdAt: now,
+    updatedAt: now,
+  };
+  await redis.set(key.taskList(hh, l.id), l);
+  await redis.sadd(key.taskLists(hh), l.id);
+  return l;
+}
+
+export async function updateTaskList(
+  hh: string,
+  id: string,
+  patch: Partial<Pick<TaskList, "name" | "description" | "color" | "projectId" | "tripId">>
+) {
+  const cur = await getTaskList(hh, id);
+  if (!cur) return null;
+  const next: TaskList = { ...cur, ...patch, updatedAt: Date.now() };
+  await redis.set(key.taskList(hh, id), next);
+  return next;
+}
+
+// Lista törlése: a teendők vagy velük együtt törlődnek, vagy csak leválnak róla.
+export async function deleteTaskList(
+  hh: string,
+  id: string,
+  opts: { withTasks?: boolean } = {}
+) {
+  const tasks = (await listTasks(hh)).filter((t) => t.listId === id);
+  if (opts.withTasks) {
+    await Promise.all(tasks.map((t) => deleteTask(hh, t.id)));
+  } else {
+    await Promise.all(
+      tasks.map((t) => saveTask(hh, { ...t, listId: null, updatedAt: Date.now() }))
+    );
+  }
+  await redis.del(key.taskList(hh, id));
+  await redis.srem(key.taskLists(hh), id);
 }
 
 // ============ JEGYZETEK (Notes) ============

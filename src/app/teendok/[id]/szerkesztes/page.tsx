@@ -1,5 +1,10 @@
 import { requireUser } from "@/lib/auth";
-import { getTask, listHouseholdMembers, listTaskProjects } from "@/lib/data";
+import {
+  getTask,
+  listHouseholdMembers,
+  listTaskProjects,
+  listTaskLists,
+} from "@/lib/data";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -13,10 +18,11 @@ export default async function EditTaskPage({
 }) {
   const { id } = await params;
   const me = await requireUser();
-  const [task, members, projects] = await Promise.all([
+  const [task, members, projects, lists] = await Promise.all([
     getTask(me.householdId, id),
     listHouseholdMembers(me.householdId),
     listTaskProjects(me.householdId),
+    listTaskLists(me.householdId),
   ]);
   if (!task) notFound();
 
@@ -29,6 +35,7 @@ export default async function EditTaskPage({
           initial={task}
           members={members}
           projects={projects}
+          lists={lists}
           myId={me.userId}
         />
       </Card>

@@ -1,5 +1,11 @@
 import { requireUser } from "@/lib/auth";
-import { getTask, getTaskFile, listHouseholdMembers, getProject } from "@/lib/data";
+import {
+  getTask,
+  getTaskFile,
+  listHouseholdMembers,
+  getProject,
+  getTaskList,
+} from "@/lib/data";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -13,6 +19,7 @@ import {
   CalendarDays,
   User as UserIcon,
   FolderKanban,
+  ListTodo,
   FileText,
   Music,
   Download,
@@ -47,7 +54,7 @@ export default async function TaskDetailPage({
   const task = await getTask(me.householdId, id);
   if (!task) notFound();
 
-  const [blobs, members, project] = await Promise.all([
+  const [blobs, members, project, list] = await Promise.all([
     Promise.all(
       task.files.map(async (f) => ({
         meta: f,
@@ -56,6 +63,7 @@ export default async function TaskDetailPage({
     ),
     listHouseholdMembers(me.householdId),
     task.projectId ? getProject(me.householdId, task.projectId) : null,
+    task.listId ? getTaskList(me.householdId, task.listId) : null,
   ]);
   const ownerName = task.ownerId
     ? members.find((m) => m.id === task.ownerId)?.name ?? null
@@ -67,7 +75,7 @@ export default async function TaskDetailPage({
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
       <PageHeader
         title="Teendő"
-        back="/teendok"
+        back={task.listId ? `/teendok/listak/${task.listId}` : "/teendok"}
         action={
           <Link
             href={`/teendok/${id}/szerkesztes`}
@@ -100,6 +108,18 @@ export default async function TaskDetailPage({
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-primary-soft)] px-3 py-1 text-[var(--color-primary)]">
             <UserIcon className="w-4 h-4" /> {ownerName}
           </span>
+        )}
+        {list && (
+          <Link
+            href={`/teendok/listak/${list.id}`}
+            className={cn(
+              "inline-flex items-center gap-1.5 rounded-full px-3 py-1",
+              catColor(list.color).soft,
+              catColor(list.color).text
+            )}
+          >
+            <ListTodo className="w-4 h-4" /> {list.name}
+          </Link>
         )}
         {project && (
           <span

@@ -631,6 +631,19 @@ export type Note = {
   updatedAt: number;
 };
 
+// Teendő-lista: egy csomag összetartozó teendő (pl. „Csomagolás", „Intéznivalók").
+// Köthető meglévő projekthez VAGY utazáshoz — vagy állhat önmagában is.
+export type TaskList = {
+  id: string;
+  name: string;
+  description: string;
+  color: string;             // CAT_COLORS kulcs (expense-visuals)
+  projectId: string | null;  // Project.id
+  tripId: string | null;     // Trip.id
+  createdAt: number;
+  updatedAt: number;
+};
+
 export type Task = {
   id: string;
   title: string;
@@ -638,6 +651,7 @@ export type Task = {
   ownerId: string | null;   // kié a teendő (household user), vagy null = bárkié
   dueDate: string | null;    // YYYY-MM-DD, vagy null = nincs határidő
   projectId: string | null;  // opcionális projekt (Project.id)
+  listId: string | null;     // opcionális teendő-lista (TaskList.id)
   imageUrl: string | null;   // R2/inline borítókép
   files: TaskFileMeta[];     // csatolt fájlok (blob külön kulcson)
   subtasks: Subtask[];       // pipálható alteendők

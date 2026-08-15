@@ -1,14 +1,20 @@
 import { requireUser } from "@/lib/auth";
-import { listHouseholdMembers, listTaskProjects } from "@/lib/data";
+import { listHouseholdMembers, listTaskProjects, listTaskLists } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BatchTaskEntry } from "./BatchTaskEntry";
 import { saveTasksBatchAction } from "../actions";
 
-export default async function GyorsTaskPage() {
+export default async function GyorsTaskPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ lista?: string }>;
+}) {
+  const { lista } = await searchParams;
   const me = await requireUser();
-  const [members, projects] = await Promise.all([
+  const [members, projects, lists] = await Promise.all([
     listHouseholdMembers(me.householdId),
     listTaskProjects(me.householdId),
+    listTaskLists(me.householdId),
   ]);
 
   return (
@@ -16,12 +22,14 @@ export default async function GyorsTaskPage() {
       <PageHeader
         title="Gyors teendő felvitel"
         subtitle="Több teendő egyszerre, táblázatos formában"
-        back="/teendok"
+        back={lista ? `/teendok/listak/${lista}` : "/teendok"}
       />
       <BatchTaskEntry
         action={saveTasksBatchAction}
         members={members}
         projects={projects}
+        lists={lists}
+        defaultListId={lista}
       />
     </main>
   );

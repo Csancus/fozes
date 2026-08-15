@@ -92,6 +92,8 @@ export const key = {
   task: (hh: string, id: string) => `hh:${hh}:task:${id}`,
   taskFile: (hh: string, taskId: string, fileId: string) =>
     `hh:${hh}:task:${taskId}:file:${fileId}`,
+  taskLists: (hh: string) => `hh:${hh}:task-lists`,
+  taskList: (hh: string, id: string) => `hh:${hh}:task-list:${id}`,
 
   savedTypes: (hh: string) => `hh:${hh}:saved-types`,
   savedType: (hh: string, id: string) => `hh:${hh}:saved-type:${id}`,

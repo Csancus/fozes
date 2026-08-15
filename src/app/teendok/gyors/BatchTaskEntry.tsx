@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { Plus, X, CopyPlus } from "lucide-react";
-import type { Project } from "@/lib/types";
+import type { Project, TaskList } from "@/lib/types";
 
 type Row = {
   key: string;
@@ -34,11 +34,17 @@ export function BatchTaskEntry({
   action,
   members,
   projects,
+  lists = [],
+  defaultListId = "",
 }: {
   action: (fd: FormData) => void | Promise<void>;
   members: { id: string; name: string }[];
   projects: Project[];
+  lists?: TaskList[];
+  defaultListId?: string;
 }) {
+  // A táblázat minden sora ugyanabba a listába kerül (ha van választva).
+  const [listId, setListId] = useState(defaultListId);
   const [rows, setRows] = useState<Row[]>([
     emptyRow(),
     emptyRow(),
@@ -81,12 +87,34 @@ export function BatchTaskEntry({
       ownerId: r.ownerId,
       dueDate: r.dueDate,
       projectId: r.projectId,
+      listId,
     }))
   );
 
   return (
     <form action={action} className="mt-5">
       <input type="hidden" name="rows" value={payload} />
+
+      {lists.length > 0 && (
+        <label className="mb-4 flex flex-wrap items-center gap-2 text-sm">
+          <span className="font-medium">Melyik listába?</span>
+          <select
+            value={listId}
+            onChange={(e) => setListId(e.target.value)}
+            className="h-9 rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2 text-[13px] focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+          >
+            <option value="">— Nincs (önálló teendők) —</option>
+            {lists.map((l) => (
+              <option key={l.id} value={l.id}>
+                {l.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-xs text-[var(--color-muted-foreground)]">
+            minden sorra érvényes
+          </span>
+        </label>
+      )}
 
       <div className="overflow-x-auto -mx-5 px-5">
         <table

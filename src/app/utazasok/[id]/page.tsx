@@ -1,5 +1,7 @@
 import { requireUser } from "@/lib/auth";
-import { getTrip } from "@/lib/data";
+import { getTrip, listTaskLists, listTasks } from "@/lib/data";
+import { cn } from "@/lib/cn";
+import { catColor } from "@/lib/expense-visuals";
 import { plainToRichText, sanitizeRichText } from "@/lib/richtext";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -14,6 +16,8 @@ import {
   ChevronRight,
   Route,
   StickyNote,
+  ListTodo,
+  Plus,
 } from "lucide-react";
 
 export default async function TripDashboardPage({
@@ -25,6 +29,23 @@ export default async function TripDashboardPage({
   const me = await requireUser();
   const trip = await getTrip(me.householdId, id);
   if (!trip) notFound();
+
+  const [allLists, allTasks] = await Promise.all([
+    listTaskLists(me.householdId),
+    listTasks(me.householdId),
+  ]);
+  const tripLists = allLists
+    .filter((l) => l.tripId === id)
+    .map((l) => {
+      const own = allTasks.filter((t) => t.listId === l.id);
+      const doneCount = own.filter((t) => t.done).length;
+      return {
+        list: l,
+        total: own.length,
+        done: doneCount,
+        pct: own.length ? Math.round((doneCount / own.length) * 100) : 0,
+      };
+    });
 
   const dateRange = [trip.startDate, trip.endDate].filter(Boolean).join(" – ");
   const stopCount = trip.days.reduce((n, d) => n + d.items.length, 0);
@@ -95,6 +116,62 @@ export default async function TripDashboardPage({
         </div>
         <ChevronRight className="w-5 h-5 text-[var(--color-muted-foreground)] shrink-0" />
       </Link>
+
+      {/* Teendő-listák (csomagolás, intéznivalók…) */}
+      <div className="mt-8 mb-2 flex items-center justify-between px-1">
+        <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em]">
+          Teendő-listák
+        </h2>
+        <Link
+          href={`/teendok/listak/uj?utazas=${id}`}
+          className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--color-primary)]"
+        >
+          <Plus className="w-4 h-4" /> Új lista
+        </Link>
+      </div>
+      {tripLists.length === 0 ? (
+        <Link
+          href={`/teendok/listak/uj?utazas=${id}`}
+          className="flex items-center gap-3 rounded-2xl border-2 border-dashed border-[var(--color-border)] bg-[var(--color-muted)]/20 p-4 transition hover:border-[var(--color-primary)]/50"
+        >
+          <div className="w-10 h-10 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] flex items-center justify-center shrink-0">
+            <ListTodo className="w-5 h-5" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-semibold">Lista az utazáshoz</p>
+            <p className="text-xs text-[var(--color-muted-foreground)]">
+              pl. Csomagolás, Intéznivalók indulás előtt
+            </p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[var(--color-muted-foreground)] shrink-0" />
+        </Link>
+      ) : (
+        <div className="grid gap-2.5 md:grid-cols-2">
+          {tripLists.map(({ list, total, done, pct }) => {
+            const col = catColor(list.color);
+            return (
+              <Link
+                key={list.id}
+                href={`/teendok/listak/${list.id}`}
+                className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3.5 shadow-sm transition hover:border-[var(--color-primary)]/40 hover:shadow-md active:scale-[0.99]"
+              >
+                <div className="flex items-center gap-2.5">
+                  <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", col.dot)} />
+                  <p className="flex-1 min-w-0 font-semibold text-[15px] truncate">
+                    {list.name}
+                  </p>
+                  <span className="text-[11px] text-[var(--color-muted-foreground)] tabular-nums">
+                    {done}/{total}
+                  </span>
+                </div>
+                <div className="mt-2.5 h-1.5 rounded-full bg-[var(--color-muted)] overflow-hidden">
+                  <div className={cn("h-full rounded-full", col.dot)} style={{ width: `${pct}%` }} />
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      )}
 
       {noteHtml && (
         <>

@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
-import type { Task, Project } from "@/lib/types";
+import type { Task, Project, TaskList } from "@/lib/types";
 import { catColor } from "@/lib/expense-visuals";
 import {
   Check,
@@ -13,6 +13,7 @@ import {
   FolderKanban,
   ChevronRight,
   Image as ImageIcon,
+  ListTodo,
 } from "lucide-react";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 
@@ -45,6 +46,7 @@ export function TaskListClient({
   tasks,
   members,
   projects = [],
+  lists = [],
   myId,
   toggleDoneAction,
   deleteAction,
@@ -52,11 +54,13 @@ export function TaskListClient({
   tasks: Entry[];
   members: { id: string; name: string }[];
   projects?: Project[];
+  lists?: TaskList[];
   myId?: string;
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
 }) {
   const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
+  const listById = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists]);
   const [owner, setOwner] = useState<string>("all"); // all | userId | me
   const [showDone, setShowDone] = useState(false);
 
@@ -160,6 +164,7 @@ export function TaskListClient({
                     key={t.id}
                     task={t}
                     project={t.projectId ? projectById.get(t.projectId) ?? null : null}
+                    list={t.listId ? listById.get(t.listId) ?? null : null}
                     toggleDoneAction={toggleDoneAction}
                     deleteAction={deleteAction}
                   />
@@ -188,6 +193,7 @@ export function TaskListClient({
                   key={t.id}
                   task={t}
                   project={t.projectId ? projectById.get(t.projectId) ?? null : null}
+                  list={t.listId ? listById.get(t.listId) ?? null : null}
                   toggleDoneAction={toggleDoneAction}
                   deleteAction={deleteAction}
                 />
@@ -203,11 +209,13 @@ export function TaskListClient({
 function TaskCard({
   task,
   project,
+  list,
   toggleDoneAction,
   deleteAction,
 }: {
   task: Entry;
   project?: Project | null;
+  list?: TaskList | null;
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
 }) {
@@ -275,6 +283,17 @@ function TaskCard({
           {task.files.length > 0 && (
             <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
               <Paperclip className="w-3 h-3" /> {task.files.length}
+            </span>
+          )}
+          {list && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
+                catColor(list.color).soft,
+                catColor(list.color).text
+              )}
+            >
+              <ListTodo className="w-3 h-3" /> {list.name}
             </span>
           )}
           {project && (
