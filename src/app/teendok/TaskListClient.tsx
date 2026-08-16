@@ -250,7 +250,7 @@ export function TaskListClient({
                   <span className="opacity-70">{b.items.length}</span>
                 </span>
               </h2>
-              <div className="space-y-2.5">
+              <div className="space-y-2">
                 {b.items.map((t) => (
                   <TaskCard
                     key={t.id}
@@ -281,7 +281,7 @@ export function TaskListClient({
             Kész ({done.length})
           </button>
           {showDone && (
-            <div className="mt-3 space-y-2.5">
+            <div className="mt-3 space-y-2">
               {done.map((t) => (
                 <TaskCard
                   key={t.id}
@@ -327,30 +327,30 @@ function TaskCard({
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-2xl border bg-[var(--color-card)] p-3 shadow-sm transition",
+        "flex items-center gap-2.5 rounded-xl border bg-[var(--color-card)] px-3 py-2 shadow-sm transition",
         task.done ? "border-[var(--color-border)] opacity-70" : "border-[var(--color-border)] hover:border-[var(--color-primary)]/40 hover:shadow-md"
       )}
     >
       {/* Pipa (külön form) */}
-      <form action={toggleDoneAction} className="shrink-0 pt-0.5">
+      <form action={toggleDoneAction} className="shrink-0">
         <input type="hidden" name="id" value={task.id} />
         <button
           type="submit"
           className={cn(
-            "w-7 h-7 rounded-lg border flex items-center justify-center transition",
+            "w-6 h-6 rounded-lg border flex items-center justify-center transition",
             task.done
               ? "bg-emerald-500 border-emerald-500 text-white"
               : "border-[var(--color-border)] text-transparent hover:border-emerald-500"
           )}
           aria-label={task.done ? "Vissza" : "Kész"}
         >
-          <Check className="w-4 h-4" />
+          <Check className="w-3.5 h-3.5" />
         </button>
       </form>
 
       <div className="flex-1 min-w-0">
         <Link href={`/teendok/${task.id}`} className="block">
-          <p className={cn("font-semibold text-[15px] leading-tight", task.done && "line-through")}>
+          <p className={cn("font-semibold text-[14px] leading-tight truncate", task.done && "line-through")}>
             {task.title}
           </p>
           {task.description && !task.done && (
@@ -358,65 +358,63 @@ function TaskCard({
               {task.description}
             </p>
           )}
-          <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
-            {subTotal > 0 && (
-              <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
-                <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
-              </span>
-            )}
-            {task.imageUrl && (
-              <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
-                <ImageIcon className="w-3 h-3" />
-              </span>
-            )}
-            {task.files.length > 0 && (
-              <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
-                <Paperclip className="w-3 h-3" /> {task.files.length}
-              </span>
-            )}
-            {list && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                  catColor(list.color).soft,
-                  catColor(list.color).text
-                )}
-              >
-                <ListTodo className="w-3 h-3" /> {list.name}
-              </span>
-            )}
-            {project && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                  catColor(project.color).soft,
-                  catColor(project.color).text
-                )}
-              >
-                <FolderKanban className="w-3 h-3" /> {project.name}
-              </span>
-            )}
-            <TagChips tags={task.tags} inherited={inherited} />
-          </div>
         </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <StatusControl id={task.id} status={task.status} statusAction={statusAction} />
           <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} />
+          {subTotal > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
+              <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
+            </span>
+          )}
+          {task.imageUrl && (
+            <span className="inline-flex items-center gap-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              <ImageIcon className="w-3 h-3" />
+            </span>
+          )}
+          {task.files.length > 0 && (
+            <span className="inline-flex items-center gap-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              <Paperclip className="w-3 h-3" /> {task.files.length}
+            </span>
+          )}
+          {list && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                catColor(list.color).soft,
+                catColor(list.color).text
+              )}
+            >
+              <ListTodo className="w-3 h-3" /> {list.name}
+            </span>
+          )}
+          {project && (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium",
+                catColor(project.color).soft,
+                catColor(project.color).text
+              )}
+            >
+              <FolderKanban className="w-3 h-3" /> {project.name}
+            </span>
+          )}
+          <TagChips tags={task.tags} inherited={inherited} />
         </div>
       </div>
 
       {/* Felelős */}
       {shared ? (
         <span
-          className="shrink-0 w-7 h-7 rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] flex items-center justify-center"
+          className="shrink-0 w-6 h-6 rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] flex items-center justify-center"
           title="Közös"
         >
-          <Users className="w-4 h-4" />
+          <Users className="w-3.5 h-3.5" />
         </span>
       ) : (
         task.ownerName && (
           <span
-            className="shrink-0 w-7 h-7 rounded-full brand-gradient text-white text-[10px] font-semibold flex items-center justify-center"
+            className="shrink-0 w-6 h-6 rounded-full brand-gradient text-white text-[9px] font-semibold flex items-center justify-center"
             title={task.ownerName}
           >
             {initials(task.ownerName)}

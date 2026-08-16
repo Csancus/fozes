@@ -99,7 +99,7 @@ export function ListTasksView({
       ) : (
         <>
           {open.length > 0 ? (
-            <ul className="mt-3 space-y-2.5">
+            <ul className="mt-3 space-y-2">
               {open.map((t) => (
                 <li key={t.id}>
                   <Row
@@ -132,7 +132,7 @@ export function ListTasksView({
                 Kész ({done.length})
               </button>
               {showDone && (
-                <ul className="mt-3 space-y-2.5">
+                <ul className="mt-3 space-y-2">
                   {done.map((t) => (
                     <li key={t.id}>
                       <Row
@@ -177,64 +177,60 @@ function Row({
   return (
     <div
       className={cn(
-        "flex items-start gap-3 rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 shadow-sm transition",
+        "flex items-center gap-2.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] px-3 py-2 shadow-sm transition",
         task.done ? "opacity-70" : "hover:border-[var(--color-primary)]/40 hover:shadow-md"
       )}
     >
-      <form action={toggleDoneAction} className="shrink-0 pt-0.5">
+      <form action={toggleDoneAction} className="shrink-0">
         <input type="hidden" name="id" value={task.id} />
         <button
           type="submit"
           aria-label={task.done ? "Vissza" : "Kész"}
           className={cn(
-            "w-7 h-7 rounded-lg border flex items-center justify-center transition",
+            "w-6 h-6 rounded-lg border flex items-center justify-center transition",
             task.done
               ? "bg-emerald-500 border-emerald-500 text-white"
               : "border-[var(--color-border)] text-transparent hover:border-emerald-500"
           )}
         >
-          <Check className="w-4 h-4" />
+          <Check className="w-3.5 h-3.5" />
         </button>
       </form>
 
       <div className="flex-1 min-w-0">
         <Link href={`/teendok/${task.id}`} className="block">
-          <p className={cn("font-medium text-[15px] leading-tight", task.done && "line-through")}>
+          <p className={cn("font-medium text-[14px] leading-tight truncate", task.done && "line-through")}>
             {task.title}
           </p>
-          {(subTotal > 0 || task.files.length > 0 || task.tags.length > 0 || inheritedTags.length > 0) && (
-            <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
-              {subTotal > 0 && (
-                <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
-                  <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
-                </span>
-              )}
-              {task.files.length > 0 && (
-                <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
-                  <Paperclip className="w-3 h-3" /> {task.files.length}
-                </span>
-              )}
-              <TagChips tags={task.tags} inherited={inheritedTags} />
-            </div>
-          )}
         </Link>
-        <div className="mt-2 flex flex-wrap items-center gap-2">
+        <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <StatusControl id={task.id} status={task.status} statusAction={statusAction} />
           <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} />
+          {subTotal > 0 && (
+            <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
+              <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
+            </span>
+          )}
+          {task.files.length > 0 && (
+            <span className="inline-flex items-center gap-0.5 text-[11px] text-[var(--color-muted-foreground)]">
+              <Paperclip className="w-3 h-3" /> {task.files.length}
+            </span>
+          )}
+          <TagChips tags={task.tags} inherited={inheritedTags} />
         </div>
       </div>
 
       {shared ? (
         <span
-          className="shrink-0 w-7 h-7 rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] flex items-center justify-center"
+          className="shrink-0 w-6 h-6 rounded-full bg-[var(--color-muted)] text-[var(--color-muted-foreground)] flex items-center justify-center"
           title="Közös"
         >
-          <Users className="w-4 h-4" />
+          <Users className="w-3.5 h-3.5" />
         </span>
       ) : (
         task.ownerName && (
           <span
-            className="shrink-0 w-7 h-7 rounded-full brand-gradient text-white text-[10px] font-semibold flex items-center justify-center"
+            className="shrink-0 w-6 h-6 rounded-full brand-gradient text-white text-[9px] font-semibold flex items-center justify-center"
             title={task.ownerName}
           >
             {initials(task.ownerName)}
