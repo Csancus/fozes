@@ -8,7 +8,6 @@ import { SHARED_OWNER } from "@/lib/types";
 import { catColor } from "@/lib/expense-visuals";
 import {
   Check,
-  CalendarDays,
   Paperclip,
   ListChecks,
   FolderKanban,
@@ -21,6 +20,7 @@ import {
 } from "lucide-react";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { StatusControl } from "@/components/ui/StatusControl";
+import { DueDateControl } from "@/components/ui/DueDateControl";
 import { TagChips } from "@/components/ui/TagChips";
 import { TaskBoard } from "./TaskBoard";
 
@@ -35,12 +35,6 @@ function initials(name: string): string {
   return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
-const DOW = ["vas", "hét", "kedd", "sze", "csüt", "pén", "szo"];
-function fmtDue(due: string): string {
-  const [y, m, d] = due.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  return `${m}. ${d}. (${DOW[date.getDay()]})`;
-}
 function daysFromToday(due: string): number {
   const t = new Date(todayStr() + "T00:00:00");
   const dd = new Date(due + "T00:00:00");
@@ -58,6 +52,7 @@ export function TaskListClient({
   toggleDoneAction,
   deleteAction,
   statusAction,
+  dueDateAction,
 }: {
   tasks: Entry[];
   members: { id: string; name: string }[];
@@ -67,6 +62,7 @@ export function TaskListClient({
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
+  dueDateAction: (fd: FormData) => void | Promise<void>;
 }) {
   const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
   const listById = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists]);
@@ -231,7 +227,7 @@ export function TaskListClient({
       )}
 
       {view === "board" ? (
-        <TaskBoard tasks={filtered} statusAction={statusAction} />
+        <TaskBoard tasks={filtered} statusAction={statusAction} dueDateAction={dueDateAction} />
       ) : open.length === 0 ? (
         <p className="mt-10 text-center text-sm text-[var(--color-muted-foreground)]">
           Minden kész! 🎉 Nincs nyitott teendő.
@@ -264,6 +260,7 @@ export function TaskListClient({
                     toggleDoneAction={toggleDoneAction}
                     deleteAction={deleteAction}
                     statusAction={statusAction}
+                    dueDateAction={dueDateAction}
                   />
                 ))}
               </div>
@@ -294,6 +291,7 @@ export function TaskListClient({
                   toggleDoneAction={toggleDoneAction}
                   deleteAction={deleteAction}
                   statusAction={statusAction}
+                  dueDateAction={dueDateAction}
                 />
               ))}
             </div>
@@ -311,6 +309,7 @@ function TaskCard({
   toggleDoneAction,
   deleteAction,
   statusAction,
+  dueDateAction,
 }: {
   task: Entry;
   project?: Project | null;
@@ -318,10 +317,10 @@ function TaskCard({
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
+  dueDateAction: (fd: FormData) => void | Promise<void>;
 }) {
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;
-  const overdue = !task.done && task.dueDate && daysFromToday(task.dueDate) < 0;
   const inherited = list?.inheritTags ? list.tags : [];
   const shared = task.ownerId === SHARED_OWNER;
 
@@ -360,18 +359,6 @@ function TaskCard({
             </p>
           )}
           <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
-            {task.dueDate && (
-              <span
-                className={cn(
-                  "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                  overdue
-                    ? "bg-red-500/12 text-red-600 dark:text-red-400"
-                    : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
-                )}
-              >
-                <CalendarDays className="w-3 h-3" /> {fmtDue(task.dueDate)}
-              </span>
-            )}
             {subTotal > 0 && (
               <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
                 <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
@@ -412,8 +399,9 @@ function TaskCard({
             <TagChips tags={task.tags} inherited={inherited} />
           </div>
         </Link>
-        <div className="mt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <StatusControl id={task.id} status={task.status} statusAction={statusAction} />
+          <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} />
         </div>
       </div>
 

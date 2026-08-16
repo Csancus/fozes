@@ -533,6 +533,21 @@ export async function setTaskStatusAction(fd: FormData) {
   revalidatePath("/");
 }
 
+// Határidő állítása kártyáról (lista- és kanban nézetből, teendő megnyitása nélkül).
+export async function setTaskDueDateAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "").trim();
+  if (!id) return;
+  const task = await getTask(me.householdId, id);
+  if (!task) return;
+  const dueDate = String(fd.get("dueDate") ?? "").trim() || null;
+  await saveTask(me.householdId, { ...task, dueDate, updatedAt: Date.now() });
+  revalidatePath("/teendok");
+  revalidatePath(`/teendok/${id}`);
+  if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
+  revalidatePath("/");
+}
+
 // Új lista létrehozása menet közben (teendő-űrlapról, modálból).
 export async function createTaskListInline(input: {
   name: string;

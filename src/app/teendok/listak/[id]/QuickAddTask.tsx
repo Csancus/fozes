@@ -71,54 +71,48 @@ export function QuickAddTask({
       </div>
 
       <div className="mt-2 flex flex-wrap items-center gap-2">
-        <button
-          type="button"
-          onClick={() => setExtra((v) => !v)}
-          className={cn(
-            "h-8 px-3 rounded-full text-[12px] font-medium border transition",
-            extra
-              ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)] border-transparent"
-              : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
-          )}
-        >
-          Határidő / felelős
-        </button>
-        <span className="text-[11px] text-[var(--color-muted-foreground)]">
+        <label className="flex items-center gap-2 rounded-xl border border-[var(--color-input)] px-3 h-10">
+          <CalendarDays className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+          <input
+            type="date"
+            min="1970-01-01"
+            max="2099-12-31"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+            className="bg-transparent text-sm focus:outline-none"
+          />
+        </label>
+        {members.length > 0 &&
+          (extra ? (
+            <label className="flex items-center gap-2 rounded-xl border border-[var(--color-input)] px-3 h-10">
+              <UserIcon className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
+              <select
+                value={ownerId}
+                onChange={(e) => setOwnerId(e.target.value)}
+                className="bg-transparent text-sm focus:outline-none"
+              >
+                <option value="">Nincs felelős</option>
+                <option value={SHARED_OWNER}>Közös</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : (
+            <button
+              type="button"
+              onClick={() => setExtra(true)}
+              className="inline-flex items-center gap-1.5 h-10 px-3 rounded-xl border border-dashed border-[var(--color-border)] text-[13px] font-medium text-[var(--color-muted-foreground)] hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)] transition"
+            >
+              <UserIcon className="w-3.5 h-3.5" /> Felelős
+            </button>
+          ))}
+        <span className="text-[11px] text-[var(--color-muted-foreground)] basis-full">
           Több sor beillesztve = több teendő
         </span>
       </div>
-
-      {extra && (
-        <div className="mt-2 grid grid-cols-2 gap-2">
-          <label className="flex items-center gap-2 rounded-xl border border-[var(--color-input)] px-3 h-11">
-            <CalendarDays className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
-            <input
-              type="date"
-              min="1970-01-01"
-              max="2099-12-31"
-              value={dueDate}
-              onChange={(e) => setDueDate(e.target.value)}
-              className="w-full bg-transparent text-sm focus:outline-none"
-            />
-          </label>
-          <label className="flex items-center gap-2 rounded-xl border border-[var(--color-input)] px-3 h-11">
-            <UserIcon className="w-4 h-4 text-[var(--color-muted-foreground)] shrink-0" />
-            <select
-              value={ownerId}
-              onChange={(e) => setOwnerId(e.target.value)}
-              className="w-full bg-transparent text-sm focus:outline-none"
-            >
-              <option value="">Nincs felelős</option>
-              <option value={SHARED_OWNER}>Közös</option>
-              {members.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      )}
     </div>
   );
 }

@@ -22,6 +22,7 @@ import {
   ListChecks,
   ListTodo,
   Layers,
+  LayoutGrid,
   Plane,
   NotebookPen,
   StickyNote,
@@ -84,6 +85,7 @@ const costs: NavItem[] = [
 
 const todos: NavItem[] = [
   { href: "/teendok", label: "Teendők", icon: ListTodo },
+  { href: "/teendok/board", label: "Board", icon: LayoutGrid },
   { href: "/teendok/gyors", label: "Gyors felvitel", icon: Table2 },
   { href: "/beallitasok", label: "Beállítások", icon: SlidersHorizontal },
 ];

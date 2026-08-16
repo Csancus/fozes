@@ -7,11 +7,11 @@ import type { Task } from "@/lib/types";
 import { SHARED_OWNER } from "@/lib/types";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { StatusControl } from "@/components/ui/StatusControl";
+import { DueDateControl } from "@/components/ui/DueDateControl";
 import { TagChips } from "@/components/ui/TagChips";
 import { TaskBoard } from "../../TaskBoard";
 import {
   Check,
-  CalendarDays,
   ListChecks,
   Paperclip,
   Users,
@@ -22,15 +22,6 @@ import {
 
 type Entry = Task & { ownerName: string | null };
 
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-const DOW = ["vas", "hét", "kedd", "sze", "csüt", "pén", "szo"];
-function fmtDue(due: string): string {
-  const [y, m, d] = due.split("-").map(Number);
-  return `${m}. ${d}. (${DOW[new Date(y, m - 1, d).getDay()]})`;
-}
 function initials(name: string): string {
   return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }
@@ -42,12 +33,14 @@ export function ListTasksView({
   toggleDoneAction,
   deleteAction,
   statusAction,
+  dueDateAction,
 }: {
   tasks: Entry[];
   inheritedTags?: string[];
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
+  dueDateAction: (fd: FormData) => void | Promise<void>;
 }) {
   const [view, setView] = useState<"list" | "board">("list");
   const [showDone, setShowDone] = useState(false);
@@ -102,7 +95,7 @@ export function ListTasksView({
       </div>
 
       {view === "board" ? (
-        <TaskBoard tasks={tasks} statusAction={statusAction} />
+        <TaskBoard tasks={tasks} statusAction={statusAction} dueDateAction={dueDateAction} />
       ) : (
         <>
           {open.length > 0 ? (
@@ -115,6 +108,7 @@ export function ListTasksView({
                     toggleDoneAction={toggleDoneAction}
                     deleteAction={deleteAction}
                     statusAction={statusAction}
+                    dueDateAction={dueDateAction}
                   />
                 </li>
               ))}
@@ -147,6 +141,7 @@ export function ListTasksView({
                         toggleDoneAction={toggleDoneAction}
                         deleteAction={deleteAction}
                         statusAction={statusAction}
+                        dueDateAction={dueDateAction}
                       />
                     </li>
                   ))}
@@ -166,14 +161,15 @@ function Row({
   toggleDoneAction,
   deleteAction,
   statusAction,
+  dueDateAction,
 }: {
   task: Entry;
   inheritedTags: string[];
   toggleDoneAction: (fd: FormData) => void | Promise<void>;
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
+  dueDateAction: (fd: FormData) => void | Promise<void>;
 }) {
-  const overdue = !task.done && task.dueDate && task.dueDate < todayStr();
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;
   const shared = task.ownerId === SHARED_OWNER;
@@ -206,20 +202,8 @@ function Row({
           <p className={cn("font-medium text-[15px] leading-tight", task.done && "line-through")}>
             {task.title}
           </p>
-          {(task.dueDate || subTotal > 0 || task.files.length > 0 || task.tags.length > 0 || inheritedTags.length > 0) && (
+          {(subTotal > 0 || task.files.length > 0 || task.tags.length > 0 || inheritedTags.length > 0) && (
             <div className="mt-1.5 flex flex-wrap items-center gap-2 text-[11px]">
-              {task.dueDate && (
-                <span
-                  className={cn(
-                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                    overdue
-                      ? "bg-red-500/12 text-red-600 dark:text-red-400"
-                      : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
-                  )}
-                >
-                  <CalendarDays className="w-3 h-3" /> {fmtDue(task.dueDate)}
-                </span>
-              )}
               {subTotal > 0 && (
                 <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
                   <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
@@ -234,8 +218,9 @@ function Row({
             </div>
           )}
         </Link>
-        <div className="mt-2">
+        <div className="mt-2 flex flex-wrap items-center gap-2">
           <StatusControl id={task.id} status={task.status} statusAction={statusAction} />
+          <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} />
         </div>
       </div>
 

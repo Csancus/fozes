@@ -28,6 +28,7 @@ import {
   addTaskToListAction,
   completeTaskListAction,
   setTaskStatusAction,
+  setTaskDueDateAction,
 } from "../../actions";
 import { QuickAddTask } from "./QuickAddTask";
 import { ListTasksView } from "./ListTasksView";
@@ -153,6 +154,7 @@ export default async function TaskListDetailPage({
         toggleDoneAction={toggleTaskDoneAction}
         deleteAction={deleteTaskFromListAction}
         statusAction={setTaskStatusAction}
+        dueDateAction={setTaskDueDateAction}
       />
 
       {/* Műveletek */}

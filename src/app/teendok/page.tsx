@@ -21,12 +21,14 @@ import {
   FolderKanban,
   Plane,
   ChevronRight,
+  LayoutGrid,
 } from "lucide-react";
 import { TaskListClient } from "./TaskListClient";
 import {
   toggleTaskDoneAction,
   deleteTaskFromListAction,
   setTaskStatusAction,
+  setTaskDueDateAction,
 } from "./actions";
 
 export default async function TeendokPage() {
@@ -69,13 +71,23 @@ export default async function TeendokPage() {
         subtitle="Amit el kell intézni"
         back="/"
         action={
-          <Link
-            href="/beallitasok"
-            aria-label="Célok és projektek"
-            className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
-          >
-            <SlidersHorizontal className="w-5 h-5" />
-          </Link>
+          <div className="flex items-center gap-1">
+            <Link
+              href="/teendok/board"
+              aria-label="Board"
+              title="Board"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+            >
+              <LayoutGrid className="w-5 h-5" />
+            </Link>
+            <Link
+              href="/beallitasok"
+              aria-label="Célok és projektek"
+              className="w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+            >
+              <SlidersHorizontal className="w-5 h-5" />
+            </Link>
+          </div>
         }
       />
 
@@ -196,6 +208,7 @@ export default async function TeendokPage() {
           toggleDoneAction={toggleTaskDoneAction}
           deleteAction={deleteTaskFromListAction}
           statusAction={setTaskStatusAction}
+          dueDateAction={setTaskDueDateAction}
         />
       )}
     </main>

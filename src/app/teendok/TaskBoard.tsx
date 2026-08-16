@@ -6,7 +6,8 @@ import { cn } from "@/lib/cn";
 import { STATUS_VISUAL } from "@/lib/task-visuals";
 import { TASK_STATUSES, SHARED_OWNER } from "@/lib/types";
 import type { Task, TaskStatus } from "@/lib/types";
-import { CalendarDays, ListChecks, Paperclip, Users, GripVertical } from "lucide-react";
+import { ListChecks, Paperclip, Users, GripVertical } from "lucide-react";
+import { DueDateControl } from "@/components/ui/DueDateControl";
 
 export type BoardTask = Task & { ownerName: string | null };
 
@@ -14,10 +15,13 @@ function todayStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
-const DOW = ["vas", "hét", "kedd", "sze", "csüt", "pén", "szo"];
-function fmtDue(due: string): string {
-  const [y, m, d] = due.split("-").map(Number);
-  return `${m}. ${d}. (${DOW[new Date(y, m - 1, d).getDay()]})`;
+// Rendezési súly: lejárt legelöl, aztán közelítő határidő, végül a dátum nélküliek.
+function dueRank(t: BoardTask): number {
+  if (!t.dueDate) return 2;
+  return t.dueDate < todayStr() ? 0 : 1;
+}
+function byDue(a: BoardTask, b: BoardTask): number {
+  return dueRank(a) - dueRank(b) || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
 }
 function initials(name: string): string {
   return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -28,9 +32,11 @@ function initials(name: string): string {
 export function TaskBoard({
   tasks,
   statusAction,
+  dueDateAction,
 }: {
   tasks: BoardTask[];
   statusAction: (fd: FormData) => void | Promise<void>;
+  dueDateAction: (fd: FormData) => void | Promise<void>;
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<TaskStatus | null>(null);
@@ -50,7 +56,7 @@ export function TaskBoard({
       <div className="flex gap-3 min-w-max pb-2">
         {TASK_STATUSES.map((s) => {
           const vis = STATUS_VISUAL[s];
-          const items = tasks.filter((t) => t.status === s);
+          const items = tasks.filter((t) => t.status === s).sort(byDue);
           return (
             <section
               key={s}
@@ -85,6 +91,7 @@ export function TaskBoard({
                   <BoardCard
                     key={t.id}
                     task={t}
+                    dueDateAction={dueDateAction}
                     onDragStart={() => setDragId(t.id)}
                     onDragEnd={() => setDragId(null)}
                     onMove={(next) => move(t.id, next)}
@@ -106,16 +113,17 @@ export function TaskBoard({
 
 function BoardCard({
   task,
+  dueDateAction,
   onDragStart,
   onDragEnd,
   onMove,
 }: {
   task: BoardTask;
+  dueDateAction: (fd: FormData) => void | Promise<void>;
   onDragStart: () => void;
   onDragEnd: () => void;
   onMove: (status: TaskStatus) => void;
 }) {
-  const overdue = task.status !== "done" && task.dueDate && task.dueDate < todayStr();
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;
   const shared = task.ownerId === SHARED_OWNER;
@@ -153,32 +161,19 @@ function BoardCard({
         )}
       </div>
 
-      {(task.dueDate || subTotal > 0 || task.files.length > 0) && (
-        <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-5 text-[11px]">
-          {task.dueDate && (
-            <span
-              className={cn(
-                "inline-flex items-center gap-1 rounded-full px-2 py-0.5 font-medium",
-                overdue
-                  ? "bg-red-500/12 text-red-600 dark:text-red-400"
-                  : "bg-[var(--color-muted)] text-[var(--color-muted-foreground)]"
-              )}
-            >
-              <CalendarDays className="w-3 h-3" /> {fmtDue(task.dueDate)}
-            </span>
-          )}
-          {subTotal > 0 && (
-            <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
-              <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
-            </span>
-          )}
-          {task.files.length > 0 && (
-            <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
-              <Paperclip className="w-3 h-3" /> {task.files.length}
-            </span>
-          )}
-        </div>
-      )}
+      <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-5 text-[11px]">
+        <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} size="sm" />
+        {subTotal > 0 && (
+          <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
+            <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
+          </span>
+        )}
+        {task.files.length > 0 && (
+          <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
+            <Paperclip className="w-3 h-3" /> {task.files.length}
+          </span>
+        )}
+      </div>
 
       {/* Mobil: állapotváltó gombsor */}
       <div className="mt-2 flex gap-1 pl-5">
