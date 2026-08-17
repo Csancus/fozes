@@ -367,6 +367,12 @@ function TaskCard({
           {subTotal > 0 && (
             <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
               <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
+              <span className="ml-0.5 h-1 w-6 rounded-full bg-[var(--color-muted)] overflow-hidden">
+                <span
+                  className="block h-full rounded-full bg-emerald-500"
+                  style={{ width: `${Math.round((subDone / subTotal) * 100)}%` }}
+                />
+              </span>
             </span>
           )}
           {task.imageUrl && (

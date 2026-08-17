@@ -31,7 +31,11 @@ import {
   toggleSubtaskAction,
   deleteTaskAction,
   setTaskStatusAction,
+  addSubtaskAction,
+  deleteSubtaskAction,
+  promoteSubtaskAction,
 } from "../actions";
+import { SubtaskEditor } from "./SubtaskEditor";
 import { StatusControl } from "@/components/ui/StatusControl";
 import { TagChips } from "@/components/ui/TagChips";
 import { SHARED_OWNER } from "@/lib/types";
@@ -79,7 +83,6 @@ export default async function TaskDetailPage({
       : null;
   const inherited = list?.inheritTags ? list.tags : [];
 
-  const subDone = task.subtasks.filter((s) => s.done).length;
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
@@ -189,42 +192,14 @@ export default async function TaskDetailPage({
         </p>
       )}
 
-      {/* Alteendők */}
-      {task.subtasks.length > 0 && (
-        <section className="mt-6">
-          <h2 className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-[0.08em] mb-2 px-1">
-            Alteendők · {subDone}/{task.subtasks.length}
-          </h2>
-          <ul className="space-y-2">
-            {task.subtasks.map((s) => (
-              <li key={s.id}>
-                <form action={toggleSubtaskAction}>
-                  <input type="hidden" name="id" value={task.id} />
-                  <input type="hidden" name="subId" value={s.id} />
-                  <button
-                    type="submit"
-                    className="w-full flex items-center gap-3 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-3 text-left hover:border-[var(--color-primary)]/40 transition"
-                  >
-                    <span
-                      className={cn(
-                        "w-6 h-6 rounded-md border flex items-center justify-center shrink-0 transition",
-                        s.done
-                          ? "bg-emerald-500 border-emerald-500 text-white"
-                          : "border-[var(--color-border)] text-transparent"
-                      )}
-                    >
-                      <Check className="w-4 h-4" />
-                    </span>
-                    <span className={cn("text-sm", s.done && "line-through text-[var(--color-muted-foreground)]")}>
-                      {s.title}
-                    </span>
-                  </button>
-                </form>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <SubtaskEditor
+        taskId={task.id}
+        subtasks={task.subtasks}
+        toggleAction={toggleSubtaskAction}
+        addAction={addSubtaskAction}
+        deleteAction={deleteSubtaskAction}
+        promoteAction={promoteSubtaskAction}
+      />
 
       {/* Fájlok */}
       {blobs.length > 0 && (

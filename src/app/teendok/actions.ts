@@ -619,3 +619,88 @@ export async function createTaskListInline(input: {
   if (list.tripId) revalidatePath(`/utazasok/${list.tripId}`);
   return list;
 }
+
+// ============ ALTEENDŐK ============
+
+// Gyors alteendő-felvitel a teendő oldalán (több sor = több alteendő).
+export async function addSubtaskAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "").trim();
+  const raw = String(fd.get("title") ?? "");
+  if (!id || !raw.trim()) return;
+  const task = await getTask(me.householdId, id);
+  if (!task) return;
+  const titles = raw
+    .split("\n")
+    .map((t) => t.replace(/^[-*•\s]+/, "").trim())
+    .filter(Boolean);
+  if (titles.length === 0) return;
+  const subtasks: Subtask[] = [
+    ...task.subtasks,
+    ...titles.map((title) => ({ id: newId(), title, done: false })),
+  ];
+  await saveTask(me.householdId, { ...task, subtasks, updatedAt: Date.now() });
+  revalidatePath(`/teendok/${id}`);
+  revalidatePath("/teendok");
+  if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
+}
+
+export async function deleteSubtaskAction(fd: FormData) {
+  const me = await requireUser();
+  const id = String(fd.get("id") ?? "").trim();
+  const subId = String(fd.get("subId") ?? "").trim();
+  if (!id || !subId) return;
+  const task = await getTask(me.householdId, id);
+  if (!task) return;
+  await saveTask(me.householdId, {
+    ...task,
+    subtasks: task.subtasks.filter((s) => s.id !== subId),
+    updatedAt: Date.now(),
+  });
+  revalidatePath(`/teendok/${id}`);
+  revalidatePath("/teendok");
+  if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
+}
+
+// Alteendő önálló teendővé emelése: a szülő listáját/projektjét/felelősét
+// örökli, és lekerül az alteendők közül.
+export async function promoteSubtaskAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+  const id = String(fd.get("id") ?? "").trim();
+  const subId = String(fd.get("subId") ?? "").trim();
+  if (!id || !subId) return;
+  const task = await getTask(hh, id);
+  if (!task) return;
+  const sub = task.subtasks.find((s) => s.id === subId);
+  if (!sub) return;
+  const now = Date.now();
+  await saveTask(hh, {
+    id: newId(),
+    title: sub.title,
+    description: `Kiemelve innen: ${task.title}`,
+    ownerId: task.ownerId,
+    dueDate: task.dueDate,
+    projectId: task.projectId,
+    listId: task.listId,
+    status: sub.done ? "done" : "todo",
+    tags: task.tags,
+    repeat: null,
+    imageUrl: null,
+    files: [],
+    subtasks: [],
+    done: sub.done,
+    doneAt: sub.done ? now : null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  await saveTask(hh, {
+    ...task,
+    subtasks: task.subtasks.filter((s) => s.id !== subId),
+    updatedAt: now,
+  });
+  revalidatePath(`/teendok/${id}`);
+  revalidatePath("/teendok");
+  if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
+  revalidatePath("/");
+}
