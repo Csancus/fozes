@@ -19,6 +19,7 @@ import {
   CalendarDays,
   User as UserIcon,
   Users,
+  Repeat,
   FolderKanban,
   ListTodo,
   FileText,
@@ -34,6 +35,7 @@ import {
 import { StatusControl } from "@/components/ui/StatusControl";
 import { TagChips } from "@/components/ui/TagChips";
 import { SHARED_OWNER } from "@/lib/types";
+import { repeatLabel } from "@/lib/task-repeat";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 
 function fmtSize(bytes: number): string {
@@ -128,6 +130,11 @@ export default async function TaskDetailPage({
           statusAction={setTaskStatusAction}
           size="md"
         />
+        {task.repeat && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-muted)] px-3 py-1 text-[var(--color-muted-foreground)]">
+            <Repeat className="w-4 h-4" /> {repeatLabel(task.repeat)}
+          </span>
+        )}
         {list && (
           <Link
             href={`/teendok/listak/${list.id}`}

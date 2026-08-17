@@ -635,6 +635,15 @@ export type Note = {
 // ez a sentinel érték az ownerId-ben —, vagy null = nincs felelős.
 export const SHARED_OWNER = "__shared";
 
+// Ismétlődő teendő: készre állításkor születik a következő előfordulás
+// (nincs cron — a Vercel free tier miatt ez a mechanizmus).
+export type TaskRepeatUnit = "day" | "week" | "month" | "year";
+
+export type TaskRepeat = {
+  unit: TaskRepeatUnit;
+  every: number; // minden N. nap/hét/hónap/év
+};
+
 // Opcionális állapot a teendőkön (a tábla/kanban nézet ebből épül).
 export type TaskStatus = "todo" | "doing" | "blocked" | "done";
 
@@ -672,6 +681,7 @@ export type Task = {
   listId: string | null;     // opcionális teendő-lista (TaskList.id)
   status: TaskStatus;        // todo | doing | blocked | done (a done a `done` flaggel jár együtt)
   tags: string[];            // saját címkék (a lista címkéi ehhez jönnek hozzá, ha öröklődnek)
+  repeat: TaskRepeat | null; // ismétlődés (készre állításkor generálja a következőt)
   imageUrl: string | null;   // R2/inline borítókép
   files: TaskFileMeta[];     // csatolt fájlok (blob külön kulcson)
   subtasks: Subtask[];       // pipálható alteendők

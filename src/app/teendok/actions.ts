@@ -21,7 +21,16 @@ import {
 } from "@/lib/data";
 import { offloadImage } from "@/lib/r2";
 import { newId } from "@/lib/redis";
-import type { Task, Subtask, TaskFileMeta, TaskStatus, TaskList } from "@/lib/types";
+import type {
+  Task,
+  Subtask,
+  TaskFileMeta,
+  TaskStatus,
+  TaskList,
+  TaskRepeat,
+  TaskRepeatUnit,
+} from "@/lib/types";
+import { nextDueDate } from "@/lib/task-repeat";
 import { TASK_STATUSES } from "@/lib/types";
 
 // „a, b , c" → ["a","b","c"] (üresek kiszűrve, duplikátum nélkül)
@@ -32,6 +41,35 @@ function parseTags(raw: unknown): string[] {
     if (t && !out.includes(t)) out.push(t);
   }
   return out;
+}
+
+const REPEAT_UNITS: TaskRepeatUnit[] = ["day", "week", "month", "year"];
+
+function parseRepeat(unitRaw: unknown, everyRaw: unknown): TaskRepeat | null {
+  const unit = String(unitRaw ?? "").trim() as TaskRepeatUnit;
+  if (!REPEAT_UNITS.includes(unit)) return null;
+  const every = Math.min(99, Math.max(1, Math.round(Number(everyRaw) || 1)));
+  return { unit, every };
+}
+
+// Ismétlődő teendő készre állításakor létrejön a következő előfordulás.
+// A fájl-csatolmányok nem másolódnak (blobok külön kulcson vannak), a kép,
+// a címkék, az alteendők (kipipálva-nullázva) és a hozzárendelések igen.
+async function spawnNextOccurrence(hh: string, task: Task) {
+  if (!task.repeat) return;
+  const now = Date.now();
+  await saveTask(hh, {
+    ...task,
+    id: newId(),
+    dueDate: nextDueDate(task.dueDate, task.repeat),
+    status: "todo",
+    done: false,
+    doneAt: null,
+    subtasks: task.subtasks.map((s) => ({ ...s, done: false })),
+    files: [],
+    createdAt: now,
+    updatedAt: now,
+  });
 }
 
 function parseStatus(raw: unknown, fallback: TaskStatus = "todo"): TaskStatus {
@@ -98,6 +136,7 @@ export async function saveTaskAction(fd: FormData) {
   const incoming = parseFiles(String(fd.get("files") ?? "[]"));
   const status = parseStatus(fd.get("status"));
   const tags = parseTags(fd.get("tags"));
+  const repeat = parseRepeat(fd.get("repeatUnit"), fd.get("repeatEvery"));
 
   const id = inputId ?? newId();
   const existing = inputId ? await getTask(hh, inputId) : null;
@@ -131,6 +170,7 @@ export async function saveTaskAction(fd: FormData) {
     listId,
     status,
     tags,
+    repeat,
     imageUrl,
     files: keptMeta,
     subtasks,
@@ -164,6 +204,7 @@ export async function toggleTaskDoneAction(fd: FormData) {
     doneAt: done ? Date.now() : null,
     updatedAt: Date.now(),
   });
+  if (done) await spawnNextOccurrence(me.householdId, task);
   revalidatePath("/teendok");
   revalidatePath(`/teendok/${id}`);
   if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
@@ -250,6 +291,7 @@ export async function saveTasksBatchAction(fd: FormData) {
       listId: String(r.listId ?? "").trim() || null,
       status: "todo",
       tags: [],
+      repeat: null,
       imageUrl: null,
       files: [],
       subtasks: [],
@@ -330,6 +372,7 @@ export async function createTaskListAction(fd: FormData) {
       listId: list.id,
       status: "todo",
       tags: [],
+      repeat: null,
       imageUrl: null,
       files: [],
       subtasks: [],
@@ -414,6 +457,7 @@ export async function addTaskToListAction(fd: FormData) {
       listId,
       status: "todo",
       tags: [],
+      repeat: null,
       imageUrl: null,
       files: [],
       subtasks: [],
@@ -461,19 +505,21 @@ export async function completeTaskListAction(fd: FormData) {
   if (!lists.some((l) => l.id === listId)) return;
   const all = await listTasks(hh);
   const now = Date.now();
+  const affected = all.filter((t) => t.listId === listId && t.done === undo);
   await Promise.all(
-    all
-      .filter((t) => t.listId === listId && t.done === undo)
-      .map((t) =>
-        saveTask(hh, {
-          ...t,
-          done: !undo,
-          status: undo ? (t.status === "done" ? "todo" : t.status) : "done",
-          doneAt: undo ? null : now,
-          updatedAt: now,
-        })
-      )
+    affected.map((t) =>
+      saveTask(hh, {
+        ...t,
+        done: !undo,
+        status: undo ? (t.status === "done" ? "todo" : t.status) : "done",
+        doneAt: undo ? null : now,
+        updatedAt: now,
+      })
+    )
   );
+  if (!undo) {
+    for (const t of affected) await spawnNextOccurrence(hh, t);
+  }
   revalidatePath(`/teendok/listak/${listId}`);
   revalidatePath("/teendok");
   revalidatePath("/");
@@ -527,6 +573,9 @@ export async function setTaskStatusAction(fd: FormData) {
     doneAt: status === "done" ? task.doneAt ?? now : null,
     updatedAt: now,
   });
+  if (status === "done" && !task.done) {
+    await spawnNextOccurrence(me.householdId, task);
+  }
   revalidatePath("/teendok");
   revalidatePath(`/teendok/${id}`);
   if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);

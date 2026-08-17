@@ -9,12 +9,14 @@ import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { StatusControl } from "@/components/ui/StatusControl";
 import { DueDateControl } from "@/components/ui/DueDateControl";
 import { TagChips } from "@/components/ui/TagChips";
+import { repeatLabel } from "@/lib/task-repeat";
 import { TaskBoard } from "../../TaskBoard";
 import {
   Check,
   ListChecks,
   Paperclip,
   Users,
+  Repeat,
   ChevronRight,
   LayoutGrid,
   List as ListIcon,
@@ -214,6 +216,11 @@ function Row({
           {task.files.length > 0 && (
             <span className="inline-flex items-center gap-0.5 text-[11px] text-[var(--color-muted-foreground)]">
               <Paperclip className="w-3 h-3" /> {task.files.length}
+            </span>
+          )}
+          {task.repeat && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 font-medium text-[var(--color-muted-foreground)]">
+              <Repeat className="w-3 h-3" /> {repeatLabel(task.repeat)}
             </span>
           )}
           <TagChips tags={task.tags} inherited={inheritedTags} />

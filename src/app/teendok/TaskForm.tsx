@@ -4,7 +4,14 @@ import { useRef, useState } from "react";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { cn } from "@/lib/cn";
-import type { Task, Project, TaskList, TaskStatus, Trip } from "@/lib/types";
+import type {
+  Task,
+  Project,
+  TaskList,
+  TaskStatus,
+  Trip,
+  TaskRepeatUnit,
+} from "@/lib/types";
 import { SHARED_OWNER, TASK_STATUSES } from "@/lib/types";
 import { STATUS_VISUAL } from "@/lib/task-visuals";
 import { createTaskListInline } from "./actions";
@@ -19,6 +26,7 @@ import {
   File as FileIcon,
   Check,
   ListTodo,
+  Repeat,
 } from "lucide-react";
 
 const MAX_DIM = 1400;
@@ -145,6 +153,12 @@ export function TaskForm({
   const coverRef = useRef<HTMLInputElement | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
   const [status, setStatus] = useState<TaskStatus>(initial?.status ?? "todo");
+  const [repeatUnit, setRepeatUnit] = useState<TaskRepeatUnit | "">(
+    initial?.repeat?.unit ?? ""
+  );
+  const [repeatEvery, setRepeatEvery] = useState<number>(
+    initial?.repeat?.every ?? 1
+  );
   // A listak helyben bovithetok ("+ Uj lista..."), ezert lokal allapotban vannak.
   const [listOptions, setListOptions] = useState<TaskList[]>(lists);
   const [listId, setListId] = useState<string>(initial?.listId ?? defaultListId ?? "");
@@ -221,6 +235,8 @@ export function TaskForm({
       <input type="hidden" name="ownerId" value={ownerId} />
       <input type="hidden" name="listId" value={listId} />
       <input type="hidden" name="status" value={status} />
+      <input type="hidden" name="repeatUnit" value={repeatUnit} />
+      <input type="hidden" name="repeatEvery" value={repeatEvery} />
       <input type="hidden" name="imageUrl" value={cover ?? ""} />
       <input type="hidden" name="files" value={JSON.stringify(files)} />
       <input
@@ -377,6 +393,50 @@ export function TaskForm({
             );
           })}
         </div>
+      </div>
+
+      {/* Ismétlődés */}
+      <div>
+        <span className="mb-2 flex items-center gap-1.5 text-sm font-medium">
+          <Repeat className="w-4 h-4 text-[var(--color-muted-foreground)]" />
+          Ismétlődés
+        </span>
+        <div className="flex gap-2">
+          <select
+            value={repeatUnit}
+            onChange={(e) => setRepeatUnit(e.target.value as TaskRepeatUnit | "")}
+            className="flex-1 h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+          >
+            <option value="">Nem ismétlődik</option>
+            <option value="day">Naponta</option>
+            <option value="week">Hetente</option>
+            <option value="month">Havonta</option>
+            <option value="year">Évente</option>
+          </select>
+          {repeatUnit && (
+            <label className="flex items-center gap-2 rounded-xl border border-[var(--color-input)] px-3">
+              <span className="text-xs text-[var(--color-muted-foreground)] whitespace-nowrap">
+                minden
+              </span>
+              <input
+                type="number"
+                min={1}
+                max={99}
+                value={repeatEvery}
+                onChange={(e) => setRepeatEvery(Number(e.target.value) || 1)}
+                className="w-12 bg-transparent text-sm text-center focus:outline-none"
+              />
+              <span className="text-xs text-[var(--color-muted-foreground)]">.</span>
+            </label>
+          )}
+        </div>
+        {repeatUnit && (
+          <p className="mt-1.5 text-xs text-[var(--color-muted-foreground)]">
+            Amikor készre állítod, automatikusan létrejön a következő előfordulás
+            — az alteendők újra kipipálhatók lesznek. (Fájl-csatolmányokat nem
+            visz át.)
+          </p>
+        )}
       </div>
 
       <Field label="Címkék" hint="vesszővel elválasztva — pl. sürgős, otthon">

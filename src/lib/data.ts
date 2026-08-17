@@ -1507,6 +1507,7 @@ function normalizeTask(t: Task): Task {
     listId: t.listId ?? null,
     status,
     tags: t.tags ?? [],
+    repeat: t.repeat ?? null,
   };
 }
 

@@ -17,11 +17,13 @@ import {
   Users,
   LayoutGrid,
   List as ListIcon,
+  Repeat,
 } from "lucide-react";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { StatusControl } from "@/components/ui/StatusControl";
 import { DueDateControl } from "@/components/ui/DueDateControl";
 import { TagChips } from "@/components/ui/TagChips";
+import { repeatLabel } from "@/lib/task-repeat";
 import { TaskBoard } from "./TaskBoard";
 
 type Entry = Task & { ownerName: string | null };
@@ -397,6 +399,11 @@ function TaskCard({
               )}
             >
               <FolderKanban className="w-3 h-3" /> {project.name}
+            </span>
+          )}
+          {task.repeat && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 font-medium text-[var(--color-muted-foreground)]">
+              <Repeat className="w-3 h-3" /> {repeatLabel(task.repeat)}
             </span>
           )}
           <TagChips tags={task.tags} inherited={inherited} />
