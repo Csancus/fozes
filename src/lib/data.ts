@@ -43,14 +43,29 @@ import {
 } from "./types";
 import { offloadImage, uploadDataUrl, isR2Configured } from "./r2";
 
+// Sok rekord beolvasasa EGY korben: SMEMBERS + N darab GET helyett SMEMBERS +
+// MGET. Az Upstash REST-en minden GET egy szamolt keres, igy egy 100 elemu
+// lista betoltese ~101 helyett 2 keresbe kerul. A darabolas az URL-hossz
+// (es a memoria) miatt van.
+const MGET_CHUNK = 100;
+
+async function getMany<T>(keys: string[]): Promise<T[]> {
+  if (keys.length === 0) return [];
+  const out: T[] = [];
+  for (let i = 0; i < keys.length; i += MGET_CHUNK) {
+    const slice = keys.slice(i, i + MGET_CHUNK);
+    const got = await redis.mget<(T | null)[]>(...slice);
+    for (const v of got) if (v) out.push(v);
+  }
+  return out;
+}
+
 // ============ LOCATIONS ============
 
 export async function listLocations(hh: string): Promise<Location[]> {
   const ids = await redis.smembers(key.locations(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Location>(key.location(hh, id)))
-  );
+  const items = await getMany<Location>(ids.map((id) => key.location(hh, id)));
   return items
     .filter((l): l is Location => !!l)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -109,9 +124,7 @@ export async function listRecipes(
 ): Promise<Recipe[]> {
   const ids = await redis.smembers(key.recipes(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Recipe>(key.recipe(hh, id)))
-  );
+  const items = await getMany<Recipe>(ids.map((id) => key.recipe(hh, id)));
   const includeArchived = opts?.includeArchived ?? false;
   return items
     .filter((r): r is Recipe => !!r)
@@ -185,9 +198,7 @@ export async function unarchiveRecipe(hh: string, id: string) {
 export async function listPantry(hh: string): Promise<PantryItem[]> {
   const ids = await redis.smembers(key.pantry(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<PantryItem>(key.pantryItem(hh, id)))
-  );
+  const items = await getMany<PantryItem>(ids.map((id) => key.pantryItem(hh, id)));
   return items
     .filter((p): p is PantryItem => !!p)
     .sort((a, b) => {
@@ -234,9 +245,7 @@ export async function deletePantryItem(hh: string, id: string) {
 export async function listShoppingLists(hh: string): Promise<ShoppingList[]> {
   const ids = await redis.smembers(key.shoppingLists(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<ShoppingList>(key.shoppingList(hh, id)))
-  );
+  const items = await getMany<ShoppingList>(ids.map((id) => key.shoppingList(hh, id)));
   return items
     .filter((s): s is ShoppingList => !!s)
     .sort((a, b) => b.createdAt - a.createdAt);
@@ -262,9 +271,7 @@ export async function deleteShoppingList(hh: string, id: string) {
 export async function listPurchases(hh: string): Promise<Purchase[]> {
   const ids = await redis.smembers(key.purchases(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Purchase>(key.purchase(hh, id)))
-  );
+  const items = await getMany<Purchase>(ids.map((id) => key.purchase(hh, id)));
   return items
     .filter((p): p is Purchase => !!p)
     .sort((a, b) => b.purchasedAt - a.purchasedAt);
@@ -290,9 +297,7 @@ export async function deletePurchase(hh: string, id: string) {
 export async function listCookedMeals(hh: string): Promise<CookedMeal[]> {
   const ids = await redis.smembers(key.meals(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<CookedMeal>(key.meal(hh, id)))
-  );
+  const items = await getMany<CookedMeal>(ids.map((id) => key.meal(hh, id)));
   return items
     .filter((m): m is CookedMeal => !!m)
     .sort((a, b) => b.cookedAt - a.cookedAt);
@@ -326,9 +331,7 @@ export async function listCookedMealsForRecipe(
 ): Promise<CookedMeal[]> {
   const ids = await redis.smembers(key.recipeMeals(hh, recipeId));
   if (!ids.length) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<CookedMeal>(key.meal(hh, id)))
-  );
+  const items = await getMany<CookedMeal>(ids.map((id) => key.meal(hh, id)));
   return items
     .filter((m): m is CookedMeal => !!m)
     .sort((a, b) => b.cookedAt - a.cookedAt);
@@ -339,9 +342,7 @@ export async function listCookedMealsForRecipe(
 export async function listCatalog(hh: string): Promise<CatalogItem[]> {
   const ids = await redis.smembers(key.catalog(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<CatalogItem>(key.catalogItem(hh, id)))
-  );
+  const items = await getMany<CatalogItem>(ids.map((id) => key.catalogItem(hh, id)));
   return items
     .filter((c): c is CatalogItem => !!c)
     .sort((a, b) => a.name.localeCompare(b.name, "hu"));
@@ -410,9 +411,7 @@ export async function listExpenseCategories(
 ): Promise<ExpenseCategory[]> {
   const ids = await redis.smembers(key.expenseCategories(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<ExpenseCategory>(key.expenseCategory(hh, id)))
-  );
+  const items = await getMany<ExpenseCategory>(ids.map((id) => key.expenseCategory(hh, id)));
   return items
     .filter((c): c is ExpenseCategory => !!c)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -473,9 +472,7 @@ export async function listIncomeCategories(
 ): Promise<IncomeCategory[]> {
   const ids = await redis.smembers(key.incomeCategories(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<IncomeCategory>(key.incomeCategory(hh, id)))
-  );
+  const items = await getMany<IncomeCategory>(ids.map((id) => key.incomeCategory(hh, id)));
   return items
     .filter((c): c is IncomeCategory => !!c)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -536,9 +533,7 @@ export async function ensureDefaultIncomeCategories(
 export async function listMerchants(hh: string): Promise<Merchant[]> {
   const ids = await redis.smembers(key.merchants(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Merchant>(key.merchant(hh, id)))
-  );
+  const items = await getMany<Merchant>(ids.map((id) => key.merchant(hh, id)));
   return items
     .filter((m): m is Merchant => !!m)
     .sort((a, b) => a.name.localeCompare(b.name, "hu"));
@@ -702,9 +697,7 @@ export async function listPaymentMethods(
 ): Promise<PaymentMethod[]> {
   const ids = await redis.smembers(key.paymentMethods(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<PaymentMethod>(key.paymentMethod(hh, id)))
-  );
+  const items = await getMany<PaymentMethod>(ids.map((id) => key.paymentMethod(hh, id)));
   return items
     .filter((p): p is PaymentMethod => !!p)
     .map(normalizePaymentMethod)
@@ -789,9 +782,7 @@ export async function setCostSetup(hh: string, patch: Partial<CostSetup>) {
 export async function listPersons(hh: string): Promise<Person[]> {
   const ids = await redis.smembers(key.persons(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Person>(key.person(hh, id)))
-  );
+  const items = await getMany<Person>(ids.map((id) => key.person(hh, id)));
   return items
     .filter((p): p is Person => !!p)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -838,9 +829,7 @@ export async function deletePerson(hh: string, id: string) {
 export async function listProjects(hh: string): Promise<Project[]> {
   const ids = await redis.smembers(key.projects(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Project>(key.project(hh, id)))
-  );
+  const items = await getMany<Project>(ids.map((id) => key.project(hh, id)));
   return items
     .filter((p): p is Project => !!p)
     .map((p) => ({ ...p, goalId: p.goalId ?? null, scope: p.scope ?? "expense" }))
@@ -916,9 +905,7 @@ export async function deleteProject(hh: string, id: string) {
 export async function listGoals(hh: string): Promise<Goal[]> {
   const ids = await redis.smembers(key.goals(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Goal>(key.goal(hh, id)))
-  );
+  const items = await getMany<Goal>(ids.map((id) => key.goal(hh, id)));
   return items
     .filter((g): g is Goal => !!g)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -972,9 +959,7 @@ export async function deleteGoal(hh: string, id: string) {
 export async function listGroups(hh: string): Promise<ExpenseGroup[]> {
   const ids = await redis.smembers(key.groups(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<ExpenseGroup>(key.group(hh, id)))
-  );
+  const items = await getMany<ExpenseGroup>(ids.map((id) => key.group(hh, id)));
   return items
     .filter((g): g is ExpenseGroup => !!g)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -1021,9 +1006,7 @@ export async function deleteGroup(hh: string, id: string) {
 export async function listExpenses(hh: string): Promise<Expense[]> {
   const ids = await redis.smembers(key.expenses(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Expense>(key.expense(hh, id)))
-  );
+  const items = await getMany<Expense>(ids.map((id) => key.expense(hh, id)));
   return items
     .filter((e): e is Expense => !!e)
     .map((e) => ({
@@ -1117,9 +1100,7 @@ export async function setExpenseReview(hh: string, id: string, review: boolean) 
 export async function listRecurrings(hh: string): Promise<RecurringExpense[]> {
   const ids = await redis.smembers(key.recurrings(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<RecurringExpense>(key.recurring(hh, id)))
-  );
+  const items = await getMany<RecurringExpense>(ids.map((id) => key.recurring(hh, id)));
   return items
     .filter((r): r is RecurringExpense => !!r)
     .map((r) => ({
@@ -1275,9 +1256,7 @@ export async function runDueRecurring(hh: string): Promise<number> {
 export async function listSavedItems(hh: string): Promise<SavedItem[]> {
   const ids = await redis.smembers(key.savedItems(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<SavedItem>(key.savedItem(hh, id)))
-  );
+  const items = await getMany<SavedItem>(ids.map((id) => key.savedItem(hh, id)));
   return items
     .filter((s): s is SavedItem => !!s)
     .map((s) => ({ ...s, ownerId: s.ownerId ?? null }))
@@ -1294,9 +1273,7 @@ export async function getSavedItem(hh: string, id: string) {
 export async function listSavedTypes(hh: string): Promise<SavedType[]> {
   const ids = await redis.smembers(key.savedTypes(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<SavedType>(key.savedType(hh, id)))
-  );
+  const items = await getMany<SavedType>(ids.map((id) => key.savedType(hh, id)));
   return items
     .filter((t): t is SavedType => !!t)
     .sort((a, b) => a.createdAt - b.createdAt);
@@ -1364,7 +1341,7 @@ export async function listHouseholdMembers(
 ): Promise<{ id: string; name: string }[]> {
   const ids = await redis.smembers(key.householdMembers(hh));
   if (ids.length === 0) return [];
-  const users = await Promise.all(ids.map((id) => redis.get<User>(key.user(id))));
+  const users = await getMany<User>(ids.map((id) => key.user(id)));
   return users
     .filter((u): u is User => !!u)
     .map((u) => ({ id: u.id, name: u.name }));
@@ -1454,9 +1431,7 @@ export async function deleteSavedFile(
 export async function listTrips(hh: string): Promise<Trip[]> {
   const ids = await redis.smembers(key.trips(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Trip>(key.trip(hh, id)))
-  );
+  const items = await getMany<Trip>(ids.map((id) => key.trip(hh, id)));
   return items
     .filter((t): t is Trip => !!t)
     .sort((a, b) => b.year - a.year || b.createdAt - a.createdAt);
@@ -1538,9 +1513,7 @@ function normalizeTask(t: Task): Task {
 export async function listTasks(hh: string): Promise<Task[]> {
   const ids = await redis.smembers(key.tasks(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Task>(key.task(hh, id)))
-  );
+  const items = await getMany<Task>(ids.map((id) => key.task(hh, id)));
   return items
     .filter((t): t is Task => !!t)
     .map(normalizeTask);
@@ -1607,9 +1580,7 @@ function normalizeTaskList(l: TaskList): TaskList {
 export async function listTaskLists(hh: string): Promise<TaskList[]> {
   const ids = await redis.smembers(key.taskLists(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<TaskList>(key.taskList(hh, id)))
-  );
+  const items = await getMany<TaskList>(ids.map((id) => key.taskList(hh, id)));
   return items
     .filter((l): l is TaskList => !!l)
     .map(normalizeTaskList)
@@ -1697,9 +1668,7 @@ function normalizeNote(n: Note): Note {
 export async function listNotes(hh: string): Promise<Note[]> {
   const ids = await redis.smembers(key.notes(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<Note>(key.note(hh, id)))
-  );
+  const items = await getMany<Note>(ids.map((id) => key.note(hh, id)));
   return items
     .filter((n): n is Note => !!n)
     .map(normalizeNote)
@@ -1727,9 +1696,7 @@ export async function deleteNote(hh: string, id: string) {
 export async function listJournalEntries(hh: string): Promise<JournalEntry[]> {
   const ids = await redis.smembers(key.journalEntries(hh));
   if (ids.length === 0) return [];
-  const items = await Promise.all(
-    ids.map((id) => redis.get<JournalEntry>(key.journalEntry(hh, id)))
-  );
+  const items = await getMany<JournalEntry>(ids.map((id) => key.journalEntry(hh, id)));
   return items
     .filter((e): e is JournalEntry => !!e)
     .sort((a, b) =>
