@@ -92,7 +92,8 @@ export function TagInput({
               setTags((cur) => cur.slice(0, -1));
             }
           }}
-          placeholder={tags.length === 0 ? placeholder : ""}
+          aria-label="Címke hozzáadása"
+          placeholder={tags.length === 0 ? placeholder : "továbbiak…"}
           className="min-w-24 flex-1 bg-transparent px-1 py-1 text-sm placeholder:text-[var(--color-muted-foreground)] focus:outline-none"
         />
       </div>

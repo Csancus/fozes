@@ -208,36 +208,41 @@ export function TaskListForm({
             placeholder="utazás, csomagolás…"
           />
         </Field>
-        <button
-          type="button"
-          onClick={() => setInheritTags((v) => !v)}
+        {/* A kapcsoló és az (i) gomb EGYMÁS MELLETT van: gomb a gombban
+            érvénytelen HTML — hydration hibát okozott. */}
+        <div
           className={cn(
-            "mt-3 flex w-full items-center gap-3 rounded-xl border px-3 py-2.5 text-left transition",
+            "mt-3 flex w-full items-center gap-2 rounded-xl border pr-2 transition",
             inheritTags
               ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)]"
-              : "border-[var(--color-border)] hover:bg-[var(--color-muted)]"
+              : "border-[var(--color-border)]"
           )}
         >
-          <span
-            className={cn(
-              "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition",
-              inheritTags
-                ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-primary-foreground)]"
-                : "border-[var(--color-border)] text-transparent"
-            )}
+          <button
+            type="button"
+            onClick={() => setInheritTags((v) => !v)}
+            aria-pressed={inheritTags}
+            className="flex flex-1 items-center gap-3 rounded-xl px-3 py-2.5 text-left"
           >
-            ✓
-          </span>
-          <span className="flex-1 text-sm font-medium">Címkék öröklődnek</span>
-          <span onClick={(e) => e.stopPropagation()}>
-            <InfoTip label="Mit jelent az öröklődés?">
-              Ha bekapcsolod, a lista címkéit <b>minden benne lévő teendő</b> — és a
-              teendők alteendői is — megkapják. Az örökölt címkék szaggatott
-              kerettel látszanak, és automatikusan követik, ha a listán
-              módosítod őket. Kikapcsolva a címkék csak magán a listán maradnak.
-            </InfoTip>
-          </span>
-        </button>
+            <span
+              className={cn(
+                "w-5 h-5 rounded-md border flex items-center justify-center shrink-0 transition",
+                inheritTags
+                  ? "bg-[var(--color-primary)] border-[var(--color-primary)] text-[var(--color-primary-foreground)]"
+                  : "border-[var(--color-border)] text-transparent"
+              )}
+            >
+              ✓
+            </span>
+            <span className="text-sm font-medium">Címkék öröklődnek</span>
+          </button>
+          <InfoTip label="Mit jelent az öröklődés?">
+            Ha bekapcsolod, a lista címkéit <b>minden benne lévő teendő</b> — és a
+            teendők alteendői is — megkapják. Az örökölt címkék szaggatott
+            kerettel látszanak, és automatikusan követik, ha a listán
+            módosítod őket. Kikapcsolva a címkék csak magán a listán maradnak.
+          </InfoTip>
+        </div>
       </div>
 
       <Field label="Leírás" hint="nem kötelező">

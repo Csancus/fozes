@@ -14,15 +14,24 @@ export function InfoTip({
   label?: string;
   className?: string;
 }) {
-  const [open, setOpen] = useState(false);
+  // Hover és klikk KÜLÖN: asztalon a hover már megnyitja, és ha a klikk
+  // ugyanazt az egy állapotot togglelné, a kattintás azonnal be is csukná.
+  const [hover, setHover] = useState(false);
+  const [pinned, setPinned] = useState(false);
+  const open = hover || pinned;
   const box = useRef<HTMLSpanElement | null>(null);
 
   useEffect(() => {
     if (!open) return;
     const onDown = (e: MouseEvent) => {
-      if (box.current && !box.current.contains(e.target as Node)) setOpen(false);
+      if (box.current && !box.current.contains(e.target as Node)) setPinned(false);
     };
-    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setPinned(false);
+        setHover(false);
+      }
+    };
     document.addEventListener("mousedown", onDown);
     document.addEventListener("keydown", onKey);
     return () => {
@@ -35,13 +44,13 @@ export function InfoTip({
     <span
       ref={box}
       className={cn("relative inline-flex", className)}
-      onMouseEnter={() => setOpen(true)}
-      onMouseLeave={() => setOpen(false)}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
     >
       <button
         type="button"
         aria-label={label}
-        onClick={() => setOpen((v) => !v)}
+        onClick={() => setPinned((v) => !v)}
         className="inline-flex h-5 w-5 items-center justify-center rounded-full text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
       >
         <Info className="w-4 h-4" />

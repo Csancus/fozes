@@ -43,6 +43,9 @@ export function TaskBoard({
   const [over, setOver] = useState<TaskStatus | null>(null);
   // Mobil: hosszu nyomasra "felveszed" a kartyat, aztan az oszlopra koppintasz.
   const [picked, setPicked] = useState<BoardTask | null>(null);
+  // A long-press elengedése egy click-et is szül — azt az oszlop NE dobásnak
+  // vegye, különben a kártya azonnal visszakerül és a felvétel megszűnik.
+  const pickedAt = useRef(0);
   const [, start] = useTransition();
 
   // Escape = elengedes (asztali billentyuzeten is)
@@ -84,6 +87,7 @@ export function TaskBoard({
               }}
               onClick={() => {
                 if (!picked) return;
+                if (performance.now() - pickedAt.current < 500) return;
                 if (picked.status !== s) move(picked.id, s);
                 setPicked(null);
               }}
@@ -111,7 +115,10 @@ export function TaskBoard({
                     task={t}
                     dueDateAction={dueDateAction}
                     picked={picked?.id === t.id}
-                    onPick={() => setPicked(t)}
+                    onPick={() => {
+                      pickedAt.current = performance.now();
+                      setPicked(t);
+                    }}
                     onDragStart={() => setDragId(t.id)}
                     onDragEnd={() => setDragId(null)}
                     onMove={(next) => move(t.id, next)}
@@ -171,14 +178,23 @@ function BoardCard({
   const subDone = task.subtasks.filter((s) => s.done).length;
   const shared = task.ownerId === SHARED_OWNER;
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const startPos = useRef<{ x: number; y: number } | null>(null);
 
-  // ~450 ms nyomva tartas = felvetel (mobilon ez helyettesiti a huzast).
-  function armPick() {
+  // ~450 ms nyomva tartás = felvétel (mobilon ez helyettesíti a húzást).
+  function armPick(e: React.PointerEvent) {
     clearPick();
+    startPos.current = { x: e.clientX, y: e.clientY };
     timer.current = setTimeout(() => {
       onPick();
       if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(15);
     }, 450);
+  }
+  // Csak VALÓDI elmozdulás szakítja meg (a böngésző pointerdown után is küld
+  // pointermove-ot ugyanarra a pontra — az nem lehet mégse).
+  function maybeCancel(e: React.PointerEvent) {
+    const s = startPos.current;
+    if (!s || !timer.current) return;
+    if (Math.abs(e.clientX - s.x) > 8 || Math.abs(e.clientY - s.y) > 8) clearPick();
   }
   function clearPick() {
     if (timer.current) {
@@ -195,7 +211,7 @@ function BoardCard({
       onPointerDown={armPick}
       onPointerUp={clearPick}
       onPointerCancel={clearPick}
-      onPointerMove={clearPick}
+      onPointerMove={maybeCancel}
       onContextMenu={(e) => e.preventDefault()}
       className={cn(
         "rounded-xl border bg-[var(--color-card)] p-2.5 shadow-sm transition select-none",
