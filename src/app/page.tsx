@@ -20,6 +20,7 @@ import {
   Users,
   Plane,
   ListTodo,
+  CalendarCheck,
   NotebookPen,
   StickyNote,
   LogOut,
@@ -123,6 +124,33 @@ export default async function Home() {
           Kövesd egy helyen a dolgaid.
         </p>
       </div>
+
+      {dueTaskCount > 0 && (
+        <Link
+          href="/ma"
+          className="mt-5 block rounded-2xl border border-[var(--color-primary)]/40 bg-[var(--color-primary-soft)] p-4 transition hover:brightness-95"
+        >
+          <div className="flex items-start gap-3">
+            <div className="w-9 h-9 rounded-xl bg-[var(--color-primary)]/15 text-[var(--color-primary)] flex items-center justify-center shrink-0">
+              <CalendarCheck className="w-4.5 h-4.5" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-sm font-semibold text-[var(--color-primary)]">
+                {dueTaskCount} teendő esedékes ma vagy már lejárt
+              </p>
+              <p className="mt-0.5 truncate text-xs text-[var(--color-muted-foreground)]">
+                {openTasks
+                  .filter((t) => t.dueDate && t.dueDate <= todayStr)
+                  .slice(0, 3)
+                  .map((t) => t.title)
+                  .join(", ")}
+                {dueTaskCount > 3 && "…"}
+              </p>
+            </div>
+            <ChevronRight className="mt-2 w-4 h-4 text-[var(--color-primary)]/70" />
+          </div>
+        </Link>
+      )}
 
       {expiringSoon.length > 0 && (
         <Link

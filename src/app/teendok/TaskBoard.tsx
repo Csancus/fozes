@@ -1,12 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { cn } from "@/lib/cn";
 import { STATUS_VISUAL } from "@/lib/task-visuals";
 import { TASK_STATUSES, SHARED_OWNER } from "@/lib/types";
 import type { Task, TaskStatus } from "@/lib/types";
-import { ListChecks, Paperclip, Users, GripVertical } from "lucide-react";
+import { ListChecks, Paperclip, Users, GripVertical, Hand, X } from "lucide-react";
 import { DueDateControl } from "@/components/ui/DueDateControl";
 
 export type BoardTask = Task & { ownerName: string | null };
@@ -27,8 +27,9 @@ function initials(name: string): string {
   return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }
 
-// Kanban nézet: oszlop = státusz. Asztalon húzható, mobilon a kártya alján
-// lévő státusz-gombokkal mozgatható.
+// Kanban nézet: oszlop = státusz. Asztalon húzható (HTML5 drag&drop), mobilon
+// hosszu nyomasra "felveszed" a kartyat es a cel-oszlopra koppintasz — vagy a
+// kartya aljan levo statusz-gombokkal leptetsz.
 export function TaskBoard({
   tasks,
   statusAction,
@@ -40,7 +41,17 @@ export function TaskBoard({
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<TaskStatus | null>(null);
+  // Mobil: hosszu nyomasra "felveszed" a kartyat, aztan az oszlopra koppintasz.
+  const [picked, setPicked] = useState<BoardTask | null>(null);
   const [, start] = useTransition();
+
+  // Escape = elengedes (asztali billentyuzeten is)
+  useEffect(() => {
+    if (!picked) return;
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setPicked(null);
+    document.addEventListener("keydown", onKey);
+    return () => document.removeEventListener("keydown", onKey);
+  }, [picked]);
 
   function move(id: string, status: TaskStatus) {
     const fd = new FormData();
@@ -71,11 +82,18 @@ export function TaskBoard({
                 if (dragId) move(dragId, s);
                 setDragId(null);
               }}
+              onClick={() => {
+                if (!picked) return;
+                if (picked.status !== s) move(picked.id, s);
+                setPicked(null);
+              }}
               className={cn(
                 "w-[78vw] max-w-[300px] shrink-0 rounded-2xl border p-2.5 transition",
                 over === s
                   ? "border-[var(--color-primary)] bg-[var(--color-primary-soft)]/40"
-                  : "border-[var(--color-border)] bg-[var(--color-muted)]/25"
+                  : picked && picked.status !== s
+                    ? "border-[var(--color-primary)]/60 bg-[var(--color-primary-soft)]/20 cursor-pointer"
+                    : "border-[var(--color-border)] bg-[var(--color-muted)]/25"
               )}
             >
               <h3 className="mb-2 flex items-center gap-2 px-1 text-[13px] font-semibold">
@@ -92,6 +110,8 @@ export function TaskBoard({
                     key={t.id}
                     task={t}
                     dueDateAction={dueDateAction}
+                    picked={picked?.id === t.id}
+                    onPick={() => setPicked(t)}
                     onDragStart={() => setDragId(t.id)}
                     onDragEnd={() => setDragId(null)}
                     onMove={(next) => move(t.id, next)}
@@ -107,6 +127,25 @@ export function TaskBoard({
           );
         })}
       </div>
+
+      {/* Felvett kartya: koppints egy oszlopra */}
+      {picked && (
+        <div className="sticky bottom-3 z-30 mt-2 flex items-center gap-2 rounded-2xl border border-[var(--color-primary)] bg-[var(--color-card)] p-3 shadow-lg">
+          <Hand className="w-4 h-4 shrink-0 text-[var(--color-primary)]" />
+          <p className="flex-1 min-w-0 text-xs">
+            <span className="font-semibold">{picked.title}</span>
+            <span className="text-[var(--color-muted-foreground)]"> — koppints egy oszlopra</span>
+          </p>
+          <button
+            type="button"
+            onClick={() => setPicked(null)}
+            aria-label="Mégse"
+            className="h-8 w-8 shrink-0 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      )}
     </div>
   );
 }
@@ -114,12 +153,16 @@ export function TaskBoard({
 function BoardCard({
   task,
   dueDateAction,
+  picked,
+  onPick,
   onDragStart,
   onDragEnd,
   onMove,
 }: {
   task: BoardTask;
   dueDateAction: (fd: FormData) => void | Promise<void>;
+  picked: boolean;
+  onPick: () => void;
   onDragStart: () => void;
   onDragEnd: () => void;
   onMove: (status: TaskStatus) => void;
@@ -127,17 +170,49 @@ function BoardCard({
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;
   const shared = task.ownerId === SHARED_OWNER;
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // ~450 ms nyomva tartas = felvetel (mobilon ez helyettesiti a huzast).
+  function armPick() {
+    clearPick();
+    timer.current = setTimeout(() => {
+      onPick();
+      if (typeof navigator !== "undefined" && navigator.vibrate) navigator.vibrate(15);
+    }, 450);
+  }
+  function clearPick() {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+  }
 
   return (
     <div
       draggable
       onDragStart={onDragStart}
       onDragEnd={onDragEnd}
-      className="rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-sm transition hover:border-[var(--color-primary)]/40"
+      onPointerDown={armPick}
+      onPointerUp={clearPick}
+      onPointerCancel={clearPick}
+      onPointerMove={clearPick}
+      onContextMenu={(e) => e.preventDefault()}
+      className={cn(
+        "rounded-xl border bg-[var(--color-card)] p-2.5 shadow-sm transition select-none",
+        picked
+          ? "border-[var(--color-primary)] ring-2 ring-[var(--color-primary)]/40 scale-[0.98]"
+          : "border-[var(--color-border)] hover:border-[var(--color-primary)]/40"
+      )}
     >
       <div className="flex items-start gap-1.5">
         <GripVertical className="mt-0.5 w-3.5 h-3.5 shrink-0 text-[var(--color-muted-foreground)] cursor-grab" />
-        <Link href={`/teendok/${task.id}`} className="flex-1 min-w-0">
+        <Link
+          href={`/teendok/${task.id}`}
+          onClick={(e) => {
+            if (picked) e.preventDefault();
+          }}
+          className="flex-1 min-w-0"
+        >
           <p className={cn("text-sm font-medium leading-snug", task.status === "done" && "line-through opacity-70")}>
             {task.title}
           </p>
