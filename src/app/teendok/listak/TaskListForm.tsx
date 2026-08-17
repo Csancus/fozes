@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TagInput } from "@/components/ui/TagInput";
 import { cn } from "@/lib/cn";
 import { CAT_COLORS, COLOR_KEYS } from "@/lib/expense-visuals";
 import type { Project, TaskList, Trip } from "@/lib/types";
@@ -45,6 +46,7 @@ export function TaskListForm({
   trips,
   defaultProjectId,
   defaultTripId,
+  tagSuggestions = [],
   submitLabel,
 }: {
   action: (fd: FormData) => void | Promise<void>;
@@ -53,6 +55,7 @@ export function TaskListForm({
   trips: Trip[];
   defaultProjectId?: string;
   defaultTripId?: string;
+  tagSuggestions?: string[];
   submitLabel?: string;
 }) {
   const startProject = initial?.projectId ?? defaultProjectId ?? "";
@@ -197,11 +200,12 @@ export function TaskListForm({
 
       {/* Címkék + öröklődés */}
       <div>
-        <Field label="Címkék" hint="vesszővel elválasztva — pl. utazás, sürgős">
-          <Input
+        <Field label="Címkék" hint="Enter vagy vessző = kész címke">
+          <TagInput
             name="tags"
-            defaultValue={initial?.tags?.join(", ") ?? ""}
-            placeholder="utazás, csomagolás"
+            initial={initial?.tags ?? []}
+            suggestions={tagSuggestions}
+            placeholder="utazás, csomagolás…"
           />
         </Field>
         <button

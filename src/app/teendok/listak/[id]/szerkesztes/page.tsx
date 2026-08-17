@@ -1,5 +1,11 @@
 import { requireUser } from "@/lib/auth";
-import { getTaskList, listProjects, listTrips, listTasks } from "@/lib/data";
+import {
+  getTaskList,
+  listProjects,
+  listTrips,
+  listTasks,
+  listTaskTags,
+} from "@/lib/data";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -17,10 +23,11 @@ export default async function EditTaskListPage({
   const list = await getTaskList(me.householdId, id);
   if (!list) notFound();
 
-  const [projects, trips, allTasks] = await Promise.all([
+  const [projects, trips, allTasks, tags] = await Promise.all([
     listProjects(me.householdId),
     listTrips(me.householdId),
     listTasks(me.householdId),
+    listTaskTags(me.householdId),
   ]);
   const taskCount = allTasks.filter((t) => t.listId === id).length;
 
@@ -33,6 +40,7 @@ export default async function EditTaskListPage({
           initial={list}
           projects={projects}
           trips={trips}
+          tagSuggestions={tags.map((t) => t.name)}
         />
       </Card>
 

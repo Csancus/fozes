@@ -3,6 +3,7 @@
 import { useRef, useState } from "react";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { TagInput } from "@/components/ui/TagInput";
 import { cn } from "@/lib/cn";
 import type {
   Task,
@@ -127,6 +128,7 @@ export function TaskForm({
   projects = [],
   lists = [],
   trips = [],
+  tagSuggestions = [],
   defaultListId,
   myId,
 }: {
@@ -136,6 +138,7 @@ export function TaskForm({
   projects?: Project[];
   lists?: TaskList[];
   trips?: Trip[];
+  tagSuggestions?: string[];
   defaultListId?: string;
   myId?: string;
 }) {
@@ -439,11 +442,12 @@ export function TaskForm({
         )}
       </div>
 
-      <Field label="Címkék" hint="vesszővel elválasztva — pl. sürgős, otthon">
-        <Input
+      <Field label="Címkék" hint="Enter vagy vessző = kész címke">
+        <TagInput
           name="tags"
-          defaultValue={initial?.tags?.join(", ") ?? ""}
-          placeholder="sürgős, ügyintézés"
+          initial={initial?.tags ?? []}
+          suggestions={tagSuggestions}
+          placeholder="sürgős, ügyintézés…"
         />
       </Field>
 

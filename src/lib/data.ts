@@ -1564,6 +1564,70 @@ export async function deleteTaskFile(
   await redis.del(key.taskFile(hh, taskId, fileId));
 }
 
+// ============ TEENDŐ-CÍMKÉK ============
+
+// A teendőkön és listákon használt címkék egy készletben (kis/nagybetű-
+// érzéketlen kulccsal, de a legelőször látott írásmóddal jelenítve).
+export async function listTaskTags(
+  hh: string
+): Promise<{ name: string; taskCount: number; listCount: number }[]> {
+  const [tasks, lists] = await Promise.all([listTasks(hh), listTaskLists(hh)]);
+  const map = new Map<string, { name: string; taskCount: number; listCount: number }>();
+  const touch = (raw: string, kind: "task" | "list") => {
+    const k = raw.trim().toLowerCase();
+    if (!k) return;
+    const cur = map.get(k) ?? { name: raw.trim(), taskCount: 0, listCount: 0 };
+    if (kind === "task") cur.taskCount += 1;
+    else cur.listCount += 1;
+    map.set(k, cur);
+  };
+  tasks.forEach((t) => t.tags.forEach((x) => touch(x, "task")));
+  lists.forEach((l) => l.tags.forEach((x) => touch(x, "list")));
+  return [...map.values()].sort((a, b) => a.name.localeCompare(b.name, "hu"));
+}
+
+// Címke átnevezése (vagy összevonása egy létezővel) minden teendőn és listán.
+export async function renameTaskTag(hh: string, from: string, to: string) {
+  const fromKey = from.trim().toLowerCase();
+  const target = to.trim();
+  if (!fromKey || !target) return;
+  const [tasks, lists] = await Promise.all([listTasks(hh), listTaskLists(hh)]);
+  const swap = (tags: string[]) => {
+    const out: string[] = [];
+    for (const t of tags) {
+      const v = t.trim().toLowerCase() === fromKey ? target : t;
+      if (!out.some((x) => x.toLowerCase() === v.toLowerCase())) out.push(v);
+    }
+    return out;
+  };
+  const now = Date.now();
+  await Promise.all([
+    ...tasks
+      .filter((t) => t.tags.some((x) => x.trim().toLowerCase() === fromKey))
+      .map((t) => saveTask(hh, { ...t, tags: swap(t.tags), updatedAt: now })),
+    ...lists
+      .filter((l) => l.tags.some((x) => x.trim().toLowerCase() === fromKey))
+      .map((l) => updateTaskList(hh, l.id, { tags: swap(l.tags) })),
+  ]);
+}
+
+// Címke eltávolítása mindenhonnan (a teendők/listák megmaradnak).
+export async function deleteTaskTag(hh: string, tag: string) {
+  const k = tag.trim().toLowerCase();
+  if (!k) return;
+  const [tasks, lists] = await Promise.all([listTasks(hh), listTaskLists(hh)]);
+  const strip = (tags: string[]) => tags.filter((x) => x.trim().toLowerCase() !== k);
+  const now = Date.now();
+  await Promise.all([
+    ...tasks
+      .filter((t) => t.tags.some((x) => x.trim().toLowerCase() === k))
+      .map((t) => saveTask(hh, { ...t, tags: strip(t.tags), updatedAt: now })),
+    ...lists
+      .filter((l) => l.tags.some((x) => x.trim().toLowerCase() === k))
+      .map((l) => updateTaskList(hh, l.id, { tags: strip(l.tags) })),
+  ]);
+}
+
 // ============ TEENDŐ-LISTÁK (TaskList) ============
 
 function normalizeTaskList(l: TaskList): TaskList {

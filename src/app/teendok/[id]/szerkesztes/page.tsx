@@ -5,6 +5,7 @@ import {
   listProjects,
   listTaskLists,
   listTrips,
+  listTaskTags,
 } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -19,12 +20,13 @@ export default async function EditTaskPage({
 }) {
   const { id } = await params;
   const me = await requireUser();
-  const [task, members, projects, lists, trips] = await Promise.all([
+  const [task, members, projects, lists, trips, tags] = await Promise.all([
     getTask(me.householdId, id),
     listHouseholdMembers(me.householdId),
     listProjects(me.householdId),
     listTaskLists(me.householdId),
     listTrips(me.householdId),
+    listTaskTags(me.householdId),
   ]);
   if (!task) notFound();
 
@@ -39,6 +41,7 @@ export default async function EditTaskPage({
           projects={projects}
           lists={lists}
           trips={trips}
+          tagSuggestions={tags.map((t) => t.name)}
           myId={me.userId}
         />
       </Card>

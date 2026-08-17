@@ -18,6 +18,8 @@ import {
   createTaskList,
   updateTaskList,
   deleteTaskList,
+  renameTaskTag,
+  deleteTaskTag,
 } from "@/lib/data";
 import { offloadImage } from "@/lib/r2";
 import { newId } from "@/lib/redis";
@@ -32,13 +34,16 @@ import type {
 } from "@/lib/types";
 import { nextDueDate } from "@/lib/task-repeat";
 import { TASK_STATUSES } from "@/lib/types";
+import { revalidatePath } from "next/cache";
+import { redirect } from "next/navigation";
 
 // „a, b , c" → ["a","b","c"] (üresek kiszűrve, duplikátum nélkül)
 function parseTags(raw: unknown): string[] {
   const out: string[] = [];
   for (const part of String(raw ?? "").split(",")) {
     const t = part.trim();
-    if (t && !out.includes(t)) out.push(t);
+    // Kis/nagybetű-érzéketlen dedupe: a „Sürgős" és a „sürgős" egy címke.
+    if (t && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
   }
   return out;
 }
@@ -76,9 +81,6 @@ function parseStatus(raw: unknown, fallback: TaskStatus = "todo"): TaskStatus {
   const v = String(raw ?? "").trim() as TaskStatus;
   return TASK_STATUSES.includes(v) ? v : fallback;
 }
-import { revalidatePath } from "next/cache";
-import { redirect } from "next/navigation";
-
 type IncomingFile = TaskFileMeta & { dataUrl?: string };
 
 function parseSubtasks(raw: string): Subtask[] {
@@ -703,4 +705,27 @@ export async function promoteSubtaskAction(fd: FormData) {
   revalidatePath("/teendok");
   if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
   revalidatePath("/");
+}
+
+// ============ CÍMKÉK ============
+
+export async function renameTaskTagAction(fd: FormData) {
+  const me = await requireUser();
+  const from = String(fd.get("from") ?? "").trim();
+  const to = String(fd.get("to") ?? "").trim();
+  if (!from || !to) return;
+  await renameTaskTag(me.householdId, from, to);
+  revalidatePath("/beallitasok");
+  revalidatePath("/teendok");
+  revalidatePath("/teendok/board");
+}
+
+export async function deleteTaskTagAction(fd: FormData) {
+  const me = await requireUser();
+  const tag = String(fd.get("tag") ?? "").trim();
+  if (!tag) return;
+  await deleteTaskTag(me.householdId, tag);
+  revalidatePath("/beallitasok");
+  revalidatePath("/teendok");
+  revalidatePath("/teendok/board");
 }

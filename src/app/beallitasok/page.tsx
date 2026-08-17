@@ -1,5 +1,5 @@
 import { requireUser } from "@/lib/auth";
-import { listGoals, listProjects } from "@/lib/data";
+import { listGoals, listProjects, listTaskTags } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CollapsiblePanel } from "@/components/ui/CollapsiblePanel";
 import { EntityManager } from "@/components/ui/EntityManager";
@@ -7,7 +7,10 @@ import {
   createGoalAction,
   updateGoalAction,
   deleteGoalAction,
+  renameTaskTagAction,
+  deleteTaskTagAction,
 } from "../teendok/actions";
+import { TagManager } from "./TagManager";
 import {
   createProjectAction,
   updateProjectAction,
@@ -16,9 +19,10 @@ import {
 
 export default async function GlobalisBeallitasokPage() {
   const me = await requireUser();
-  const [goals, projects] = await Promise.all([
+  const [goals, projects, tags] = await Promise.all([
     listGoals(me.householdId),
     listProjects(me.householdId),
+    listTaskTags(me.householdId),
   ]);
 
   return (
@@ -57,6 +61,14 @@ export default async function GlobalisBeallitasokPage() {
             createAction={createProjectAction}
             updateAction={updateProjectAction}
             deleteAction={deleteProjectAction}
+          />
+        </CollapsiblePanel>
+
+        <CollapsiblePanel title="Címkék" count={tags.length}>
+          <TagManager
+            tags={tags}
+            renameAction={renameTaskTagAction}
+            deleteAction={deleteTaskTagAction}
           />
         </CollapsiblePanel>
       </div>
