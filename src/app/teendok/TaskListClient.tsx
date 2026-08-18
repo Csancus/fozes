@@ -55,6 +55,7 @@ export function TaskListClient({
   deleteAction,
   statusAction,
   dueDateAction,
+  reorderAction,
 }: {
   tasks: Entry[];
   members: { id: string; name: string }[];
@@ -65,6 +66,7 @@ export function TaskListClient({
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
   dueDateAction: (fd: FormData) => void | Promise<void>;
+  reorderAction?: (fd: FormData) => void | Promise<void>;
 }) {
   const projectById = useMemo(() => new Map(projects.map((p) => [p.id, p])), [projects]);
   const listById = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists]);
@@ -229,7 +231,12 @@ export function TaskListClient({
       )}
 
       {view === "board" ? (
-        <TaskBoard tasks={filtered} statusAction={statusAction} dueDateAction={dueDateAction} />
+        <TaskBoard
+          tasks={filtered}
+          statusAction={statusAction}
+          dueDateAction={dueDateAction}
+          reorderAction={reorderAction}
+        />
       ) : open.length === 0 ? (
         <p className="mt-10 text-center text-sm text-[var(--color-muted-foreground)]">
           Minden kész! 🎉 Nincs nyitott teendő.
@@ -320,6 +327,7 @@ function TaskCard({
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
   dueDateAction: (fd: FormData) => void | Promise<void>;
+  reorderAction?: (fd: FormData) => void | Promise<void>;
 }) {
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;

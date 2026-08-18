@@ -19,6 +19,7 @@ export function BoardPageClient({
   deleteAction,
   statusAction,
   dueDateAction,
+  reorderAction,
 }: {
   tasks: Entry[];
   projects?: Project[];
@@ -27,6 +28,7 @@ export function BoardPageClient({
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
   dueDateAction: (fd: FormData) => void | Promise<void>;
+  reorderAction?: (fd: FormData) => void | Promise<void>;
 }) {
   const [view, setView] = useState<"board" | "list">("board");
 
@@ -70,7 +72,12 @@ export function BoardPageClient({
       </div>
 
       {view === "board" ? (
-        <TaskBoard tasks={tasks} statusAction={statusAction} dueDateAction={dueDateAction} />
+        <TaskBoard
+          tasks={tasks}
+          statusAction={statusAction}
+          dueDateAction={dueDateAction}
+          reorderAction={reorderAction}
+        />
       ) : (
         <StatusListView
           tasks={tasks}

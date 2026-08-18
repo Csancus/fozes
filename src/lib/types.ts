@@ -644,6 +644,31 @@ export type TaskRepeat = {
   every: number; // minden N. nap/hét/hónap/év
 };
 
+// Egy naplóbejegyzés a teendő életében (ki mit állított át, mikor).
+export type TaskActivityKind =
+  | "created"
+  | "status"
+  | "due"
+  | "done"
+  | "reopen"
+  | "assign"
+  | "list"
+  | "edit"
+  | "spawn";
+
+export type TaskActivity = {
+  id: string;
+  at: number;
+  by: string | null;      // userId
+  byName: string;         // névpillanatkép (a tag később törölhető)
+  kind: TaskActivityKind;
+  from?: string | null;
+  to?: string | null;
+};
+
+// Mennyi bejegyzést tartunk meg teendőnként (a rekord ne hízzon el).
+export const TASK_ACTIVITY_MAX = 20;
+
 // Opcionális állapot a teendőkön (a tábla/kanban nézet ebből épül).
 export type TaskStatus = "todo" | "doing" | "blocked" | "done";
 
@@ -682,6 +707,8 @@ export type Task = {
   status: TaskStatus;        // todo | doing | blocked | done (a done a `done` flaggel jár együtt)
   tags: string[];            // saját címkék (a lista címkéi ehhez jönnek hozzá, ha öröklődnek)
   repeat: TaskRepeat | null; // ismétlődés (készre állításkor generálja a következőt)
+  position: number;          // kézi sorrend a kanban oszlopon belül (kisebb = előrébb)
+  activity: TaskActivity[];  // előzmények, legújabb elöl (max TASK_ACTIVITY_MAX)
   imageUrl: string | null;   // R2/inline borítókép
   files: TaskFileMeta[];     // csatolt fájlok (blob külön kulcson)
   subtasks: Subtask[];       // pipálható alteendők

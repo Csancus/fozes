@@ -36,6 +36,7 @@ export function ListTasksView({
   deleteAction,
   statusAction,
   dueDateAction,
+  reorderAction,
 }: {
   tasks: Entry[];
   inheritedTags?: string[];
@@ -43,6 +44,7 @@ export function ListTasksView({
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
   dueDateAction: (fd: FormData) => void | Promise<void>;
+  reorderAction?: (fd: FormData) => void | Promise<void>;
 }) {
   const [view, setView] = useState<"list" | "board">("list");
   const [showDone, setShowDone] = useState(false);
@@ -97,7 +99,12 @@ export function ListTasksView({
       </div>
 
       {view === "board" ? (
-        <TaskBoard tasks={tasks} statusAction={statusAction} dueDateAction={dueDateAction} />
+        <TaskBoard
+          tasks={tasks}
+          statusAction={statusAction}
+          dueDateAction={dueDateAction}
+          reorderAction={reorderAction}
+        />
       ) : (
         <>
           {open.length > 0 ? (
@@ -171,6 +178,7 @@ function Row({
   deleteAction: (fd: FormData) => void | Promise<void>;
   statusAction: (fd: FormData) => void | Promise<void>;
   dueDateAction: (fd: FormData) => void | Promise<void>;
+  reorderAction?: (fd: FormData) => void | Promise<void>;
 }) {
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;

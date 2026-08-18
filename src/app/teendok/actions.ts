@@ -31,7 +31,10 @@ import type {
   TaskList,
   TaskRepeat,
   TaskRepeatUnit,
+  TaskActivity,
+  TaskActivityKind,
 } from "@/lib/types";
+import { TASK_ACTIVITY_MAX } from "@/lib/types";
 import { nextDueDate } from "@/lib/task-repeat";
 import { TASK_STATUSES } from "@/lib/types";
 import { revalidatePath } from "next/cache";
@@ -46,6 +49,39 @@ function parseTags(raw: unknown): string[] {
     if (t && !out.some((x) => x.toLowerCase() === t.toLowerCase())) out.push(t);
   }
   return out;
+}
+
+// Előzmény-bejegyzés a teendő elejére (legújabb elöl), a lista hossza kötött.
+function withActivity(
+  task: Task,
+  me: { userId: string; name: string },
+  kind: TaskActivityKind,
+  from?: string | null,
+  to?: string | null
+): TaskActivity[] {
+  const entry: TaskActivity = {
+    id: newId(),
+    at: Date.now(),
+    by: me.userId,
+    byName: me.name,
+    kind,
+    ...(from !== undefined ? { from } : {}),
+    ...(to !== undefined ? { to } : {}),
+  };
+  return [entry, ...task.activity].slice(0, TASK_ACTIVITY_MAX);
+}
+
+// Új teendő nyitó bejegyzése.
+function firstActivity(me: { userId: string; name: string }): TaskActivity[] {
+  return [
+    {
+      id: newId(),
+      at: Date.now(),
+      by: me.userId,
+      byName: me.name,
+      kind: "created",
+    },
+  ];
 }
 
 const REPEAT_UNITS: TaskRepeatUnit[] = ["day", "week", "month", "year"];
@@ -72,6 +108,17 @@ async function spawnNextOccurrence(hh: string, task: Task) {
     doneAt: null,
     subtasks: task.subtasks.map((s) => ({ ...s, done: false })),
     files: [],
+    position: now,
+    activity: [
+      {
+        id: newId(),
+        at: now,
+        by: null,
+        byName: "Ismétlődés",
+        kind: "spawn",
+        from: task.dueDate,
+      },
+    ],
     createdAt: now,
     updatedAt: now,
   });
@@ -162,6 +209,30 @@ export async function saveTaskAction(fd: FormData) {
   }
 
   const now = Date.now();
+  // Előzmények: új tételnél nyitó bejegyzés, szerkesztésnél a tényleges
+  // változások (státusz / határidő / felelős / lista), különben „szerkesztés".
+  let activity: TaskActivity[] = existing?.activity ?? [];
+  if (!existing) {
+    activity = firstActivity(me);
+  } else {
+    const changes: [TaskActivityKind, string | null, string | null][] = [];
+    if (existing.status !== status) changes.push(["status", existing.status, status]);
+    if (existing.dueDate !== dueDate) changes.push(["due", existing.dueDate, dueDate]);
+    if (existing.ownerId !== ownerId) changes.push(["assign", existing.ownerId, ownerId]);
+    if (existing.listId !== listId) changes.push(["list", existing.listId, listId]);
+    if (
+      changes.length === 0 &&
+      (existing.title !== title ||
+        existing.description !== description ||
+        existing.tags.join(",") !== tags.join(","))
+    ) {
+      changes.push(["edit", null, null]);
+    }
+    for (const [kind, from, to] of changes) {
+      activity = withActivity({ ...existing, activity }, me, kind, from, to);
+    }
+  }
+
   const task: Task = {
     id,
     title,
@@ -173,6 +244,8 @@ export async function saveTaskAction(fd: FormData) {
     status,
     tags,
     repeat,
+    position: existing?.position ?? now,
+    activity,
     imageUrl,
     files: keptMeta,
     subtasks,
@@ -200,6 +273,7 @@ export async function toggleTaskDoneAction(fd: FormData) {
   const done = !task.done;
   await saveTask(me.householdId, {
     ...task,
+    activity: withActivity(task, me, done ? "done" : "reopen"),
     done,
     // A státusz követi a pipát: kész ⇄ vissza az előző (nem-kész) állapotba.
     status: done ? "done" : task.status === "done" ? "todo" : task.status,
@@ -294,6 +368,8 @@ export async function saveTasksBatchAction(fd: FormData) {
       status: "todo",
       tags: [],
       repeat: null,
+      position: now + 1,
+      activity: firstActivity(me),
       imageUrl: null,
       files: [],
       subtasks: [],
@@ -375,6 +451,8 @@ export async function createTaskListAction(fd: FormData) {
       status: "todo",
       tags: [],
       repeat: null,
+      position: now,
+      activity: firstActivity(me),
       imageUrl: null,
       files: [],
       subtasks: [],
@@ -460,6 +538,8 @@ export async function addTaskToListAction(fd: FormData) {
       status: "todo",
       tags: [],
       repeat: null,
+      position: now,
+      activity: firstActivity(me),
       imageUrl: null,
       files: [],
       subtasks: [],
@@ -514,6 +594,7 @@ export async function completeTaskListAction(fd: FormData) {
         ...t,
         done: !undo,
         status: undo ? (t.status === "done" ? "todo" : t.status) : "done",
+        activity: withActivity(t, me, undo ? "reopen" : "done"),
         doneAt: undo ? null : now,
         updatedAt: now,
       })
@@ -571,6 +652,10 @@ export async function setTaskStatusAction(fd: FormData) {
   await saveTask(me.householdId, {
     ...task,
     status,
+    activity:
+      status === task.status
+        ? task.activity
+        : withActivity(task, me, "status", task.status, status),
     done: status === "done",
     doneAt: status === "done" ? task.doneAt ?? now : null,
     updatedAt: now,
@@ -592,7 +677,15 @@ export async function setTaskDueDateAction(fd: FormData) {
   const task = await getTask(me.householdId, id);
   if (!task) return;
   const dueDate = String(fd.get("dueDate") ?? "").trim() || null;
-  await saveTask(me.householdId, { ...task, dueDate, updatedAt: Date.now() });
+  await saveTask(me.householdId, {
+    ...task,
+    dueDate,
+    activity:
+      dueDate === task.dueDate
+        ? task.activity
+        : withActivity(task, me, "due", task.dueDate, dueDate),
+    updatedAt: Date.now(),
+  });
   revalidatePath("/teendok");
   revalidatePath(`/teendok/${id}`);
   if (task.listId) revalidatePath(`/teendok/listak/${task.listId}`);
@@ -688,6 +781,8 @@ export async function promoteSubtaskAction(fd: FormData) {
     status: sub.done ? "done" : "todo",
     tags: task.tags,
     repeat: null,
+    position: now,
+    activity: firstActivity(me),
     imageUrl: null,
     files: [],
     subtasks: [],
@@ -728,4 +823,64 @@ export async function deleteTaskTagAction(fd: FormData) {
   revalidatePath("/beallitasok");
   revalidatePath("/teendok");
   revalidatePath("/teendok/board");
+}
+
+// ============ KÉZI SORREND (kanban) ============
+
+// A kliens a cél-oszlop TELJES új sorrendjét küldi (ids), plusz hogy melyik
+// tétel mozgott. Egy körben: a mozgatott státusza átáll, és minden érintett
+// tétel kap explicit pozíciót (1000-es lépcsőben, hogy legyen hely közé).
+export async function reorderTasksAction(fd: FormData) {
+  const me = await requireUser();
+  const hh = me.householdId;
+  const status = parseStatus(fd.get("status"));
+  const movedId = String(fd.get("movedId") ?? "").trim();
+  let ids: string[] = [];
+  try {
+    const parsed = JSON.parse(String(fd.get("ids") ?? "[]"));
+    if (Array.isArray(parsed)) ids = parsed.map((x) => String(x));
+  } catch {
+    ids = [];
+  }
+  if (ids.length === 0) return;
+
+  const all = await listTasks(hh);
+  const byId = new Map(all.map((t) => [t.id, t]));
+  const now = Date.now();
+
+  await Promise.all(
+    ids.map((id, i) => {
+      const t = byId.get(id);
+      if (!t) return Promise.resolve(null);
+      const isMoved = id === movedId;
+      const statusChanged = isMoved && t.status !== status;
+      return saveTask(hh, {
+        ...t,
+        status: isMoved ? status : t.status,
+        done: isMoved ? status === "done" : t.done,
+        doneAt: isMoved
+          ? status === "done"
+            ? t.doneAt ?? now
+            : null
+          : t.doneAt,
+        activity: statusChanged
+          ? withActivity(t, me, "status", t.status, status)
+          : t.activity,
+        position: (i + 1) * 1000,
+        updatedAt: isMoved ? now : t.updatedAt,
+      });
+    })
+  );
+
+  // Ismétlődő teendő kézzel a Kész oszlopba húzva is generálja a következőt.
+  const moved = byId.get(movedId);
+  if (moved && status === "done" && !moved.done) {
+    await spawnNextOccurrence(hh, moved);
+  }
+
+  revalidatePath("/teendok");
+  revalidatePath("/teendok/board");
+  revalidatePath("/ma");
+  if (moved?.listId) revalidatePath(`/teendok/listak/${moved.listId}`);
+  revalidatePath("/");
 }

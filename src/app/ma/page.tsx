@@ -26,6 +26,7 @@ import {
   deleteTaskFromListAction,
   setTaskStatusAction,
   setTaskDueDateAction,
+  reorderTasksAction,
 } from "../teendok/actions";
 
 const MONTHS = [
@@ -111,6 +112,7 @@ export default async function MaPage() {
           toggleDoneAction={toggleTaskDoneAction}
           deleteAction={deleteTaskFromListAction}
           statusAction={setTaskStatusAction}
+          reorderAction={reorderTasksAction}
           dueDateAction={setTaskDueDateAction}
         />
       )}

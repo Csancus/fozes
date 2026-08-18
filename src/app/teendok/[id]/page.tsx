@@ -36,6 +36,7 @@ import {
   promoteSubtaskAction,
 } from "../actions";
 import { SubtaskEditor } from "./SubtaskEditor";
+import { TaskHistory } from "./TaskHistory";
 import { StatusControl } from "@/components/ui/StatusControl";
 import { TagChips } from "@/components/ui/TagChips";
 import { SHARED_OWNER } from "@/lib/types";
@@ -257,6 +258,11 @@ export default async function TaskDetailPage({
           })}
         </section>
       )}
+
+      <TaskHistory
+        activity={task.activity}
+        memberNames={new Map(members.map((m) => [m.id, m.name]))}
+      />
 
       <div className="mt-8">
         <ConfirmDeleteButton id={task.id} title={task.title} deleteAction={deleteTaskAction} />

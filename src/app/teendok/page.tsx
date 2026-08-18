@@ -28,6 +28,7 @@ import {
   toggleTaskDoneAction,
   deleteTaskFromListAction,
   setTaskStatusAction,
+  reorderTasksAction,
   setTaskDueDateAction,
 } from "./actions";
 
@@ -208,6 +209,7 @@ export default async function TeendokPage() {
           toggleDoneAction={toggleTaskDoneAction}
           deleteAction={deleteTaskFromListAction}
           statusAction={setTaskStatusAction}
+          reorderAction={reorderTasksAction}
           dueDateAction={setTaskDueDateAction}
         />
       )}

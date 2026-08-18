@@ -11,6 +11,7 @@ import {
   deleteTaskFromListAction,
   setTaskStatusAction,
   setTaskDueDateAction,
+  reorderTasksAction,
 } from "../actions";
 import { BoardPageClient } from "./BoardPageClient";
 
@@ -38,6 +39,7 @@ export default async function TeendokBoardPage() {
         toggleDoneAction={toggleTaskDoneAction}
         deleteAction={deleteTaskFromListAction}
         statusAction={setTaskStatusAction}
+        reorderAction={reorderTasksAction}
         dueDateAction={setTaskDueDateAction}
       />
     </main>

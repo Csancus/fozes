@@ -6,7 +6,16 @@ import { cn } from "@/lib/cn";
 import { STATUS_VISUAL } from "@/lib/task-visuals";
 import { TASK_STATUSES, SHARED_OWNER } from "@/lib/types";
 import type { Task, TaskStatus } from "@/lib/types";
-import { ListChecks, Paperclip, Users, GripVertical, Hand, X } from "lucide-react";
+import {
+  ListChecks,
+  Paperclip,
+  Users,
+  GripVertical,
+  Hand,
+  X,
+  ArrowDownUp,
+  CalendarClock,
+} from "lucide-react";
 import { DueDateControl } from "@/components/ui/DueDateControl";
 
 export type BoardTask = Task & { ownerName: string | null };
@@ -34,10 +43,12 @@ export function TaskBoard({
   tasks,
   statusAction,
   dueDateAction,
+  reorderAction,
 }: {
   tasks: BoardTask[];
   statusAction: (fd: FormData) => void | Promise<void>;
   dueDateAction: (fd: FormData) => void | Promise<void>;
+  reorderAction?: (fd: FormData) => void | Promise<void>;
 }) {
   const [dragId, setDragId] = useState<string | null>(null);
   const [over, setOver] = useState<TaskStatus | null>(null);
@@ -46,7 +57,18 @@ export function TaskBoard({
   // A long-press elengedése egy click-et is szül — azt az oszlop NE dobásnak
   // vegye, különben a kártya azonnal visszakerül és a felvétel megszűnik.
   const pickedAt = useRef(0);
+  // "Határidő" = lejárt elöl, aztán dátum szerint; "Kézi" = a mentett pozíció.
+  const [sortMode, setSortMode] = useState<"due" | "manual">("due");
   const [, start] = useTransition();
+
+  useEffect(() => {
+    const saved = localStorage.getItem("teendok-board-sort");
+    if (saved === "manual" || saved === "due") setSortMode(saved);
+  }, []);
+  function pickSort(m: "due" | "manual") {
+    setSortMode(m);
+    localStorage.setItem("teendok-board-sort", m);
+  }
 
   // Escape = elengedes (asztali billentyuzeten is)
   useEffect(() => {
@@ -55,6 +77,34 @@ export function TaskBoard({
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
   }, [picked]);
+
+  function ordered(status: TaskStatus): BoardTask[] {
+    const items = tasks.filter((t) => t.status === status);
+    return sortMode === "manual"
+      ? [...items].sort((a, b) => a.position - b.position || byDue(a, b))
+      : [...items].sort(byDue);
+  }
+
+  // Beszúrás adott indexre: a cél-oszlop teljes új sorrendjét küldjük a
+  // szervernek, és a nézet kézi sorrendre vált (különben a dátum-rendezés
+  // visszaugrana).
+  function insertAt(task: BoardTask, status: TaskStatus, index: number) {
+    if (!reorderAction) {
+      if (task.status !== status) move(task.id, status);
+      return;
+    }
+    const column = ordered(status).filter((t) => t.id !== task.id);
+    const at = Math.max(0, Math.min(index, column.length));
+    const next = [...column.slice(0, at), task, ...column.slice(at)];
+    const fd = new FormData();
+    fd.set("status", status);
+    fd.set("movedId", task.id);
+    fd.set("ids", JSON.stringify(next.map((t) => t.id)));
+    pickSort("manual");
+    start(async () => {
+      await reorderAction(fd);
+    });
+  }
 
   function move(id: string, status: TaskStatus) {
     const fd = new FormData();
@@ -65,12 +115,44 @@ export function TaskBoard({
     });
   }
 
+  // Épp "a kézben" lévő tétel: húzás (asztal) vagy long-press (mobil).
+  const moving = picked ?? tasks.find((t) => t.id === dragId) ?? null;
+
   return (
-    <div className="mt-5 -mx-5 px-5 overflow-x-auto">
+    <div className="mt-5">
+      {reorderAction && (
+        <div className="mb-2 flex items-center justify-end gap-1.5">
+          <span className="text-[11px] text-[var(--color-muted-foreground)]">Sorrend:</span>
+          <div className="flex rounded-lg border border-[var(--color-border)] p-0.5">
+            {([
+              { id: "due", label: "Határidő", icon: CalendarClock },
+              { id: "manual", label: "Kézi", icon: ArrowDownUp },
+            ] as const).map((m) => {
+              const Icon = m.icon;
+              return (
+                <button
+                  key={m.id}
+                  type="button"
+                  onClick={() => pickSort(m.id)}
+                  className={cn(
+                    "inline-flex items-center gap-1 rounded-md px-2 py-1 text-[11px] font-medium transition",
+                    sortMode === m.id
+                      ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)]"
+                      : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                  )}
+                >
+                  <Icon className="w-3 h-3" /> {m.label}
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      )}
+      <div className="-mx-5 px-5 overflow-x-auto">
       <div className="flex gap-3 min-w-max pb-2">
         {TASK_STATUSES.map((s) => {
           const vis = STATUS_VISUAL[s];
-          const items = tasks.filter((t) => t.status === s).sort(byDue);
+          const items = ordered(s);
           return (
             <section
               key={s}
@@ -82,13 +164,16 @@ export function TaskBoard({
               onDrop={(e) => {
                 e.preventDefault();
                 setOver(null);
-                if (dragId) move(dragId, s);
+                const dragged = tasks.find((t) => t.id === dragId) ?? null;
+                if (dragged) {
+                  insertAt(dragged, s, ordered(s).filter((t) => t.id !== dragged.id).length);
+                }
                 setDragId(null);
               }}
               onClick={() => {
                 if (!picked) return;
                 if (performance.now() - pickedAt.current < 500) return;
-                if (picked.status !== s) move(picked.id, s);
+                insertAt(picked, s, ordered(s).filter((t) => t.id !== picked.id).length);
                 setPicked(null);
               }}
               className={cn(
@@ -109,9 +194,13 @@ export function TaskBoard({
               </h3>
 
               <div className="space-y-2">
-                {items.map((t) => (
+                {items.map((t, i) => (
+                  <div key={t.id}>
+                  <Gap
+                    active={!!moving && moving.id !== t.id}
+                    onInsert={() => moving && insertAt(moving, s, i)}
+                  />
                   <BoardCard
-                    key={t.id}
                     task={t}
                     dueDateAction={dueDateAction}
                     picked={picked?.id === t.id}
@@ -123,6 +212,7 @@ export function TaskBoard({
                     onDragEnd={() => setDragId(null)}
                     onMove={(next) => move(t.id, next)}
                   />
+                  </div>
                 ))}
                 {items.length === 0 && (
                   <p className="px-1 py-6 text-center text-xs text-[var(--color-muted-foreground)]">
@@ -133,6 +223,7 @@ export function TaskBoard({
             </section>
           );
         })}
+      </div>
       </div>
 
       {/* Felvett kartya: koppints egy oszlopra */}
@@ -289,6 +380,41 @@ function BoardCard({
           );
         })}
       </div>
+    </div>
+  );
+}
+
+// Beszúrási rés két kártya között: csak mozgatás közben látszik. Asztalon
+// dobási cél, mobilon koppintható — ugyanaz a mechanizmus mindkettőn.
+function Gap({ active, onInsert }: { active: boolean; onInsert: () => void }) {
+  const [over, setOver] = useState(false);
+  if (!active) return null;
+  return (
+    <div
+      onDragOver={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setOver(true);
+      }}
+      onDragLeave={() => setOver(false)}
+      onDrop={(e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        setOver(false);
+        onInsert();
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        onInsert();
+      }}
+      className={cn(
+        "mb-2 flex items-center justify-center rounded-lg border border-dashed transition",
+        over
+          ? "h-9 border-[var(--color-primary)] bg-[var(--color-primary-soft)]"
+          : "h-6 border-[var(--color-border)] hover:border-[var(--color-primary)]/60"
+      )}
+    >
+      <span className="text-[10px] font-medium text-[var(--color-muted-foreground)]">ide</span>
     </div>
   );
 }
