@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import {
-  listExpenses,
+  listExpensesRecent,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
   listIncomeCategories,
@@ -26,7 +26,8 @@ export default async function AttekintesPage() {
   await runDueRecurring(me.householdId);
   const [expenses, categories, incomeCategories, paymentMethods, persons, projects, groups] =
     await Promise.all([
-      listExpenses(me.householdId),
+      // Az oldal a 12 hónapos trendet mutatja — ennyit olvasunk be.
+      listExpensesRecent(me.householdId, 13),
       listExpenseCategories(me.householdId),
       listIncomeCategories(me.householdId),
       listPaymentMethods(me.householdId),

@@ -1,7 +1,8 @@
 import { requireUser } from "@/lib/auth";
 import {
   getExpense,
-  listExpenses,
+  listExpensesRecent,
+  countExpenses,
   listExpenseCategories,
   listIncomeCategories,
   ensureDefaultExpenseCategories,
@@ -51,7 +52,8 @@ export default async function EditExpensePage({
     listExpenseProjects(me.householdId),
     listGroups(me.householdId),
     getMerchantMap(me.householdId),
-    listExpenses(me.householdId),
+    // Duplikáció-figyelés + projekt-javaslatok: 13 hónap elég hozzá.
+    listExpensesRecent(me.householdId, 13),
   ]);
   if (!expense) notFound();
 

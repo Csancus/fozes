@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import {
-  listExpenses,
+  listExpensesForReview,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
   listIncomeCategories,
@@ -18,7 +18,8 @@ export default async function TeendokPage() {
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   const [expenses, categories, incomeCategories, persons] = await Promise.all([
-    listExpenses(me.householdId),
+    // Csak a megjelölt tételek — index-halmazból, nem a teljes előzményből.
+    listExpensesForReview(me.householdId),
     listExpenseCategories(me.householdId),
     listIncomeCategories(me.householdId),
     listPersons(me.householdId),

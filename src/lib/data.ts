@@ -1003,6 +1003,181 @@ export async function deleteGroup(hh: string, id: string) {
 
 // ============ EXPENSES ============
 
+// ============ KÖLTSÉG-INDEXEK (hónap + felülvizsgálat) ============
+
+// A hónap-kulcs a HELYI idő szerinti év-hónap (a UI is így csoportosít).
+export function expenseYm(spentAt: number): string {
+  const d = new Date(spentAt);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+}
+
+// Az utolsó `months` hónap kulcsai, a mostanitól visszafelé (pl. 2026-08 …).
+export function recentYms(months: number, from = new Date()): string[] {
+  const out: string[] = [];
+  for (let i = 0; i < Math.max(1, months); i += 1) {
+    const d = new Date(from.getFullYear(), from.getMonth() - i, 1);
+    out.push(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`);
+  }
+  return out;
+}
+
+// Két időpont közti összes hónap-kulcs (a számla-egyenlegnél kell: a kezdő
+// egyenleg dátumától mindent be kell olvasni, különben hibás a szaldó).
+export function ymsBetween(fromMs: number, toMs = Date.now()): string[] {
+  const from = new Date(fromMs);
+  const to = new Date(toMs);
+  const out: string[] = [];
+  let y = from.getFullYear();
+  let m = from.getMonth();
+  const lastY = to.getFullYear();
+  const lastM = to.getMonth();
+  let guard = 0;
+  while ((y < lastY || (y === lastY && m <= lastM)) && guard < 600) {
+    out.push(`${y}-${String(m + 1).padStart(2, "0")}`);
+    m += 1;
+    if (m > 11) {
+      m = 0;
+      y += 1;
+    }
+    guard += 1;
+  }
+  return out;
+}
+
+// Egy tétel indexeinek naprakészen tartása (mentésnél/törlésnél hívjuk).
+async function indexExpense(hh: string, e: Expense, prev: Expense | null) {
+  const ym = expenseYm(e.spentAt);
+  const prevYm = prev ? expenseYm(prev.spentAt) : null;
+  if (prevYm && prevYm !== ym) {
+    await redis.srem(key.expensesByMonth(hh, prevYm), e.id);
+  }
+  await redis.sadd(key.expensesByMonth(hh, ym), e.id);
+  if (e.review) await redis.sadd(key.expensesReview(hh), e.id);
+  else if (!prev || prev.review) await redis.srem(key.expensesReview(hh), e.id);
+  if (prev?.groupId && prev.groupId !== e.groupId) {
+    await redis.srem(key.expensesByGroup(hh, prev.groupId), e.id);
+  }
+  if (e.groupId) await redis.sadd(key.expensesByGroup(hh, e.groupId), e.id);
+}
+
+async function unindexExpense(hh: string, e: Expense) {
+  await redis.srem(key.expensesByMonth(hh, expenseYm(e.spentAt)), e.id);
+  await redis.srem(key.expensesReview(hh), e.id);
+  if (e.groupId) await redis.srem(key.expensesByGroup(hh, e.groupId), e.id);
+}
+
+// Egyszeri visszamenőleges index-építés a meglévő tételekből (idempotens:
+// egy flag-kulcs jelzi, hogy megvan). Csak ez olvassa be a teljes előzményt.
+export async function ensureExpenseIndex(hh: string) {
+  if (await redis.get<string>(key.expenseIndexBuilt(hh))) return;
+  const all = await listExpenses(hh);
+  const byMonth = new Map<string, string[]>();
+  const byGroup = new Map<string, string[]>();
+  const review: string[] = [];
+  for (const e of all) {
+    const ym = expenseYm(e.spentAt);
+    const arr = byMonth.get(ym) ?? [];
+    arr.push(e.id);
+    byMonth.set(ym, arr);
+    if (e.review) review.push(e.id);
+    if (e.groupId) {
+      const g = byGroup.get(e.groupId) ?? [];
+      g.push(e.id);
+      byGroup.set(e.groupId, g);
+    }
+  }
+  for (const [ym, ids] of byMonth) {
+    if (ids.length) await redis.sadd(key.expensesByMonth(hh, ym), ids[0], ...ids.slice(1));
+  }
+  for (const [gid, ids] of byGroup) {
+    if (ids.length) {
+      await redis.sadd(key.expensesByGroup(hh, gid), ids[0], ...ids.slice(1));
+    }
+  }
+  if (review.length) {
+    await redis.sadd(key.expensesReview(hh), review[0], ...review.slice(1));
+  }
+  await redis.set(key.expenseIndexBuilt(hh), "1");
+}
+
+function normalizeExpense(e: Expense): Expense {
+  return {
+    ...e,
+    kind: e.kind ?? "expense",
+    nature: e.nature ?? "avg",
+    review: e.review ?? false,
+    planned: e.planned ?? false,
+    tax: e.tax ?? false,
+    groupId: e.groupId ?? null,
+  };
+}
+
+// Adott hónapok tételei: a hónap-halmazokat EGY pipeline-ban kérdezzük, a
+// tételeket egy MGET-tel hozzuk. Így a kérésszám a hónapok számától függ,
+// nem a teljes előzmény méretétől.
+export async function listExpensesInMonths(
+  hh: string,
+  yms: string[]
+): Promise<Expense[]> {
+  await ensureExpenseIndex(hh);
+  const months = [...new Set(yms)];
+  if (months.length === 0) return [];
+  const pipe = redis.pipeline();
+  for (const ym of months) pipe.smembers(key.expensesByMonth(hh, ym));
+  const res = (await pipe.exec()) as unknown as string[][];
+  const ids = [...new Set(res.flat().filter(Boolean))];
+  if (ids.length === 0) return [];
+  const items = await getMany<Expense>(ids.map((id) => key.expense(hh, id)));
+  return items.map(normalizeExpense).sort((a, b) => b.spentAt - a.spentAt);
+}
+
+// Az utolsó N hónap tételei (a dashboardok ezt használják).
+export async function listExpensesRecent(hh: string, months = 13) {
+  return listExpensesInMonths(hh, recentYms(months));
+}
+
+// Egy vagy több csoport tételei (a Csoportok oldal ezt kéri) — index-halmazokból.
+export async function listExpensesByGroups(
+  hh: string,
+  groupIds: string[]
+): Promise<Expense[]> {
+  await ensureExpenseIndex(hh);
+  const ids2 = [...new Set(groupIds)].filter(Boolean);
+  if (ids2.length === 0) return [];
+  const pipe = redis.pipeline();
+  for (const g of ids2) pipe.smembers(key.expensesByGroup(hh, g));
+  const res = (await pipe.exec()) as unknown as string[][];
+  const ids = [...new Set(res.flat().filter(Boolean))];
+  if (ids.length === 0) return [];
+  const items = await getMany<Expense>(ids.map((id) => key.expense(hh, id)));
+  return items.map(normalizeExpense).sort((a, b) => b.spentAt - a.spentAt);
+}
+
+// Csak a felülvizsgálandó tételek (a Teendők lista ezt kéri).
+export async function listExpensesForReview(hh: string): Promise<Expense[]> {
+  await ensureExpenseIndex(hh);
+  const ids = await redis.smembers(key.expensesReview(hh));
+  if (ids.length === 0) return [];
+  const items = await getMany<Expense>(ids.map((id) => key.expense(hh, id)));
+  return items
+    .map(normalizeExpense)
+    .filter((e) => e.review)
+    .sort((a, b) => b.spentAt - a.spentAt);
+}
+
+// Darabszám a halmaz méretéből — nem kell hozzá egyetlen rekordot sem olvasni.
+export async function countExpenses(hh: string): Promise<number> {
+  return (await redis.scard(key.expenses(hh))) ?? 0;
+}
+
+export async function countRecipes(hh: string): Promise<number> {
+  return (await redis.scard(key.recipes(hh))) ?? 0;
+}
+
+export async function countJournalEntries(hh: string): Promise<number> {
+  return (await redis.scard(key.journalEntries(hh))) ?? 0;
+}
+
 export async function listExpenses(hh: string): Promise<Expense[]> {
   const ids = await redis.smembers(key.expenses(hh));
   if (ids.length === 0) return [];
@@ -1074,6 +1249,7 @@ export async function saveExpense(
   };
   await redis.set(key.expense(hh, id), e);
   await redis.sadd(key.expenses(hh), id);
+  await indexExpense(hh, e, existing);
   // Csak kiadásnál tanulunk boltot/kategóriát (a bevétel forrása ne kerüljön a bolt-listába).
   if (e.kind === "expense" && e.merchant) {
     await ensureMerchant(hh, e.merchant, e.categoryId);
@@ -1082,6 +1258,8 @@ export async function saveExpense(
 }
 
 export async function deleteExpense(hh: string, id: string) {
+  const e = await getExpense(hh, id);
+  if (e) await unindexExpense(hh, e);
   await redis.del(key.expense(hh, id));
   await redis.srem(key.expenses(hh), id);
 }
@@ -1092,6 +1270,9 @@ export async function setExpenseReview(hh: string, id: string, review: boolean) 
   if (!e) return null;
   const next: Expense = { ...e, review };
   await redis.set(key.expense(hh, id), next);
+  // A felülvizsgálat-index kövesse a jelölést.
+  if (review) await redis.sadd(key.expensesReview(hh), id);
+  else await redis.srem(key.expensesReview(hh), id);
   return next;
 }
 

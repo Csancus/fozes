@@ -1,6 +1,9 @@
 import { requireUser } from "@/lib/auth";
 import {
-  listExpenses,
+  listExpensesInMonths,
+  countExpenses,
+  recentYms,
+  ymsBetween,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
   listIncomeCategories,
@@ -34,19 +37,31 @@ export default async function KoltsegekPage({
   // Új háztartás: az első tétel előtt végigvezetjük a beállításon.
   const setup = await getCostSetup(me.householdId);
   if (!setup.done) {
-    const existing = await listExpenses(me.householdId);
-    if (existing.length === 0) redirect("/koltsegek/bevezeto");
+    if ((await countExpenses(me.householdId)) === 0) {
+      redirect("/koltsegek/bevezeto");
+    }
   }
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultPaymentMethods(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   await runDueRecurring(me.householdId);
-  const [expenses, categories, incomeCategories, paymentMethods, persons, projects, groups] =
+  // A számla-egyenleg a kezdő egyenleg dátumától MINDEN tételt igényel, ezért
+  // a fizetési módok alapján számoljuk ki, meddig kell visszamenni; egyébként
+  // a 13 hónapos ablak elég (12 hónapos trend + aktuális hó).
+  const paymentMethods = await listPaymentMethods(me.householdId);
+  const trackedFrom = paymentMethods
+    .map((p) => p.openingAt)
+    .filter((v): v is number => v !== null)
+    .sort((a, b) => a - b)[0];
+  const months = trackedFrom
+    ? [...new Set([...ymsBetween(trackedFrom), ...recentYms(13)])]
+    : recentYms(13);
+
+  const [expenses, categories, incomeCategories, persons, projects, groups] =
     await Promise.all([
-      listExpenses(me.householdId),
+      listExpensesInMonths(me.householdId, months),
       listExpenseCategories(me.householdId),
       listIncomeCategories(me.householdId),
-      listPaymentMethods(me.householdId),
       listPersons(me.householdId),
       listExpenseProjects(me.householdId),
       listGroups(me.householdId),

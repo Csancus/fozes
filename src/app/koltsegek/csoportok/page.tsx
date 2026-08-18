@@ -1,6 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import {
-  listExpenses,
+  listExpensesByGroups,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
   listIncomeCategories,
@@ -20,9 +20,11 @@ export default async function CsoportokPage() {
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
   await runDueRecurring(me.householdId);
+  // Csak a csoportokhoz TARTOZÓ tételek kellenek — csoport-index halmazokból.
+  const groupsFirst = await listGroups(me.householdId);
   const [groups, expenses, categories, incomeCategories, persons] = await Promise.all([
-    listGroups(me.householdId),
-    listExpenses(me.householdId),
+    Promise.resolve(groupsFirst),
+    listExpensesByGroups(me.householdId, groupsFirst.map((g) => g.id)),
     listExpenseCategories(me.householdId),
     listIncomeCategories(me.householdId),
     listPersons(me.householdId),

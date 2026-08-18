@@ -5,12 +5,13 @@ import { redis, key } from "@/lib/redis";
 import type { Household } from "@/lib/types";
 import {
   listPantry,
-  listRecipes,
-  listExpenses,
+  listExpensesInMonths,
   listSavedItems,
   listTasks,
-  listJournalEntries,
   listNotes,
+  countRecipes,
+  countJournalEntries,
+  expenseYm,
 } from "@/lib/data";
 import Link from "next/link";
 import {
@@ -42,15 +43,17 @@ export default async function Home() {
   const me = await currentUser();
   if (!me) redirect("/belepes");
 
-  const [hh, pantry, recipes, expenses, saved, tasks, journalEntries, notes] =
+  // A csempék többségéhez elég a DARABSZÁM (SCARD), a kiadásokból pedig csak
+  // az aktuális hónap kell — így nem olvasunk be teljes kollekciókat.
+  const [hh, pantry, recipeCount, expenses, saved, tasks, journalCount, notes] =
     await Promise.all([
       redis.get<Household>(key.household(me.householdId)),
       listPantry(me.householdId),
-      listRecipes(me.householdId),
-      listExpenses(me.householdId),
+      countRecipes(me.householdId),
+      listExpensesInMonths(me.householdId, [expenseYm(Date.now())]),
       listSavedItems(me.householdId),
       listTasks(me.householdId),
-      listJournalEntries(me.householdId),
+      countJournalEntries(me.householdId),
       listNotes(me.householdId),
     ]);
 
@@ -72,7 +75,7 @@ export default async function Home() {
     return new Date(d.getFullYear(), d.getMonth(), 1).getTime();
   })();
   const spentThisMonth = expenses
-    .filter((e) => e.spentAt >= monthStart)
+    .filter((e) => e.spentAt >= monthStart && e.kind !== "income")
     .reduce((s, e) => s + e.amount, 0);
 
   const savedTodo = saved.filter((s) => !s.done);
@@ -184,7 +187,7 @@ export default async function Home() {
           icon={ChefHat}
           title="Főzés"
           desc="Receptek, spájz, bevásárlás, vásárlás"
-          stat={recipes.length ? `${recipes.length} recept` : "Konyha asszisztens"}
+          stat={recipeCount ? `${recipeCount} recept` : "Konyha asszisztens"}
           badge={
             expiringSoon.length ? `${expiringSoon.length} lejár` : undefined
           }
@@ -240,8 +243,8 @@ export default async function Home() {
           title="Napló"
           desc="Gondolatok, élmények — írva vagy szóban"
           stat={
-            journalEntries.length
-              ? `${journalEntries.length} bejegyzés`
+            journalCount
+              ? `${journalCount} bejegyzés`
               : "Írd le, mi történt"
           }
         />

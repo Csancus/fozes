@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import {
-  listExpenses,
+  listExpensesRecent,
+  countExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
   listIncomeCategories,
@@ -29,8 +30,9 @@ export default async function BatchPage() {
   // Új háztartás: az első tétel előtt a beállító varázsló jön.
   const setup = await getCostSetup(me.householdId);
   if (!setup.done) {
-    const existing = await listExpenses(me.householdId);
-    if (existing.length === 0) redirect("/koltsegek/bevezeto");
+    if ((await countExpenses(me.householdId)) === 0) {
+      redirect("/koltsegek/bevezeto");
+    }
   }
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
@@ -54,7 +56,8 @@ export default async function BatchPage() {
     listGroups(me.householdId),
     getMerchantMap(me.householdId),
     listMerchants(me.householdId),
-    listExpenses(me.householdId),
+    // Duplikáció-figyelés + projekt-javaslatok: 13 hónap elég hozzá.
+    listExpensesRecent(me.householdId, 13),
   ]);
 
   const incomeSources = expenses

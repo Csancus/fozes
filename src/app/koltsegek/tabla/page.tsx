@@ -1,5 +1,6 @@
 import { requireUser } from "@/lib/auth";
 import {
+  listExpensesRecent,
   listExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
@@ -24,7 +25,13 @@ import { ExpenseTable } from "./ExpenseTable";
 import { CategoryRuleBanner } from "../CategoryRuleBanner";
 import { updateExpensesBatchAction } from "../actions";
 
-export default async function TablaPage() {
+export default async function TablaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ minden?: string }>;
+}) {
+  const { minden } = await searchParams;
+  const all = minden === "1";
   const me = await requireUser();
   await ensureDefaultExpenseCategories(me.householdId);
   await ensureDefaultIncomeCategories(me.householdId);
@@ -32,7 +39,8 @@ export default async function TablaPage() {
   await ensureMerchantsFromHistory(me.householdId);
   const [expenses, categories, incomeCategories, paymentMethods, persons, projects, groups, merchantMap, merchants] =
     await Promise.all([
-      listExpenses(me.householdId),
+      // Alapból az utolsó 13 hónap; a teljes előzmény a „minden" linkkel jön.
+      all ? listExpenses(me.householdId) : listExpensesRecent(me.householdId, 13),
       listExpenseCategories(me.householdId),
       listIncomeCategories(me.householdId),
       listPaymentMethods(me.householdId),
@@ -61,6 +69,15 @@ export default async function TablaPage() {
           </Link>
         }
       />
+
+      {!all && (
+        <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">
+          Az utolsó 13 hónap tételei látszanak.{" "}
+          <Link href="/koltsegek/tabla?minden=1" className="text-[var(--color-primary)] underline">
+            Teljes előzmény betöltése
+          </Link>
+        </p>
+      )}
 
       {expenses.length === 0 ? (
         <div className="mt-6">

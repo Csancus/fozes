@@ -1,6 +1,7 @@
 import { requireUser } from "@/lib/auth";
 import {
-  listExpenses,
+  listExpensesRecent,
+  countExpenses,
   listExpenseCategories,
   ensureDefaultExpenseCategories,
   listIncomeCategories,
@@ -44,7 +45,8 @@ export default async function KepImportPage() {
     listGroups(me.householdId),
     getMerchantMap(me.householdId),
     listMerchants(me.householdId),
-    listExpenses(me.householdId),
+    // Duplikáció-figyelés + projekt-javaslatok: 13 hónap elég hozzá.
+    listExpensesRecent(me.householdId, 13),
   ]);
 
   const incomeSources = expenses.filter((e) => e.kind === "income").map((e) => e.merchant);

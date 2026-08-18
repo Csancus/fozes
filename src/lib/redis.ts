@@ -55,6 +55,12 @@ export const key = {
   // Költségek
   expenses: (hh: string) => `hh:${hh}:expenses`,
   expense: (hh: string, id: string) => `hh:${hh}:expense:${id}`,
+  // Indexek: hónap szerinti és felülvizsgálandó tételek — így nem kell a
+  // teljes előzményt beolvasni egy hónap vagy a teendő-lista megjelenítéséhez.
+  expensesByMonth: (hh: string, ym: string) => `hh:${hh}:exp-m:${ym}`,
+  expensesReview: (hh: string) => `hh:${hh}:exp-review`,
+  expensesByGroup: (hh: string, groupId: string) => `hh:${hh}:exp-g:${groupId}`,
+  expenseIndexBuilt: (hh: string) => `hh:${hh}:exp-index-v1`,
   expenseCategories: (hh: string) => `hh:${hh}:exp-cats`,
   expenseCategory: (hh: string, id: string) => `hh:${hh}:exp-cat:${id}`,
   incomeCategories: (hh: string) => `hh:${hh}:inc-cats`,
