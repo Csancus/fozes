@@ -25,6 +25,7 @@ import {
   FileText,
   Music,
   Download,
+  Wallet,
 } from "lucide-react";
 import {
   toggleTaskDoneAction,
@@ -41,7 +42,12 @@ import { StatusControl } from "@/components/ui/StatusControl";
 import { TagChips } from "@/components/ui/TagChips";
 import { SHARED_OWNER } from "@/lib/types";
 import { repeatLabel } from "@/lib/task-repeat";
+import { fmtDueLong } from "@/lib/task-due";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
+
+function ft(n: number): string {
+  return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
+}
 
 function fmtSize(bytes: number): string {
   if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
@@ -49,12 +55,7 @@ function fmtSize(bytes: number): string {
   return `${bytes} B`;
 }
 
-const DOW = ["vasárnap", "hétfő", "kedd", "szerda", "csütörtök", "péntek", "szombat"];
-function fmtDueLong(due: string): string {
-  const [y, m, d] = due.split("-").map(Number);
-  const date = new Date(y, m - 1, d);
-  return `${y}. ${m}. ${d}. (${DOW[date.getDay()]})`;
-}
+
 
 export default async function TaskDetailPage({
   params,
@@ -115,7 +116,7 @@ export default async function TaskDetailPage({
       <div className="mt-3 flex flex-wrap items-center gap-2 text-sm">
         {task.dueDate && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-muted)] px-3 py-1 text-[var(--color-muted-foreground)]">
-            <CalendarDays className="w-4 h-4" /> {fmtDueLong(task.dueDate)}
+            <CalendarDays className="w-4 h-4" /> {fmtDueLong(task.dueDate, task.dueTime)}
           </span>
         )}
         {ownerName && (
@@ -134,6 +135,11 @@ export default async function TaskDetailPage({
           statusAction={setTaskStatusAction}
           size="md"
         />
+        {task.cost != null && (
+          <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-muted)] px-3 py-1 font-medium tabular-nums">
+            <Wallet className="w-4 h-4 text-[var(--color-muted-foreground)]" /> {ft(task.cost)}
+          </span>
+        )}
         {task.repeat && (
           <span className="inline-flex items-center gap-1.5 rounded-full bg-[var(--color-muted)] px-3 py-1 text-[var(--color-muted-foreground)]">
             <Repeat className="w-4 h-4" /> {repeatLabel(task.repeat)}

@@ -10,11 +10,18 @@ import { StatusControl } from "@/components/ui/StatusControl";
 import { DueDateControl } from "@/components/ui/DueDateControl";
 import { TagChips } from "@/components/ui/TagChips";
 import { repeatLabel } from "@/lib/task-repeat";
+import { compareDue } from "@/lib/task-due";
 import { TaskBoard } from "../../TaskBoard";
+
+// Ár megjelenítése (a költség-oldalak formátumával egyezően).
+function ft(n: number): string {
+  return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
+}
 import {
   Check,
   ListChecks,
   Paperclip,
+  Wallet,
   Users,
   Repeat,
   ChevronRight,
@@ -59,7 +66,7 @@ export function ListTasksView({
   }
 
   const byDue = (a: Entry, b: Entry) =>
-    (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999") || a.createdAt - b.createdAt;
+    compareDue(a, b) || a.createdAt - b.createdAt;
   const open = tasks.filter((t) => !t.done).sort(byDue);
   const done = tasks
     .filter((t) => t.done)
@@ -215,7 +222,7 @@ function Row({
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <StatusControl id={task.id} status={task.status} statusAction={statusAction} />
-          <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} />
+          <DueDateControl id={task.id} dueDate={task.dueDate} dueTime={task.dueTime} dueDateAction={dueDateAction} />
           {subTotal > 0 && (
             <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
               <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
@@ -225,6 +232,11 @@ function Row({
                   style={{ width: `${Math.round((subDone / subTotal) * 100)}%` }}
                 />
               </span>
+            </span>
+          )}
+          {task.cost != null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-[11px] font-medium tabular-nums">
+              <Wallet className="w-3 h-3" /> {ft(task.cost)}
             </span>
           )}
           {task.files.length > 0 && (

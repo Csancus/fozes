@@ -15,23 +15,26 @@ import {
   X,
   ArrowDownUp,
   CalendarClock,
+  Wallet,
 } from "lucide-react";
 import { DueDateControl } from "@/components/ui/DueDateControl";
+import { compareDue, isOverdue } from "@/lib/task-due";
 
 export type BoardTask = Task & { ownerName: string | null };
 
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
 // Rendezési súly: lejárt legelöl, aztán közelítő határidő, végül a dátum nélküliek.
 function dueRank(t: BoardTask): number {
   if (!t.dueDate) return 2;
-  return t.dueDate < todayStr() ? 0 : 1;
+  return isOverdue(t.dueDate, t.dueTime) ? 0 : 1;
 }
 function byDue(a: BoardTask, b: BoardTask): number {
-  return dueRank(a) - dueRank(b) || (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999");
+  return dueRank(a) - dueRank(b) || compareDue(a, b);
 }
+// Ár megjelenítése (a költség-oldalak formátumával egyezően).
+function ft(n: number): string {
+  return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
+}
+
 function initials(name: string): string {
   return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
 }
@@ -344,7 +347,7 @@ function BoardCard({
       </div>
 
       <div className="mt-1.5 flex flex-wrap items-center gap-2 pl-5 text-[11px]">
-        <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} size="sm" />
+        <DueDateControl id={task.id} dueDate={task.dueDate} dueTime={task.dueTime} dueDateAction={dueDateAction} size="sm" />
         {subTotal > 0 && (
           <span className="inline-flex items-center gap-1 text-[var(--color-muted-foreground)]">
             <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
@@ -353,6 +356,11 @@ function BoardCard({
         {task.files.length > 0 && (
           <span className="inline-flex items-center gap-0.5 text-[var(--color-muted-foreground)]">
             <Paperclip className="w-3 h-3" /> {task.files.length}
+          </span>
+        )}
+        {task.cost != null && (
+          <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 font-medium tabular-nums">
+            <Wallet className="w-3 h-3" /> {ft(task.cost)}
           </span>
         )}
       </div>

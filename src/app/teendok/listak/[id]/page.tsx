@@ -21,6 +21,7 @@ import {
   Plane,
   Plus,
   CheckCheck,
+  Wallet,
 } from "lucide-react";
 import {
   toggleTaskDoneAction,
@@ -33,6 +34,10 @@ import {
 } from "../../actions";
 import { QuickAddTask } from "./QuickAddTask";
 import { ListTasksView } from "./ListTasksView";
+
+function ft(n: number): string {
+  return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
+}
 
 export default async function TaskListDetailPage({
   params,
@@ -62,6 +67,9 @@ export default async function TaskListDetailPage({
   const doneCount = tasks.filter((t) => t.done).length;
   const openCount = tasks.length - doneCount;
   const pct = tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0;
+  // Ár-összesítés: a listában rögzített összes ár, és ami még nyitott tételen van.
+  const costTotal = tasks.reduce((sum, t) => sum + (t.cost ?? 0), 0);
+  const costOpen = tasks.reduce((sum, t) => sum + (t.done ? 0 : t.cost ?? 0), 0);
   const col = catColor(list.color);
   const inherited = list.inheritTags ? list.tags : [];
 
@@ -142,6 +150,22 @@ export default async function TaskListDetailPage({
         <div className="mt-1.5 h-2 rounded-full bg-[var(--color-muted)] overflow-hidden">
           <div className={cn("h-full rounded-full transition-all", col.dot)} style={{ width: `${pct}%` }} />
         </div>
+
+        {costTotal > 0 && (
+          <div className="mt-3 flex items-center justify-between rounded-xl bg-[var(--color-muted)]/60 px-3 py-2">
+            <span className="inline-flex items-center gap-1.5 text-[13px] text-[var(--color-muted-foreground)]">
+              <Wallet className="w-3.5 h-3.5" /> Rögzített ár
+            </span>
+            <span className="text-[13px] font-semibold tabular-nums">
+              {ft(costTotal)}
+              {costOpen !== costTotal && (
+                <span className="ml-1.5 font-normal text-[var(--color-muted-foreground)]">
+                  · hátra {ft(costOpen)}
+                </span>
+              )}
+            </span>
+          </div>
+        )}
       </div>
 
       {/* Gyors hozzáadás */}

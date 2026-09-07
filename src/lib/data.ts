@@ -1689,6 +1689,9 @@ function normalizeTask(t: Task): Task {
     status,
     tags: t.tags ?? [],
     repeat: t.repeat ?? null,
+    cost: typeof t.cost === "number" ? t.cost : null,
+    // Idő csak dátummal együtt értelmes.
+    dueTime: t.dueDate ? t.dueTime ?? null : null,
     // Régi rekord: a létrehozás ideje adja a sorrendet (így az új tételek
     // hátra kerülnek, a kézi rendezés pedig kis számokat oszt ki).
     position: t.position ?? t.createdAt,

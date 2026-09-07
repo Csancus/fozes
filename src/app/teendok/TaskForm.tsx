@@ -15,7 +15,8 @@ import type {
 } from "@/lib/types";
 import { SHARED_OWNER, TASK_STATUSES } from "@/lib/types";
 import { STATUS_VISUAL } from "@/lib/task-visuals";
-import { createTaskListInline } from "./actions";
+import { createTaskListInline, createProjectInline } from "./actions";
+import { catColor, COLOR_KEYS } from "@/lib/expense-visuals";
 import {
   Image as ImageIcon,
   X,
@@ -28,6 +29,8 @@ import {
   Check,
   ListTodo,
   Repeat,
+  FolderKanban,
+  Wallet,
 } from "lucide-react";
 
 const MAX_DIM = 1400;
@@ -167,6 +170,29 @@ export function TaskForm({
   const [listId, setListId] = useState<string>(initial?.listId ?? defaultListId ?? "");
   const [newList, setNewList] = useState<{ name: string; parent: string } | null>(null);
   const [creating, setCreating] = useState(false);
+  // A projektek is helyben bovithetok ("+ Uj projekt..."), mint a listak.
+  const [projectOptions, setProjectOptions] = useState<Project[]>(projects);
+  const [projectId, setProjectId] = useState<string>(initial?.projectId ?? "");
+  const [newProject, setNewProject] = useState<{ name: string; color: string } | null>(null);
+  const [creatingProject, setCreatingProject] = useState(false);
+
+  async function createProject() {
+    if (!newProject || !newProject.name.trim() || creatingProject) return;
+    setCreatingProject(true);
+    try {
+      const created = await createProjectInline({
+        name: newProject.name,
+        color: newProject.color,
+      });
+      if (created) {
+        setProjectOptions((cur) => [...cur, created]);
+        setProjectId(created.id);
+      }
+      setNewProject(null);
+    } finally {
+      setCreatingProject(false);
+    }
+  }
 
   async function createList() {
     if (!newList || !newList.name.trim() || creating) return;
@@ -237,6 +263,7 @@ export function TaskForm({
       {initial?.id && <input type="hidden" name="id" value={initial.id} />}
       <input type="hidden" name="ownerId" value={ownerId} />
       <input type="hidden" name="listId" value={listId} />
+      <input type="hidden" name="projectId" value={projectId} />
       <input type="hidden" name="status" value={status} />
       <input type="hidden" name="repeatUnit" value={repeatUnit} />
       <input type="hidden" name="repeatEvery" value={repeatEvery} />
@@ -262,6 +289,17 @@ export function TaskForm({
         <Field label="Határidő" hint="nem kötelező">
           <Input type="date" name="dueDate" defaultValue={initial?.dueDate ?? ""} />
         </Field>
+        <Field label="Időpont" hint="nem kötelező">
+          <Input
+            type="time"
+            name="dueTime"
+            step={300}
+            defaultValue={initial?.dueTime ?? ""}
+          />
+        </Field>
+      </div>
+
+      <div className="grid grid-cols-1 gap-3">
         {members.length > 0 && (
           <Field label="Kié a teendő?">
             <select
@@ -323,16 +361,16 @@ export function TaskForm({
               }}
               placeholder="pl. Csomagolás"
             />
-            {(projects.length > 0 || trips.length > 0) && (
+            {(projectOptions.length > 0 || trips.length > 0) && (
               <select
                 value={newList.parent}
                 onChange={(e) => setNewList({ ...newList, parent: e.target.value })}
                 className="mt-3 w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
               >
                 <option value="">Mihez tartozik? — Önálló</option>
-                {projects.length > 0 && (
+                {projectOptions.length > 0 && (
                   <optgroup label="Projekt">
-                    {projects.map((p) => (
+                    {projectOptions.map((p) => (
                       <option key={p.id} value={"project:" + p.id}>
                         {p.name}
                       </option>
@@ -451,18 +489,108 @@ export function TaskForm({
         />
       </Field>
 
-      {projects.length > 0 && (
-        <Field label="Projekt" hint="nem kötelező">
-          <select
-            name="projectId"
-            defaultValue={initial?.projectId ?? ""}
-            className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
-          >
-            <option value="">— Nincs —</option>
-            <ProjectOptions projects={projects} />
-          </select>
-        </Field>
+      <Field label="Projekt" hint="nem kötelező">
+        <select
+          value={projectId}
+          onChange={(e) => {
+            if (e.target.value === "__new") {
+              setNewProject({ name: "", color: "sky" });
+              return;
+            }
+            setProjectId(e.target.value);
+          }}
+          className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+        >
+          <option value="">— Nincs —</option>
+          <ProjectOptions projects={projectOptions} />
+          <option value="__new">+ Új projekt…</option>
+        </select>
+      </Field>
+
+      {/* Új projekt modál — az űrlap elhagyása nélkül */}
+      {newProject && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-xl">
+            <p className="mb-3 flex items-center gap-2 font-semibold">
+              <FolderKanban
+                className={cn("w-4 h-4", catColor(newProject.color).text)}
+              />{" "}
+              Új projekt
+            </p>
+            <Input
+              autoFocus
+              value={newProject.name}
+              onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  createProject();
+                }
+                if (e.key === "Escape") setNewProject(null);
+              }}
+              placeholder="pl. Lakásfelújítás"
+            />
+            <p className="mt-4 mb-2 text-xs font-medium text-[var(--color-muted-foreground)]">
+              Szín
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {COLOR_KEYS.map((c) => (
+                <button
+                  key={c}
+                  type="button"
+                  onClick={() => setNewProject({ ...newProject, color: c })}
+                  aria-label={c}
+                  className={cn(
+                    "w-7 h-7 rounded-full transition ring-offset-2 ring-offset-[var(--color-card)]",
+                    catColor(c).dot,
+                    newProject.color === c && "ring-2 ring-[var(--color-foreground)]"
+                  )}
+                />
+              ))}
+            </div>
+            <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">
+              Teendő-projektként jön létre; a Beállításokban átállítható, hogy a
+              Költségeknél is megjelenjen.
+            </p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => setNewProject(null)}
+                className="h-11 rounded-xl border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-muted)]"
+              >
+                Mégse
+              </button>
+              <button
+                type="button"
+                onClick={createProject}
+                disabled={!newProject.name.trim() || creatingProject}
+                className="h-11 rounded-xl bg-[var(--color-primary)] text-[var(--color-primary-foreground)] text-sm font-medium disabled:opacity-50"
+              >
+                {creatingProject ? "Létrehozás…" : "Létrehozás"}
+              </button>
+            </div>
+          </div>
+        </div>
       )}
+
+      <Field label="Ár" hint="nem kötelező — pl. vizsgadíj, anyagköltség">
+        <div className="relative">
+          <Wallet className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-muted-foreground)]" />
+          <Input
+            name="cost"
+            type="number"
+            inputMode="numeric"
+            min={0}
+            step={100}
+            defaultValue={initial?.cost ?? ""}
+            placeholder="0"
+            className="pl-9 pr-10 [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+          />
+          <span className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-sm text-[var(--color-muted-foreground)]">
+            Ft
+          </span>
+        </div>
+      </Field>
 
       <Field label="Leírás">
         <Textarea

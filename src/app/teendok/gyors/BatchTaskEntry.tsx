@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
 import type { Project, TaskList } from "@/lib/types";
 import { SHARED_OWNER } from "@/lib/types";
@@ -12,6 +13,7 @@ type Row = {
   description: string;
   ownerId: string;
   dueDate: string;
+  dueTime: string;
   projectId: string;
 };
 
@@ -24,6 +26,7 @@ function emptyRow(): Row {
     description: "",
     ownerId: "",
     dueDate: "",
+    dueTime: "",
     projectId: "",
   };
 }
@@ -73,6 +76,7 @@ export function BatchTaskEntry({
       if (last) {
         r.ownerId = last.ownerId;
         r.dueDate = last.dueDate;
+        r.dueTime = last.dueTime;
         r.projectId = last.projectId;
       }
       return [...cur, r];
@@ -87,6 +91,7 @@ export function BatchTaskEntry({
       description: r.description,
       ownerId: r.ownerId,
       dueDate: r.dueDate,
+      dueTime: r.dueTime,
       projectId: r.projectId,
       listId,
     }))
@@ -126,6 +131,7 @@ export function BatchTaskEntry({
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
               <th className="font-semibold px-1">Mit kell megcsinálni?</th>
               <th className="font-semibold px-1 w-40">Határidő</th>
+              <th className="font-semibold px-1 w-28">Időpont</th>
               {members.length > 0 && (
                 <th className="font-semibold px-1 w-36">Kié?</th>
               )}
@@ -155,6 +161,17 @@ export function BatchTaskEntry({
                     value={r.dueDate}
                     onChange={(e) => update(r.key, { dueDate: e.target.value })}
                     className={ctrl}
+                  />
+                </td>
+                <td>
+                  {/* Időpont — nem kötelező; dátum nélkül nincs értelme. */}
+                  <input
+                    type="time"
+                    step={300}
+                    disabled={!r.dueDate}
+                    value={r.dueTime}
+                    onChange={(e) => update(r.key, { dueTime: e.target.value })}
+                    className={cn(ctrl, !r.dueDate && "opacity-50")}
                   />
                 </td>
                 {members.length > 0 && (

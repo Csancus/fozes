@@ -704,11 +704,13 @@ export type Task = {
   description: string;
   ownerId: string | null;   // kié a teendő (household user), vagy null = bárkié
   dueDate: string | null;    // YYYY-MM-DD, vagy null = nincs határidő
+  dueTime: string | null;    // HH:MM, vagy null = egész napos (nincs pontos idő)
   projectId: string | null;  // opcionális projekt (Project.id)
   listId: string | null;     // opcionális teendő-lista (TaskList.id)
   status: TaskStatus;        // todo | doing | blocked | done (a done a `done` flaggel jár együtt)
   tags: string[];            // saját címkék (a lista címkéi ehhez jönnek hozzá, ha öröklődnek)
   repeat: TaskRepeat | null; // ismétlődés (készre állításkor generálja a következőt)
+  cost: number | null;       // opcionális ár/költség Ft-ban (pl. vizsgadíj), null = nincs megadva
   position: number;          // kézi sorrend a kanban oszlopon belül (kisebb = előrébb)
   activity: TaskActivity[];  // előzmények, legújabb elöl (max TASK_ACTIVITY_MAX)
   imageUrl: string | null;   // R2/inline borítókép

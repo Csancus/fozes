@@ -33,9 +33,11 @@ import type {
   TaskRepeatUnit,
   TaskActivity,
   TaskActivityKind,
+  Project,
 } from "@/lib/types";
 import { TASK_ACTIVITY_MAX } from "@/lib/types";
 import { nextDueDate } from "@/lib/task-repeat";
+import { parseDueTime } from "@/lib/task-due";
 import { TASK_STATUSES } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -124,6 +126,17 @@ async function spawnNextOccurrence(hh: string, task: Task) {
   });
 }
 
+// „30 000 Ft" / „30000" / „1234,5" → 30000 | null (üres vagy értelmezhetetlen).
+function parseCost(raw: unknown): number | null {
+  const cleaned = String(raw ?? "")
+    .replace(/[^\d,.-]/g, "")
+    .replace(",", ".");
+  if (!cleaned) return null;
+  const n = Number(cleaned);
+  if (!Number.isFinite(n) || n < 0) return null;
+  return Math.round(n);
+}
+
 function parseStatus(raw: unknown, fallback: TaskStatus = "todo"): TaskStatus {
   const v = String(raw ?? "").trim() as TaskStatus;
   return TASK_STATUSES.includes(v) ? v : fallback;
@@ -175,6 +188,8 @@ export async function saveTaskAction(fd: FormData) {
   const description = String(fd.get("description") ?? "").trim();
   const ownerId = String(fd.get("ownerId") ?? "").trim() || null;
   const dueDate = String(fd.get("dueDate") ?? "").trim() || null;
+  // Az időpont opcionális, és csak dátummal együtt van értelme.
+  const dueTime = dueDate ? parseDueTime(fd.get("dueTime")) : null;
   const listId = String(fd.get("listId") ?? "").trim() || null;
   // Ha listához tartozik és nincs külön projekt megadva, a listáét örökli.
   const list = listId ? await getTaskList(hh, listId) : null;
@@ -186,6 +201,7 @@ export async function saveTaskAction(fd: FormData) {
   const status = parseStatus(fd.get("status"));
   const tags = parseTags(fd.get("tags"));
   const repeat = parseRepeat(fd.get("repeatUnit"), fd.get("repeatEvery"));
+  const cost = parseCost(fd.get("cost"));
 
   const id = inputId ?? newId();
   const existing = inputId ? await getTask(hh, inputId) : null;
@@ -217,14 +233,16 @@ export async function saveTaskAction(fd: FormData) {
   } else {
     const changes: [TaskActivityKind, string | null, string | null][] = [];
     if (existing.status !== status) changes.push(["status", existing.status, status]);
-    if (existing.dueDate !== dueDate) changes.push(["due", existing.dueDate, dueDate]);
+    if (existing.dueDate !== dueDate || existing.dueTime !== dueTime)
+      changes.push(["due", existing.dueDate, dueDate]);
     if (existing.ownerId !== ownerId) changes.push(["assign", existing.ownerId, ownerId]);
     if (existing.listId !== listId) changes.push(["list", existing.listId, listId]);
     if (
       changes.length === 0 &&
       (existing.title !== title ||
         existing.description !== description ||
-        existing.tags.join(",") !== tags.join(","))
+        existing.tags.join(",") !== tags.join(",") ||
+        existing.cost !== cost)
     ) {
       changes.push(["edit", null, null]);
     }
@@ -239,11 +257,13 @@ export async function saveTaskAction(fd: FormData) {
     description,
     ownerId,
     dueDate,
+    dueTime,
     projectId,
     listId,
     status,
     tags,
     repeat,
+    cost,
     position: existing?.position ?? now,
     activity,
     imageUrl,
@@ -338,6 +358,8 @@ type BatchTaskRow = {
   dueDate: unknown;
   projectId: unknown;
   listId?: unknown;
+  cost?: unknown;
+  dueTime?: unknown;
 };
 
 // Több teendő egyszerre (táblázatos gyors felvitel).
@@ -363,11 +385,13 @@ export async function saveTasksBatchAction(fd: FormData) {
       description: String(r.description ?? "").trim(),
       ownerId: String(r.ownerId ?? "").trim() || null,
       dueDate: String(r.dueDate ?? "").trim() || null,
+      dueTime: String(r.dueDate ?? "").trim() ? parseDueTime(r.dueTime) : null,
       projectId: rowProjectId,
       listId: String(r.listId ?? "").trim() || null,
       status: "todo",
       tags: [],
       repeat: null,
+      cost: parseCost(r.cost),
       position: now + 1,
       activity: firstActivity(me),
       imageUrl: null,
@@ -446,9 +470,11 @@ export async function createTaskListAction(fd: FormData) {
       description: "",
       ownerId: null,
       dueDate: null,
+      dueTime: null,
       projectId,
       listId: list.id,
       status: "todo",
+      cost: null,
       tags: [],
       repeat: null,
       position: now,
@@ -524,7 +550,9 @@ export async function addTaskToListAction(fd: FormData) {
     .map((s) => s.replace(/^[-*•\s]+/, "").trim())
     .filter(Boolean);
   const dueDate = String(fd.get("dueDate") ?? "").trim() || null;
+  const dueTime = dueDate ? parseDueTime(fd.get("dueTime")) : null;
   const ownerId = String(fd.get("ownerId") ?? "").trim() || null;
+  const cost = parseCost(fd.get("cost"));
   const now = Date.now();
   for (const title of titles) {
     await saveTask(hh, {
@@ -533,11 +561,13 @@ export async function addTaskToListAction(fd: FormData) {
       description: "",
       ownerId,
       dueDate,
+      dueTime,
       projectId: list.projectId,
       listId,
       status: "todo",
       tags: [],
       repeat: null,
+      cost,
       position: now,
       activity: firstActivity(me),
       imageUrl: null,
@@ -677,11 +707,13 @@ export async function setTaskDueDateAction(fd: FormData) {
   const task = await getTask(me.householdId, id);
   if (!task) return;
   const dueDate = String(fd.get("dueDate") ?? "").trim() || null;
+  const dueTime = dueDate ? parseDueTime(fd.get("dueTime")) : null;
   await saveTask(me.householdId, {
     ...task,
     dueDate,
+    dueTime,
     activity:
-      dueDate === task.dueDate
+      dueDate === task.dueDate && dueTime === task.dueTime
         ? task.activity
         : withActivity(task, me, "due", task.dueDate, dueDate),
     updatedAt: Date.now(),
@@ -713,6 +745,26 @@ export async function createTaskListInline(input: {
   revalidatePath("/teendok");
   if (list.tripId) revalidatePath(`/utazasok/${list.tripId}`);
   return list;
+}
+
+// Új projekt az űrlap elhagyása nélkül (a Teendők projekt-választójából).
+// scope="task", mert innen teendő-projektként jön létre — a Költségeknél
+// külön jelölhető, ha oda is kell.
+export async function createProjectInline(input: {
+  name: string;
+  color?: string;
+}): Promise<Project | null> {
+  const me = await requireUser();
+  const name = input.name.trim();
+  if (!name) return null;
+  const project = await createProject(me.householdId, {
+    name,
+    color: input.color || "sky",
+    scope: "task",
+  });
+  revalidatePath("/teendok");
+  revalidatePath("/beallitasok");
+  return project;
 }
 
 // ============ ALTEENDŐK ============
@@ -776,8 +828,10 @@ export async function promoteSubtaskAction(fd: FormData) {
     description: `Kiemelve innen: ${task.title}`,
     ownerId: task.ownerId,
     dueDate: task.dueDate,
+    dueTime: task.dueTime,
     projectId: task.projectId,
     listId: task.listId,
+    cost: null,
     status: sub.done ? "done" : "todo",
     tags: task.tags,
     repeat: null,

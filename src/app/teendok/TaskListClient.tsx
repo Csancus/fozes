@@ -18,19 +18,21 @@ import {
   LayoutGrid,
   List as ListIcon,
   Repeat,
+  Wallet,
 } from "lucide-react";
 import { ConfirmDeleteButton } from "@/components/ui/ConfirmDeleteButton";
 import { StatusControl } from "@/components/ui/StatusControl";
 import { DueDateControl } from "@/components/ui/DueDateControl";
 import { TagChips } from "@/components/ui/TagChips";
 import { repeatLabel } from "@/lib/task-repeat";
+import { compareDue, isOverdue, todayStr } from "@/lib/task-due";
 import { TaskBoard } from "./TaskBoard";
 
 type Entry = Task & { ownerName: string | null };
 
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// Ár megjelenítése (a költség-oldalak formátumával egyezően).
+function ft(n: number): string {
+  return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
 }
 
 function initials(name: string): string {
@@ -72,6 +74,7 @@ export function TaskListClient({
   const listById = useMemo(() => new Map(lists.map((l) => [l.id, l])), [lists]);
   const [owner, setOwner] = useState<string>("all"); // all | __me | __shared | userId
   const [tag, setTag] = useState<string>("all");
+  const [listFilter, setListFilter] = useState<string>("all"); // all | __none | listId
   const [showDone, setShowDone] = useState(false);
   const [view, setView] = useState<"list" | "board">("list");
 
@@ -107,6 +110,9 @@ export function TaskListClient({
       if (owner === "__shared" && t.ownerId !== SHARED_OWNER) return false;
       if (owner === "__none" && t.ownerId) return false;
       if (owner !== "all" && !owner.startsWith("__") && t.ownerId !== owner) return false;
+      if (listFilter === "__none" && t.listId) return false;
+      if (listFilter !== "all" && listFilter !== "__none" && t.listId !== listFilter)
+        return false;
       if (tag !== "all") {
         const l = t.listId ? listById.get(t.listId) : null;
         const inh = l?.inheritTags ? l.tags : [];
@@ -114,7 +120,7 @@ export function TaskListClient({
       }
       return true;
     });
-  }, [tasks, owner, myId, tag, listById]);
+  }, [tasks, owner, myId, tag, listFilter, listById]);
 
   const open = filtered.filter((t) => !t.done);
   const done = filtered.filter((t) => t.done);
@@ -131,13 +137,12 @@ export function TaskListClient({
         continue;
       }
       const diff = daysFromToday(t.dueDate);
-      if (diff < 0) overdue.push(t);
+      if (diff < 0 || isOverdue(t.dueDate, t.dueTime)) overdue.push(t);
       else if (diff === 0) today.push(t);
       else if (diff <= 7) soon.push(t);
       else later.push(t);
     }
-    const byDate = (a: Entry, b: Entry) =>
-      (a.dueDate ?? "").localeCompare(b.dueDate ?? "");
+    const byDate = (a: Entry, b: Entry) => compareDue(a, b);
     overdue.sort(byDate);
     today.sort(byDate);
     soon.sort(byDate);
@@ -150,6 +155,37 @@ export function TaskListClient({
       { key: "nodate", label: "Nincs határidő", tone: "muted", items: nodate },
     ].filter((b) => b.items.length > 0);
   }, [open]);
+
+  // Lista-szűrő fülek: a felelős/címke-szűréstől függetlenül a listák, de a
+  // darabszám a felelős szerint szűkített halmazból jön (mint a bakancslistán).
+  const listTabs = useMemo(() => {
+    const byOwner = tasks.filter((t) => {
+      if (owner === "__me") return t.ownerId === myId;
+      if (owner === "__shared") return t.ownerId === SHARED_OWNER;
+      if (owner === "__none") return !t.ownerId;
+      if (owner !== "all") return t.ownerId === owner;
+      return true;
+    });
+    const openOf = (pred: (t: Entry) => boolean) =>
+      byOwner.filter((t) => !t.done && pred(t)).length;
+    const tabs: { id: string; name: string; count: number; color?: string }[] = [
+      { id: "all", name: "Minden lista", count: openOf(() => true) },
+    ];
+    for (const l of lists) {
+      const count = byOwner.filter((t) => t.listId === l.id).length;
+      if (count === 0) continue;
+      tabs.push({
+        id: l.id,
+        name: l.name,
+        count: openOf((t) => t.listId === l.id),
+        color: l.color,
+      });
+    }
+    const standalone = byOwner.filter((t) => !t.listId).length;
+    if (standalone > 0)
+      tabs.push({ id: "__none", name: "Önálló", count: openOf((t) => !t.listId) });
+    return tabs;
+  }, [tasks, lists, owner, myId]);
 
   const ownerTabs = [
     { id: "all", name: "Mind" },
@@ -206,6 +242,39 @@ export function TaskListClient({
           })}
         </div>
       </div>
+
+      {/* Lista-szűrő — ugyanaz a logika, mint a felelős-füleknél */}
+      {listTabs.length > 1 && (
+        <div className="mt-2 flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+          {listTabs.map((l) => {
+            const active = listFilter === l.id;
+            const col = l.color ? catColor(l.color) : null;
+            return (
+              <button
+                key={l.id}
+                type="button"
+                onClick={() => setListFilter(l.id)}
+                className={cn(
+                  "shrink-0 inline-flex items-center gap-1.5 h-8 px-3 rounded-full text-[13px] font-medium border transition whitespace-nowrap",
+                  active
+                    ? col
+                      ? cn("border-transparent", col.soft, col.text)
+                      : "bg-[var(--color-primary-soft)] text-[var(--color-primary)] border-transparent"
+                    : "border-[var(--color-border)] text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
+                )}
+              >
+                {l.id === "all" ? (
+                  <ListTodo className="w-3.5 h-3.5" />
+                ) : col ? (
+                  <span className={cn("w-2 h-2 rounded-full", col.dot)} />
+                ) : null}
+                {l.name}
+                <span className="tabular-nums opacity-70">{l.count}</span>
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       {/* Címke-szűrő */}
       {allTags.length > 0 && (
@@ -371,7 +440,7 @@ function TaskCard({
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <StatusControl id={task.id} status={task.status} statusAction={statusAction} />
-          <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} />
+          <DueDateControl id={task.id} dueDate={task.dueDate} dueTime={task.dueTime} dueDateAction={dueDateAction} />
           {subTotal > 0 && (
             <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
               <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
@@ -391,6 +460,11 @@ function TaskCard({
           {task.files.length > 0 && (
             <span className="inline-flex items-center gap-0.5 text-[11px] text-[var(--color-muted-foreground)]">
               <Paperclip className="w-3 h-3" /> {task.files.length}
+            </span>
+          )}
+          {task.cost != null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-[11px] font-medium tabular-nums text-[var(--color-foreground)]">
+              <Wallet className="w-3 h-3" /> {ft(task.cost)}
             </span>
           )}
           {list && (

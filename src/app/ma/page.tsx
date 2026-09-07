@@ -1,4 +1,5 @@
 import { requireUser } from "@/lib/auth";
+import { isOverdue } from "@/lib/task-due";
 import {
   listTasks,
   listHouseholdMembers,
@@ -51,7 +52,9 @@ export default async function MaPage() {
   const tomorrow = addInterval(today, { unit: "day", every: 1 });
 
   const open = tasks.filter((t) => !t.done);
-  const overdue = open.filter((t) => t.dueDate && t.dueDate < today);
+  const overdue = open.filter(
+    (t) => (t.dueDate && t.dueDate < today) || isOverdue(t.dueDate, t.dueTime)
+  );
   const dueToday = open.filter((t) => t.dueDate === today);
   const dueTomorrow = open.filter((t) => t.dueDate === tomorrow);
   const focus = [...overdue, ...dueToday, ...dueTomorrow];

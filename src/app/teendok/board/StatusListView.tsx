@@ -14,16 +14,19 @@ import {
   Check,
   ListChecks,
   Paperclip,
+  Wallet,
   FolderKanban,
   ListTodo,
   Users,
 } from "lucide-react";
 
+import { compareDue, isOverdue } from "@/lib/task-due";
+
 type Entry = Task & { ownerName: string | null };
 
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+// Ár megjelenítése (a költség-oldalak formátumával egyezően).
+function ft(n: number): string {
+  return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
 }
 function initials(name: string): string {
   return name.split(/\s+/).map((w) => w[0]).join("").slice(0, 2).toUpperCase();
@@ -31,9 +34,9 @@ function initials(name: string): string {
 
 // Rendezés: lejárt határidejűek legelöl, aztán közelítő határidő, végül a
 // dátum nélküliek — létrehozás sorrendjében.
-function dueRank(t: Entry, today: string): number {
+function dueRank(t: Entry): number {
   if (!t.dueDate) return 2;
-  return t.dueDate < today ? 0 : 1;
+  return isOverdue(t.dueDate, t.dueTime) ? 0 : 1;
 }
 
 // Teendők státusz szerinti oszlopokba rendezve, sor-nézetben — a Board oldal
@@ -57,13 +60,11 @@ export function StatusListView({
 }) {
   const projectById = new Map(projects.map((p) => [p.id, p]));
   const listById = new Map(lists.map((l) => [l.id, l]));
-  const today = todayStr();
-
   const sorted = (arr: Entry[]) =>
     [...arr].sort(
       (a, b) =>
-        dueRank(a, today) - dueRank(b, today) ||
-        (a.dueDate ?? "9999").localeCompare(b.dueDate ?? "9999") ||
+        dueRank(a) - dueRank(b) ||
+        compareDue(a, b) ||
         a.createdAt - b.createdAt
     );
 
@@ -131,7 +132,7 @@ function Card({
 }) {
   const inherited = list?.inheritTags ? list.tags : [];
   const shared = task.ownerId === SHARED_OWNER;
-  const overdue = !task.done && !!task.dueDate && task.dueDate < todayStr();
+  const overdue = !task.done && isOverdue(task.dueDate, task.dueTime);
   const subTotal = task.subtasks.length;
   const subDone = task.subtasks.filter((s) => s.done).length;
 
@@ -168,10 +169,15 @@ function Card({
         </Link>
         <div className="mt-1 flex flex-wrap items-center gap-1.5">
           <StatusControl id={task.id} status={task.status} statusAction={statusAction} />
-          <DueDateControl id={task.id} dueDate={task.dueDate} dueDateAction={dueDateAction} />
+          <DueDateControl id={task.id} dueDate={task.dueDate} dueTime={task.dueTime} dueDateAction={dueDateAction} />
           {subTotal > 0 && (
             <span className="inline-flex items-center gap-1 text-[11px] text-[var(--color-muted-foreground)]">
               <ListChecks className="w-3 h-3" /> {subDone}/{subTotal}
+            </span>
+          )}
+          {task.cost != null && (
+            <span className="inline-flex items-center gap-1 rounded-full bg-[var(--color-muted)] px-2 py-0.5 text-[11px] font-medium tabular-nums">
+              <Wallet className="w-3 h-3" /> {ft(task.cost)}
             </span>
           )}
           {task.files.length > 0 && (

@@ -2,28 +2,21 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { cn } from "@/lib/cn";
-import { CalendarDays, Loader2, X } from "lucide-react";
+import { CalendarDays, Clock, Loader2, X } from "lucide-react";
+import { fmtDue, isOverdue, todayStr } from "@/lib/task-due";
 
-function todayStr(): string {
-  const d = new Date();
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
-}
-const DOW = ["vas", "hét", "kedd", "sze", "csüt", "pén", "szo"];
-function fmtDue(due: string): string {
-  const [y, m, d] = due.split("-").map(Number);
-  return `${m}. ${d}. (${DOW[new Date(y, m - 1, d).getDay()]})`;
-}
-
-// Határidő-chip: kattintásra dátumválasztó nyílik, azonnal ment — a teendő
-// megnyitása és részletes szerkesztés nélkül (kártyákról, kanbanból is).
+// Határidő-chip: kattintásra dátum- és (opcionális) időpont-választó nyílik,
+// azonnal ment — a teendő megnyitása és részletes szerkesztés nélkül.
 export function DueDateControl({
   id,
   dueDate,
+  dueTime = null,
   dueDateAction,
   size = "sm",
 }: {
   id: string;
   dueDate: string | null;
+  dueTime?: string | null;
   dueDateAction: (fd: FormData) => void | Promise<void>;
   size?: "sm" | "md";
 }) {
@@ -45,18 +38,19 @@ export function DueDateControl({
     };
   }, [open]);
 
-  function set(next: string | null) {
-    setOpen(false);
-    if (next === dueDate) return;
+  function set(next: string | null, nextTime: string | null = dueTime, close = true) {
+    if (close) setOpen(false);
+    if (next === dueDate && nextTime === dueTime) return;
     const fd = new FormData();
     fd.set("id", id);
     fd.set("dueDate", next ?? "");
+    fd.set("dueTime", next ? nextTime ?? "" : "");
     start(async () => {
       await dueDateAction(fd);
     });
   }
 
-  const overdue = !!dueDate && dueDate < todayStr();
+  const overdue = isOverdue(dueDate, dueTime);
 
   return (
     <div className="relative" ref={box} onClick={(e) => e.stopPropagation()}>
@@ -78,11 +72,27 @@ export function DueDateControl({
         ) : (
           <CalendarDays className={size === "sm" ? "w-3 h-3" : "w-4 h-4"} />
         )}
-        {dueDate ? fmtDue(dueDate) : "Határidő"}
+        {dueDate ? fmtDue(dueDate, dueTime) : "Határidő"}
       </button>
 
       {open && (
         <div className="absolute left-0 top-full z-30 mt-1 w-56 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] p-2.5 shadow-lg">
+          <div className="flex gap-1.5">
+            {[
+              { label: "Ma", value: todayStr() },
+              { label: "Holnap", value: todayStr(1) },
+              { label: "+1 hét", value: todayStr(7) },
+            ].map((q) => (
+              <button
+                key={q.label}
+                type="button"
+                onClick={() => set(q.value)}
+                className="flex-1 h-8 rounded-lg bg-[var(--color-muted)] text-[12px] font-medium hover:bg-[var(--color-primary-soft)] hover:text-[var(--color-primary)] transition"
+              >
+                {q.label}
+              </button>
+            ))}
+          </div>
           <input
             type="date"
             autoFocus
@@ -90,12 +100,44 @@ export function DueDateControl({
             max="2099-12-31"
             defaultValue={dueDate ?? ""}
             onChange={(e) => set(e.target.value || null)}
-            className="w-full h-10 rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+            className="mt-2 w-full h-10 rounded-lg border border-[var(--color-input)] bg-[var(--color-card)] px-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
           />
+          {/* Időpont — nem kötelező; idő nélkül egész napos a teendő. */}
+          <label
+            className={cn(
+              "mt-2 flex items-center gap-2 rounded-lg border border-[var(--color-input)] px-2.5 h-10",
+              !dueDate && "opacity-50"
+            )}
+          >
+            <Clock className="w-3.5 h-3.5 text-[var(--color-muted-foreground)] shrink-0" />
+            <input
+              type="time"
+              step={300}
+              disabled={!dueDate}
+              value={dueTime ?? ""}
+              onChange={(e) => set(dueDate, e.target.value || null, false)}
+              className="flex-1 bg-transparent text-sm focus:outline-none"
+            />
+            {dueTime && (
+              <button
+                type="button"
+                onClick={() => set(dueDate, null, false)}
+                aria-label="Időpont törlése"
+                className="text-[var(--color-muted-foreground)] hover:text-red-600"
+              >
+                <X className="w-3.5 h-3.5" />
+              </button>
+            )}
+          </label>
+          {!dueTime && dueDate && (
+            <p className="mt-1 text-[11px] text-[var(--color-muted-foreground)]">
+              Időpont nélkül egész napos.
+            </p>
+          )}
           {dueDate && (
             <button
               type="button"
-              onClick={() => set(null)}
+              onClick={() => set(null, null)}
               className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-lg py-1.5 text-[12px] font-medium text-red-600 hover:bg-red-500/10"
             >
               <X className="w-3.5 h-3.5" /> Határidő törlése
