@@ -5,9 +5,10 @@ import { PageHeader } from "@/components/ui/PageHeader";
 import { Section } from "@/components/ui/Section";
 import { Card } from "@/components/ui/Card";
 import { Badge } from "@/components/ui/Badge";
-import { headers } from "next/headers";
 import { hasSurprisePassword } from "@/lib/data";
-import { InviteLink } from "./InviteLink";
+import { InvitesPanel } from "./InvitesPanel";
+import { MemberActions } from "./MemberActions";
+import { listInvites } from "@/lib/invites";
 import { SurprisePasswordForm } from "./SurprisePasswordForm";
 
 function initialsOf(name: string): string {
@@ -21,19 +22,17 @@ function initialsOf(name: string): string {
 
 export default async function CsaladPage() {
   const me = await requireUser();
-  const [memberIds, hh, h, hasSurprisePw] = await Promise.all([
+  const [memberIds, hh, hasSurprisePw] = await Promise.all([
     redis.smembers(key.householdMembers(me.householdId)),
     redis.get<Household>(key.household(me.householdId)),
-    headers(),
     hasSurprisePassword(me.householdId),
   ]);
+  const isOwner = hh?.ownerId === me.userId;
+  const invites = isOwner ? await listInvites(me.householdId) : [];
   const members = (
     await Promise.all(memberIds.map((id) => redis.get<User>(key.user(id))))
   ).filter((u): u is User => !!u);
 
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "fozes.vercel.app";
-  const proto = h.get("x-forwarded-proto") ?? "https";
-  const inviteUrl = `${proto}://${host}/belepes?mode=reg&hh=${me.householdId}`;
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-2xl mx-auto">
@@ -55,25 +54,34 @@ export default async function CsaladPage() {
                         {m.email}
                       </p>
                     </div>
+                    {hh?.ownerId === m.id && <Badge>Tulajdonos</Badge>}
                     {m.id === me.userId && <Badge tone="primary">Te</Badge>}
                   </div>
+                  {isOwner && (
+                    <MemberActions memberId={m.id} memberName={m.name} isSelf={m.id === me.userId} />
+                  )}
                 </Card>
               </li>
             ))}
           </ul>
         </Section>
 
-        <Section title="Meghívó link">
+        <Section title="Meghívó">
           <p className="text-sm text-[var(--color-muted-foreground)] mb-3 px-1">
-            Küldd el ezt a linket, akinek hozzáférést adnál a közös
-            háztartáshoz. A regisztráció után rögtön ehhez a háztartáshoz
-            csatlakozik.
+            {isOwner
+              ? "A meghívó link 7 napig érvényes és egyszer használható: aki regisztrál vele, teljes hozzáférést kap a közös adatokhoz. Ha rossz kézbe került, vond vissza."
+              : "Meghívót a háztartás tulajdonosa tud küldeni."}
           </p>
-          <Card>
-            <div className="p-4">
-              <InviteLink url={inviteUrl} householdName={hh?.name ?? "háztartás"} />
-            </div>
-          </Card>
+          {isOwner && (
+            <Card>
+              <div className="p-4">
+                <InvitesPanel
+                  householdName={hh?.name ?? "háztartás"}
+                  invites={invites.map((i) => ({ token: i.token, createdAt: i.createdAt, expiresAt: i.expiresAt }))}
+                />
+              </div>
+            </Card>
+          )}
         </Section>
 
         <Section title="Meglepetés-jelszó">

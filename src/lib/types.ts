@@ -5,6 +5,8 @@ export type User = {
   passwordHash: string;
   householdId: string;
   createdAt: number;
+  /** Jelszócserénél / háztartásból eltávolításnál nő → a régi sessionök érvénytelenek. */
+  sessionVersion?: number;
 };
 
 export type Household = {

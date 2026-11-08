@@ -149,7 +149,7 @@ function SubLink({
 
 export function Sidebar() {
   const pathname = usePathname() ?? "/";
-  if (pathname.startsWith("/belepes")) return null;
+  if (pathname.startsWith("/belepes") || pathname.startsWith("/jelszo-csere")) return null;
 
   const inCooking = COOKING_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/")

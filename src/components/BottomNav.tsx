@@ -47,7 +47,7 @@ const items = [
 
 export function BottomNav() {
   const pathname = usePathname() ?? "/";
-  if (pathname.startsWith("/belepes")) return null;
+  if (pathname.startsWith("/belepes") || pathname.startsWith("/jelszo-csere")) return null;
 
   return (
     <nav

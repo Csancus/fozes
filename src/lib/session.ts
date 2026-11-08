@@ -7,6 +7,7 @@ export type SessionData = {
   email?: string;
   name?: string;
   surpriseUnlocked?: boolean; // e böngésző-munkamenetben feloldotta-e a Meglepetéseket
+  sv?: number; // a user sessionVersion-je belépéskor; ha a user-é nő (jelszócsere, kizárás), a session érvénytelen
 };
 
 const sessionOptions: SessionOptions = {

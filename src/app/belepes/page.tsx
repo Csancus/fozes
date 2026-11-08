@@ -1,5 +1,7 @@
-import { login, register } from "./actions";
-import { currentUser } from "@/lib/auth";
+import { login, register, requestPasswordReset } from "./actions";
+import { currentUser, MIN_PASSWORD_LENGTH } from "@/lib/auth";
+import { getInvite } from "@/lib/invites";
+import { isMailConfigured } from "@/lib/mail";
 import { redirect } from "next/navigation";
 import { ChefHat, Mail, Lock, User, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/Button";
@@ -9,13 +11,16 @@ import Link from "next/link";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ mode?: string; err?: string; hh?: string }>;
+  searchParams: Promise<{ mode?: string; err?: string; ok?: string; inv?: string }>;
 }) {
   const me = await currentUser();
   if (me) redirect("/");
   const sp = await searchParams;
   const isRegister = sp.mode === "reg";
-  const joiningHousehold = Boolean(sp.hh);
+  const isForgot = sp.mode === "forgot";
+  const invite = sp.inv ? await getInvite(sp.inv) : null;
+  const invQ = sp.inv ? `inv=${encodeURIComponent(sp.inv)}` : "";
+  const mailOn = isMailConfigured();
 
   return (
     <main className="min-h-dvh flex flex-col bg-[var(--color-background)]">
@@ -44,36 +49,81 @@ export default async function LoginPage({
 
           <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-sm p-6">
             <div className="flex items-center gap-1 mb-6 p-1 bg-[var(--color-muted)] rounded-xl">
-              <TabLink active={!isRegister} href={`/belepes${sp.hh ? `?hh=${sp.hh}` : ""}`}>
+              <TabLink active={!isRegister} href={`/belepes${invQ ? `?${invQ}` : ""}`}>
                 Belépés
               </TabLink>
-              <TabLink active={isRegister} href={`/belepes?mode=reg${sp.hh ? `&hh=${sp.hh}` : ""}`}>
+              <TabLink active={isRegister} href={`/belepes?mode=reg${invQ ? `&${invQ}` : ""}`}>
                 Regisztráció
               </TabLink>
             </div>
 
-            {joiningHousehold && isRegister && (
-              <div className="mb-4 rounded-xl bg-[var(--color-primary-soft)] text-[var(--color-primary)] px-3.5 py-2.5 text-xs">
-                Meghívóval csatlakozol egy meglévő háztartáshoz.
+            {sp.inv && isRegister && (
+              <div
+                className={
+                  "mb-4 rounded-xl px-3.5 py-2.5 text-xs " +
+                  (invite
+                    ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)]"
+                    : "bg-amber-500/10 text-amber-800 dark:text-amber-300 border border-amber-500/20")
+                }
+              >
+                {invite
+                  ? "Meghívóval csatlakozol egy meglévő háztartáshoz."
+                  : "Ez a meghívó lejárt vagy már felhasználták. Kérj újat attól, aki meghívott – vagy regisztrálj saját háztartással."}
+              </div>
+            )}
+
+            {sp.ok && (
+              <div className="mb-4 rounded-xl bg-emerald-500/10 text-emerald-800 dark:text-emerald-300 border border-emerald-500/20 px-3.5 py-2.5 text-sm">
+                {sp.ok}
               </div>
             )}
 
             {sp.err && (
               <div className="mb-4 rounded-xl bg-red-500/10 text-red-700 dark:text-red-400 border border-red-500/20 px-3.5 py-2.5 text-sm">
-                {decodeURIComponent(sp.err)}
+                {sp.err}
               </div>
             )}
 
+            {isForgot ? (
+              mailOn ? (
+                <form action={requestPasswordReset} className="space-y-4">
+                  <p className="text-sm text-[var(--color-muted-foreground)]">
+                    Add meg a fiókod email-címét, és küldünk egy linket, amivel 1 órán belül új jelszót állíthatsz be.
+                  </p>
+                  <Field label="Email" required>
+                    <div className="relative">
+                      <Mail className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-muted-foreground)]" />
+                      <Input name="email" type="email" required autoComplete="email" placeholder="pl. te@email.hu" className="pl-10" />
+                    </div>
+                  </Field>
+                  <Button type="submit" size="lg" fullWidth rightIcon={<ArrowRight className="w-4 h-4" />}>
+                    Link küldése
+                  </Button>
+                </form>
+              ) : (
+                <p className="text-sm text-[var(--color-muted-foreground)]">
+                  Kérd meg a háztartásod tulajdonosát, hogy a <b>Család</b> oldalon generáljon neked egy
+                  jelszó-visszaállító linket. A link 1 óráig érvényes, és csak egyszer használható.
+                </p>
+              )
+            ) : (
             <form action={isRegister ? register : login} className="space-y-4">
               {isRegister && (
                 <>
                   <Field label="Név" required>
                     <div className="relative">
                       <User className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-muted-foreground)]" />
-                      <Input name="name" required placeholder="Kis Ferenc" className="pl-10" />
+                      <Input name="name" required maxLength={60} placeholder="Kis Ferenc" className="pl-10" />
                     </div>
                   </Field>
-                  <input type="hidden" name="hh" value={sp.hh ?? ""} />
+                  <input type="hidden" name="inv" value={invite ? sp.inv : ""} />
+                  {/* Csapda botoknak: ember nem látja, nem tölti ki. */}
+                  <div aria-hidden="true" className="absolute -left-[9999px] w-px h-px overflow-hidden">
+                    <label>
+                      Weboldal
+                      <input type="text" name="website" tabIndex={-1} autoComplete="off" />
+                    </label>
+                  </div>
                 </>
               )}
               <Field label="Email" required>
@@ -89,14 +139,18 @@ export default async function LoginPage({
                   />
                 </div>
               </Field>
-              <Field label="Jelszó" required hint={isRegister ? "Minimum 6 karakter" : undefined}>
+              <Field
+                label="Jelszó"
+                required
+                hint={isRegister ? `Legalább ${MIN_PASSWORD_LENGTH} karakter` : undefined}
+              >
                 <div className="relative">
                   <Lock className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--color-muted-foreground)]" />
                   <Input
                     name="password"
                     type="password"
                     required
-                    minLength={6}
+                    minLength={isRegister ? MIN_PASSWORD_LENGTH : undefined}
                     autoComplete={isRegister ? "new-password" : "current-password"}
                     className="pl-10"
                   />
@@ -105,11 +159,19 @@ export default async function LoginPage({
               <Button type="submit" size="lg" fullWidth rightIcon={<ArrowRight className="w-4 h-4" />}>
                 {isRegister ? "Fiók létrehozása" : "Belépés"}
               </Button>
+              {!isRegister && (
+                <p className="text-center text-xs">
+                  <Link href="/belepes?mode=forgot" className="text-[var(--color-muted-foreground)] hover:underline">
+                    Elfelejtetted a jelszavad?
+                  </Link>
+                </p>
+              )}
             </form>
+            )}
           </div>
 
           <p className="mt-6 text-center text-xs text-[var(--color-muted-foreground)]">
-            {isRegister ? (
+            {isRegister || isForgot ? (
               <>
                 Van már fiókod?{" "}
                 <Link href="/belepes" className="text-[var(--color-primary)] font-medium hover:underline">
@@ -119,7 +181,7 @@ export default async function LoginPage({
             ) : (
               <>
                 Új itt?{" "}
-                <Link href={`/belepes?mode=reg${sp.hh ? `&hh=${sp.hh}` : ""}`} className="text-[var(--color-primary)] font-medium hover:underline">
+                <Link href={`/belepes?mode=reg${invQ ? `&${invQ}` : ""}`} className="text-[var(--color-primary)] font-medium hover:underline">
                   Regisztrálj
                 </Link>
               </>
