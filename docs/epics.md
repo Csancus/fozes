@@ -57,3 +57,8 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | Story | Cím | Állapot |
 |---|---|---|
 | [7.1](stories/story-7.1-jegyzetek-naplo.md) | Jegyzetek és napló csatolmányokkal | ✅ |
+
+### Epic 8 – Megjelenés és UX
+| Story | Cím | Állapot |
+|---|---|---|
+| [8.1](stories/story-8.1-belepes-ux-es-csempe-stilus.md) | Középre igazított belépés oldal + üveges csempe stílus | ✅ |

@@ -19,8 +19,10 @@ import type { User } from "@/lib/types";
 const GENERIC_LOGIN_ERROR = "Hibás email vagy jelszó.";
 const TOO_MANY = "Túl sok próbálkozás. Próbáld újra kb. 15 perc múlva.";
 
-function fail(msg: string): never {
-  redirect(`/belepes?err=${encodeURIComponent(msg)}`);
+// Hibánál az emailt visszaadjuk az űrlapnak, hogy ne kelljen újragépelni.
+function fail(msg: string, email?: string): never {
+  const q = email ? `&email=${encodeURIComponent(email)}` : "";
+  redirect(`/belepes?err=${encodeURIComponent(msg)}${q}`);
 }
 function failReg(msg: string, inv?: string): never {
   const q = inv ? `&inv=${encodeURIComponent(inv)}` : "";
@@ -51,14 +53,14 @@ export async function login(formData: FormData) {
     (await isLimited(ipBucket, LIMITS.loginIp.limit)) ||
     (await isLimited(emailBucket, LIMITS.loginEmail.limit))
   ) {
-    fail(TOO_MANY);
+    fail(TOO_MANY, email);
   }
 
   const user = await authenticate(email, password);
   if (!user) {
     await hit(ipBucket, LIMITS.loginIp.limit, LIMITS.loginIp.windowSec);
     await hit(emailBucket, LIMITS.loginEmail.limit, LIMITS.loginEmail.windowSec);
-    fail(GENERIC_LOGIN_ERROR);
+    fail(GENERIC_LOGIN_ERROR, email);
   }
 
   await resetLimit(emailBucket);

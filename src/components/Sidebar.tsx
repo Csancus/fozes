@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isAuthRoute } from "@/lib/auth-routes";
 import {
   Home,
   Wallet,
@@ -149,7 +150,7 @@ function SubLink({
 
 export function Sidebar() {
   const pathname = usePathname() ?? "/";
-  if (pathname.startsWith("/belepes") || pathname.startsWith("/jelszo-csere")) return null;
+  if (isAuthRoute(pathname)) return null;
 
   const inCooking = COOKING_PREFIXES.some(
     (p) => pathname === p || pathname.startsWith(p + "/")

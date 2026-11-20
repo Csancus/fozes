@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { BottomNav } from "@/components/BottomNav";
 import { Sidebar } from "@/components/Sidebar";
+import { AppShell } from "@/components/AppShell";
 import { themeInitScript } from "@/lib/theme-script";
 
 const geistSans = Geist({
@@ -34,6 +35,8 @@ export default function RootLayout({
   return (
     <html
       lang="hu"
+      // A téma-script (data-theme / data-style) hidratálás előtt írja át a <html>-t.
+      suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
       <head>
@@ -41,7 +44,7 @@ export default function RootLayout({
       </head>
       <body className="min-h-full">
         <Sidebar />
-        <div className="min-h-dvh pb-20 md:pb-0 md:pl-64">{children}</div>
+        <AppShell>{children}</AppShell>
         <BottomNav />
       </body>
     </html>

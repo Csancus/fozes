@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { isAuthRoute } from "@/lib/auth-routes";
 import { Home, ChefHat, Wallet, Bookmark, Users } from "lucide-react";
 import { cn } from "@/lib/cn";
 
@@ -47,7 +48,7 @@ const items = [
 
 export function BottomNav() {
   const pathname = usePathname() ?? "/";
-  if (pathname.startsWith("/belepes") || pathname.startsWith("/jelszo-csere")) return null;
+  if (isAuthRoute(pathname)) return null;
 
   return (
     <nav

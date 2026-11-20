@@ -1,5 +1,6 @@
 @import "tailwindcss";
 
+
 :root {
   --background: #fafaf9;
   --foreground: #1c1917;
@@ -264,4 +265,92 @@ a {
 .rich-text strike,
 .rich-text del {
   text-decoration: line-through;
+}
+
+/* ===== Üveges csempe stílus (a törvénysértésch-oldal mintájára) =====
+   Színfüggetlen: a választott téma színeivel és a világos/sötét móddal is megy.
+   html[data-style="csempe"] – a témaszín (data-theme) mellett külön kapcsoló.
+   (color-mix-et szándékosan nem használunk: a Next CSS-feldolgozója eldobta a blokkot.) */
+:root[data-style="csempe"] {
+  --csempe-glass: rgba(255, 255, 255, 0.62);
+  --csempe-glass-strong: rgba(255, 255, 255, 0.8);
+  --csempe-line: rgba(28, 25, 23, 0.1);
+  --csempe-shadow: 0 24px 60px -24px rgba(20, 40, 90, 0.28), 0 2px 6px rgba(20, 40, 90, 0.06);
+  --csempe-orb-opacity: 0.28;
+}
+@media (prefers-color-scheme: dark) {
+  :root[data-style="csempe"] {
+    --csempe-glass: rgba(255, 255, 255, 0.06);
+    --csempe-glass-strong: rgba(255, 255, 255, 0.09);
+    --csempe-line: rgba(255, 255, 255, 0.14);
+    --csempe-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.25);
+    --csempe-orb-opacity: 0.32;
+  }
+}
+
+/* lebegő színfoltok a háttérben, a témaszínekből (fix réteg a tartalom mögött) */
+:root[data-style="csempe"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: var(--csempe-orb-opacity);
+  background:
+    radial-gradient(520px 520px at -6% -8%, var(--gradient-from), transparent 70%),
+    radial-gradient(600px 600px at 106% 40%, var(--gradient-to), transparent 70%),
+    radial-gradient(520px 520px at 30% 112%, var(--gradient-from), transparent 70%);
+}
+:root[data-style="csempe"] body {
+  isolation: isolate;
+}
+/* a teljes oldalas háttérrel festett konténerek engedjék át a színfoltokat */
+:root[data-style="csempe"] main[class*="bg-[var(--color-background)]"] {
+  background-color: transparent;
+}
+
+/* üveges csempék: minden kártya-hátterű elem áttetsző + elmosott + mély árnyék */
+:root[data-style="csempe"] [class*="bg-[var(--color-card)]"] {
+  background-color: var(--csempe-glass);
+  border-color: var(--csempe-line);
+  -webkit-backdrop-filter: blur(16px) saturate(1.4);
+  backdrop-filter: blur(16px) saturate(1.4);
+}
+:root[data-style="csempe"] .rounded-2xl[class*="bg-[var(--color-card)]"] {
+  border-radius: 1.5rem;
+  box-shadow: var(--csempe-shadow);
+}
+:root[data-style="csempe"] a.rounded-2xl[class*="bg-[var(--color-card)]"] {
+  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+}
+:root[data-style="csempe"] a.rounded-2xl[class*="bg-[var(--color-card)]"]:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary);
+}
+:root[data-style="csempe"] input[class*="bg-[var(--color-card)]"],
+:root[data-style="csempe"] textarea[class*="bg-[var(--color-card)]"],
+:root[data-style="csempe"] select[class*="bg-[var(--color-card)]"] {
+  background-color: var(--csempe-glass-strong);
+}
+
+/* átmenetes „pill” gombok */
+:root[data-style="csempe"] button[class*="bg-[var(--color-primary)]"],
+:root[data-style="csempe"] a[class*="bg-[var(--color-primary)]"] {
+  background-image: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));
+  background-size: 140% 140%;
+  background-position: 0 50%;
+  border-radius: 999px;
+  box-shadow: 0 12px 28px -10px rgba(0, 20, 60, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+  transition: transform 0.2s, box-shadow 0.2s, background-position 0.4s;
+}
+:root[data-style="csempe"] button[class*="bg-[var(--color-primary)]"]:hover,
+:root[data-style="csempe"] a[class*="bg-[var(--color-primary)]"]:hover {
+  background-position: 100% 50%;
+  transform: translateY(-1px);
+}
+@media (prefers-reduced-motion: reduce) {
+  :root[data-style="csempe"] a.rounded-2xl[class*="bg-[var(--color-card)]"]:hover,
+  :root[data-style="csempe"] button[class*="bg-[var(--color-primary)]"]:hover {
+    transform: none;
+  }
 }

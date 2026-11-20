@@ -23,10 +23,10 @@ export function InviteLink({ url, householdName }: { url: string; householdName:
 
   async function share() {
     const nav = navigator as WithShare;
-    const text = `Csatlakozz a "${householdName}" háztartáshoz a Főzés appban!`;
+    const text = `Csatlakozz a "${householdName}" háztartáshoz az Élet Portálon!`;
     if (nav.share) {
       try {
-        await nav.share({ title: "Meghívó — Főzés", text, url });
+        await nav.share({ title: "Meghívó — Élet Portál", text, url });
         return;
       } catch {
         // user cancelled — no-op
@@ -79,7 +79,7 @@ export function InviteLink({ url, householdName }: { url: string; householdName:
 
         <a
           href={`mailto:?subject=${encodeURIComponent(
-            "Meghívó — Főzés app"
+            "Meghívó — Élet Portál"
           )}&body=${encoded}`}
           className="inline-flex items-center gap-1.5 rounded-xl border border-[var(--color-border)] bg-[var(--color-card)] h-9 px-3.5 text-sm font-medium hover:border-[var(--color-primary)]/40 transition"
         >

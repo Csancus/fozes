@@ -2,7 +2,7 @@
 // nincs RESEND_API_KEY, az app email nélkül is működik (a jelszó-visszaállító
 // linket ilyenkor a háztartás tulajdonosa generálja).
 //
-// Env: RESEND_API_KEY, MAIL_FROM (pl. "Főzés <noreply@sajatdomain.hu>").
+// Env: RESEND_API_KEY, MAIL_FROM (pl. "Élet Portál <noreply@sajatdomain.hu>").
 // Saját ellenőrzött domain nélkül a Resend csak a fiók saját címére küld.
 
 export function isMailConfigured(): boolean {
@@ -24,7 +24,7 @@ export async function sendMail(msg: {
       "Content-Type": "application/json",
     },
     body: JSON.stringify({
-      from: process.env.MAIL_FROM || "Főzés <onboarding@resend.dev>",
+      from: process.env.MAIL_FROM || "Élet Portál <onboarding@resend.dev>",
       to: [msg.to],
       subject: msg.subject,
       text: msg.text,
@@ -43,15 +43,15 @@ function escapeHtml(s: string): string {
 }
 
 export function passwordResetEmail(name: string, url: string) {
-  const subject = "Jelszó visszaállítása – Főzés";
+  const subject = "Jelszó visszaállítása – Élet Portál";
   const text =
     `Szia ${name}!\n\n` +
-    `Valaki (remélhetőleg te) új jelszót kért a Főzés fiókodhoz.\n` +
+    `Valaki (remélhetőleg te) új jelszót kért az Élet Portál fiókodhoz.\n` +
     `Az alábbi linken 1 órán belül állíthatsz be újat:\n\n${url}\n\n` +
     `Ha nem te kérted, nyugodtan hagyd figyelmen kívül ezt a levelet.`;
   const html =
     `<p>Szia ${escapeHtml(name)}!</p>` +
-    `<p>Valaki (remélhetőleg te) új jelszót kért a Főzés fiókodhoz. ` +
+    `<p>Valaki (remélhetőleg te) új jelszót kért az Élet Portál fiókodhoz. ` +
     `Az alábbi linken <b>1 órán belül</b> állíthatsz be újat:</p>` +
     `<p><a href="${escapeHtml(url)}">Új jelszó beállítása</a></p>` +
     `<p style="color:#666">Ha nem te kérted, nyugodtan hagyd figyelmen kívül ezt a levelet.</p>`;
