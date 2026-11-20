@@ -14,7 +14,7 @@ import {
 import { KindSelect } from "../KindSelect";
 import type { SavedType } from "@/lib/types";
 import { guessSavedFromText, type SavedGuess } from "@/lib/ocr/saved-guess";
-import { recognizeImage, tryVision } from "@/lib/ocr/client";
+import { recognizeImage, tryVision, readPickedFiles, UNREADABLE_IMAGE_MSG } from "@/lib/ocr/client";
 
 const COVER_MAX = 1200;
 const COVER_QUALITY = 0.82;
@@ -88,6 +88,7 @@ export function OcrImport({
   const [progress, setProgress] = useState<{ done: number; total: number; status: string; pct: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [openError, setOpenError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const dragDepth = useRef(0);
 
@@ -152,18 +153,25 @@ export function OcrImport({
     []
   );
 
-  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
-    if (files.length) void processFiles(files, typeList);
+  // A fájlokat előbb memóriába olvassuk, csak utána ürítjük a választót (Android, Story 10.2 AC4).
+  async function takeFiles(list: File[]) {
+    if (!list.length) return;
+    setOpenError(null);
+    const { files, failed } = await readPickedFiles(list);
     if (inputRef.current) inputRef.current.value = "";
+    if (failed) setOpenError(UNREADABLE_IMAGE_MSG);
+    if (files.length) void processFiles(files, typeList);
+  }
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    void takeFiles(Array.from(e.target.files ?? []));
   }
 
   function onDrop(e: React.DragEvent) {
     e.preventDefault();
     dragDepth.current = 0;
     setDragOver(false);
-    const files = Array.from(e.dataTransfer.files ?? []);
-    if (files.length) void processFiles(files, typeList);
+    void takeFiles(Array.from(e.dataTransfer.files ?? []));
   }
 
   function updateDraft(key: string, patch: Partial<Draft>) {
@@ -210,6 +218,11 @@ export function OcrImport({
       }}
       onDrop={onDrop}
     >
+      {openError && (
+        <p role="alert" className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-700 dark:text-red-300">
+          {openError}
+        </p>
+      )}
       <input
         ref={inputRef}
         type="file"

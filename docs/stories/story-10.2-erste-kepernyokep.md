@@ -13,6 +13,7 @@
 1. **AC1** — Ha a dátum a tétel ALATT van (Erste: név + összeg, alatta dátum, típus, kategória), minden tétel a saját dátumát kapja. Az ismert láncok neve egységes („3LIDL Igazan megeri 17” → Lidl, „McDonalds 34800006” → McDonald's), a végéről lekerül a terminál-azonosító.
 2. **AC2** — A bank kategória-címkéje (Élelmiszer, Szórakozás, Éttermek és kávézók…) a háztartás saját kategóriájára párosul (név és szinonimák alapján, ékezet nélkül), ha a boltnévhez még nincs megjegyzett kategória.
 3. **AC3** — A fejléc-dátumos bankoknál (K&H, OTP, Revolut: dátum vagy „Ma” a tételek felett) a régi működés marad.
+4. **AC4** — Androidon a galériából / Google Fotókból választott kép is működik: a fájlt a kiválasztás után azonnal memóriába olvassuk (előtte a választó ürítése után „tört” lett az előnézet és 0 tétel jött). Ha mégsem olvasható, érthető hibaüzenet jelenik meg (költség-, bakancslista-kép, jegyzet).
 
 ## Megvalósítás
 
@@ -24,4 +25,5 @@
 | AC | Teszt |
 |---|---|
 | AC1–AC3 | `tests/lib/bank-ocr-erste.test.ts` |
+| AC4 | `tests/lib/ocr-read-files.test.ts` |
 | AC1, AC3 | `tests/lib/bank-ocr.test.ts` (frissített elvárások: egységes boltnevek) |

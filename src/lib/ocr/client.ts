@@ -162,3 +162,38 @@ export async function tryVision(kind: VisionKind, file: Blob): Promise<Extract<V
     return null;
   }
 }
+
+const EXT_TYPE: Record<string, string> = {
+  jpg: "image/jpeg", jpeg: "image/jpeg", png: "image/png", webp: "image/webp",
+  gif: "image/gif", heic: "image/heic", heif: "image/heif", bmp: "image/bmp",
+};
+
+/**
+ * A kiválasztott fájlokat AZONNAL memóriába másolja (Story 10.2 AC4).
+ * Androidon (Google Fotók / galéria) a File a fájlválasztó ürítése vagy egy
+ * későbbi aszinkron lépés után már olvashatatlan lehet – ettől „tört” az
+ * előnézet és 0 tétel jön ki. A típust a kiterjesztésből pótolja, ha üres.
+ * A nem olvasható fájlokat kihagyja, a számukat visszaadja.
+ */
+export async function readPickedFiles(files: File[]): Promise<{ files: File[]; failed: number }> {
+  const out: File[] = [];
+  let failed = 0;
+  await Promise.all(
+    files.map(async (f, i) => {
+      const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+      const type = f.type || EXT_TYPE[ext] || "";
+      if (!type.startsWith("image/")) return;
+      try {
+        const buf = await f.arrayBuffer();
+        if (!buf.byteLength) throw new Error("üres");
+        out[i] = new File([buf], f.name, { type, lastModified: f.lastModified });
+      } catch {
+        failed += 1;
+      }
+    })
+  );
+  return { files: out.filter(Boolean), failed };
+}
+
+export const UNREADABLE_IMAGE_MSG =
+  "Ezt a képet nem tudtam megnyitni. Ha a galériából vagy a Google Fotókból választottad, mentsd le a telefonra (vagy készíts új képernyőképet), és úgy töltsd fel.";

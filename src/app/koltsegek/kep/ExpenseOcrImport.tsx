@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { BatchEntry } from "../gyors/BatchEntry";
 import { matchCategory, parseBankText, type ParsedTx } from "@/lib/bank-ocr";
-import { recognizeImage, tryVision } from "@/lib/ocr/client";
+import { recognizeImage, tryVision, readPickedFiles, UNREADABLE_IMAGE_MSG } from "@/lib/ocr/client";
 import type {
   ExpenseCategory,
   PaymentMethod,
@@ -67,6 +67,7 @@ export function ExpenseOcrImport({
   const [progress, setProgress] = useState<{ done: number; total: number; pct: number; status: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
+  const [openError, setOpenError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const dragDepth = useRef(0);
 
@@ -124,10 +125,18 @@ export function ExpenseOcrImport({
     [merchantMap, categories]
   );
 
-  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []);
+  // A fájlokat előbb memóriába olvassuk, csak utána ürítjük a választót (Android).
+  async function takeFiles(list: File[], input?: HTMLInputElement) {
+    if (!list.length) return;
+    setOpenError(null);
+    const { files, failed } = await readPickedFiles(list);
+    if (input) input.value = "";
+    if (failed) setOpenError(UNREADABLE_IMAGE_MSG);
     if (files.length) processFiles(files);
-    e.target.value = "";
+  }
+
+  function onPick(e: React.ChangeEvent<HTMLInputElement>) {
+    void takeFiles(Array.from(e.target.files ?? []), e.target);
   }
 
   function removeImport(id: string) {
@@ -143,8 +152,7 @@ export function ExpenseOcrImport({
     e.preventDefault();
     dragDepth.current = 0;
     setDragOver(false);
-    const files = Array.from(e.dataTransfer.files ?? []);
-    if (files.length) processFiles(files);
+    void takeFiles(Array.from(e.dataTransfer.files ?? []));
   }
   function onDragEnter(e: React.DragEvent) {
     e.preventDefault();
@@ -169,6 +177,11 @@ export function ExpenseOcrImport({
       onDragLeave={onDragLeave}
     >
       <input ref={inputRef} type="file" accept="image/*" multiple className="hidden" onChange={onPick} />
+      {openError && (
+        <p role="alert" className="mb-3 rounded-xl border border-red-500/30 bg-red-500/10 px-3.5 py-2.5 text-sm text-red-700 dark:text-red-300">
+          {openError}
+        </p>
+      )}
 
       {!hasResult ? (
         <button

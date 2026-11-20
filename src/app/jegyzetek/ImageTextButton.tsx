@@ -5,7 +5,7 @@
 import { useRef, useState } from "react";
 import { Loader2, ScanText } from "lucide-react";
 import { Button } from "@/components/ui/Button";
-import { recognizeImage, tryVision } from "@/lib/ocr/client";
+import { recognizeImage, tryVision, readPickedFiles, UNREADABLE_IMAGE_MSG } from "@/lib/ocr/client";
 
 export function ImageTextButton({ onText }: { onText: (text: string) => void }) {
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -47,9 +47,15 @@ export function ImageTextButton({ onText }: { onText: (text: string) => void }) 
         accept="image/*"
         className="hidden"
         onChange={(e) => {
-          const f = e.target.files?.[0];
-          if (f) void run(f);
-          e.target.value = "";
+          const input = e.target;
+          const picked = Array.from(input.files ?? []).slice(0, 1);
+          if (!picked.length) return;
+          // előbb memóriába, csak utána ürítjük a választót (Android, Story 10.2 AC4)
+          void readPickedFiles(picked).then(({ files }) => {
+            input.value = "";
+            if (files[0]) void run(files[0]);
+            else setError(UNREADABLE_IMAGE_MSG);
+          });
         }}
       />
       <Button
