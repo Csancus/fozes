@@ -14,6 +14,7 @@ import { dailyRegistrationCap, hit, isLimited, LIMITS, resetLimit } from "@/lib/
 import { createResetToken } from "@/lib/password-reset";
 import { isMailConfigured, passwordResetEmail, sendMail } from "@/lib/mail";
 import { baseUrl, clientIp } from "@/lib/request";
+import { captchaError, verifyCaptcha } from "@/lib/captcha";
 import type { User } from "@/lib/types";
 
 const GENERIC_LOGIN_ERROR = "Hibás email vagy jelszó.";
@@ -24,9 +25,19 @@ function fail(msg: string, email?: string): never {
   const q = email ? `&email=${encodeURIComponent(email)}` : "";
   redirect(`/belepes?err=${encodeURIComponent(msg)}${q}`);
 }
-function failReg(msg: string, inv?: string): never {
-  const q = inv ? `&inv=${encodeURIComponent(inv)}` : "";
+function failReg(msg: string, inv?: string, email?: string): never {
+  const q =
+    (inv ? `&inv=${encodeURIComponent(inv)}` : "") + (email ? `&email=${encodeURIComponent(email)}` : "");
   redirect(`/belepes?mode=reg&err=${encodeURIComponent(msg)}${q}`);
+}
+
+/** null, ha a biztonsági kérdésre jó a válasz; különben a hibaüzenet. */
+async function checkCaptcha(formData: FormData): Promise<string | null> {
+  const r = await verifyCaptcha(
+    String(formData.get("captchaToken") ?? ""),
+    String(formData.get("captcha") ?? "")
+  );
+  return r === "ok" ? null : captchaError(r);
 }
 
 async function startSession(user: User) {
@@ -44,7 +55,11 @@ async function startSession(user: User) {
 export async function login(formData: FormData) {
   const email = normalizeEmail(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
-  if (!email || !password) fail("Hiányzó email vagy jelszó.");
+  if (!email || !password) fail("Hiányzó email vagy jelszó.", email);
+
+  // Story 2.7 – biztonsági kérdés még a jelszó-ellenőrzés előtt.
+  const cap = await checkCaptcha(formData);
+  if (cap) fail(cap, email);
 
   const ip = await clientIp();
   const ipBucket = `login:ip:${ip}`;
@@ -80,6 +95,8 @@ export async function register(formData: FormData) {
   if (honeypot) failReg("Nem sikerült a regisztráció. Próbáld újra.", inv);
 
   if (!email || !password || !name) failReg("Töltsd ki az összes mezőt.", inv);
+  const cap = await checkCaptcha(formData);
+  if (cap) failReg(cap, inv, email);
   if (name.length > 60) failReg("A név legfeljebb 60 karakter lehet.", inv);
   if (password.length < MIN_PASSWORD_LENGTH)
     failReg(`A jelszó legalább ${MIN_PASSWORD_LENGTH} karakter legyen.`, inv);
@@ -124,6 +141,9 @@ export async function requestPasswordReset(formData: FormData) {
       )}`
     );
   if (!email) redirect(`/belepes?mode=forgot&err=${encodeURIComponent("Add meg az email-címed.")}`);
+  const cap = await checkCaptcha(formData);
+  if (cap)
+    redirect(`/belepes?mode=forgot&err=${encodeURIComponent(cap)}&email=${encodeURIComponent(email)}`);
   if (!isMailConfigured()) done();
 
   const ip = await clientIp();

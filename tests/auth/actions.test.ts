@@ -3,6 +3,7 @@ import { createUser, getUserByEmail } from "@/lib/auth";
 import { createInvite, getInvite } from "@/lib/invites";
 import { LIMITS } from "@/lib/rate-limit";
 import { createResetToken } from "@/lib/password-reset";
+import { createCaptcha } from "@/lib/captcha";
 
 // A server actionök a Next redirect()-jét hívják – itt kivételként kapjuk el.
 class Redirect extends Error {
@@ -34,8 +35,12 @@ vi.mock("@/lib/request", () => ({
 const { login, register, requestPasswordReset } = await import("@/app/belepes/actions");
 const { resetPassword } = await import("@/app/jelszo-csere/actions");
 
+// Alapból megoldott biztonsági kérdéssel küld (Story 2.7); a captcha-teszt felülírja.
 function fd(obj: Record<string, string>) {
   const f = new FormData();
+  const c = createCaptcha();
+  f.set("captchaToken", c.token);
+  f.set("captcha", String(c.a + c.b));
   for (const [k, v] of Object.entries(obj)) f.set(k, v);
   return f;
 }

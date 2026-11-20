@@ -2,6 +2,7 @@ import { login, register, requestPasswordReset } from "./actions";
 import { currentUser, MIN_PASSWORD_LENGTH } from "@/lib/auth";
 import { getInvite } from "@/lib/invites";
 import { isMailConfigured } from "@/lib/mail";
+import { createCaptcha } from "@/lib/captcha";
 import { redirect } from "next/navigation";
 import {
   Compass,
@@ -15,6 +16,7 @@ import {
   CircleAlert,
   CircleCheck,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import { Input, Field } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
@@ -41,6 +43,8 @@ export default async function LoginPage({
   const invite = sp.inv ? await getInvite(sp.inv) : null;
   const invQ = sp.inv ? `inv=${encodeURIComponent(sp.inv)}` : "";
   const mailOn = isMailConfigured();
+  // Minden oldalbetöltés új, aláírt feladatot kap (Story 2.7).
+  const captcha = createCaptcha();
   const loginHref = `/belepes${invQ ? `?${invQ}` : ""}`;
   const regHref = `/belepes?mode=reg${invQ ? `&${invQ}` : ""}`;
 
@@ -126,7 +130,8 @@ export default async function LoginPage({
                 <p className="text-sm text-[var(--color-muted-foreground)]">
                   Add meg a fiókod email-címét. Küldünk egy linket, amivel 1 órán belül új jelszót állíthatsz be.
                 </p>
-                <EmailField defaultValue={sp.email} autoFocus />
+                <EmailField defaultValue={sp.email} autoFocus={!sp.email} />
+                <CaptchaField a={captcha.a} b={captcha.b} token={captcha.token} autoFocus={Boolean(sp.email)} />
                 <SubmitButton size="lg" fullWidth pendingText="Küldés…">Link küldése</SubmitButton>
               </form>
             ) : (
@@ -178,6 +183,7 @@ export default async function LoginPage({
                     minLength={isRegister ? MIN_PASSWORD_LENGTH : undefined}
                     autoComplete={isRegister ? "new-password" : "current-password"}
                     autoFocus={!isRegister && Boolean(sp.email)}
+                    placeholder={isRegister ? `Legalább ${MIN_PASSWORD_LENGTH} karakter` : "A jelszavad"}
                   />
                 </Field>
                 {!isRegister && (
@@ -191,6 +197,8 @@ export default async function LoginPage({
                   </div>
                 )}
               </div>
+
+              <CaptchaField a={captcha.a} b={captcha.b} token={captcha.token} />
 
               <div className="pt-1">
                 <SubmitButton size="lg" fullWidth pendingText={isRegister ? "Fiók létrehozása…" : "Belépés…"}>
@@ -227,6 +235,45 @@ function EmailField({ defaultValue, autoFocus }: { defaultValue?: string; autoFo
           defaultValue={defaultValue}
           placeholder="pl. te@email.hu"
           className="pl-10"
+        />
+      </div>
+    </Field>
+  );
+}
+
+function CaptchaField({
+  a,
+  b,
+  token,
+  autoFocus,
+}: {
+  a: number;
+  b: number;
+  token: string;
+  autoFocus?: boolean;
+}) {
+  return (
+    <Field label="Biztonsági kérdés" required hint="Így szűrjük ki a gépi próbálkozásokat.">
+      <input type="hidden" name="captchaToken" value={token} />
+      <div className="flex items-center gap-3">
+        <span
+          aria-hidden
+          className="inline-flex h-11 shrink-0 items-center gap-2 rounded-xl bg-[var(--color-muted)] px-3.5 text-[15px] font-semibold tabular-nums"
+        >
+          <ShieldCheck className="w-4 h-4 text-[var(--color-primary)]" />
+          {a} + {b} =
+        </span>
+        <Input
+          name="captcha"
+          required
+          inputMode="numeric"
+          pattern="[0-9]*"
+          maxLength={3}
+          autoComplete="off"
+          autoFocus={autoFocus}
+          aria-label={`Mennyi ${a} meg ${b}?`}
+          placeholder="?"
+          className="text-center font-semibold tabular-nums"
         />
       </div>
     </Field>

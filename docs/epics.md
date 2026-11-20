@@ -28,6 +28,7 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | [2.4](stories/story-2.4-elfelejtett-jelszo.md) | Elfelejtett jelszó: tulajdonosi link + email (Resend) | 🟡 email: Resend kulcs kell |
 | [2.5](stories/story-2.5-nyitott-regisztracio-vedelme.md) | Nyitott regisztráció védelme (limitek, csapda-mező, erősebb jelszó) | ✅ |
 | [2.6](stories/story-2.6-privat-csatolmanyok.md) | Privát csatolmányok (képek, PDF-ek csak belépve) | 📋 |
+| [2.7](stories/story-2.7-biztonsagi-kerdes.md) | Biztonsági kérdés (összeadás) a belépés-űrlapokon | ✅ |
 
 ### Epic 3 – Főzés (visszamenőleges)
 | Story | Cím | Állapot |
