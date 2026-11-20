@@ -1,58 +1,43 @@
 "use client";
 
-import { Monitor, Moon, Sun } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
-import { setAppearance, type Mode } from "@/lib/appearance";
+import { useEffect, useState } from "react";
+import { Moon, Sun } from "lucide-react";
+import { resolveMode, systemPrefersDark, toggleMode } from "@/lib/appearance";
 import { cn } from "@/lib/cn";
 import { useAppearance } from "./useAppearance";
 
-const modes: { key: Mode; label: string; icon: LucideIcon }[] = [
-  { key: "light", label: "Világos", icon: Sun },
-  { key: "dark", label: "Sötét", icon: Moon },
-  { key: "system", label: "Rendszer", icon: Monitor },
-];
-
 /**
- * Világos / Sötét / Rendszer szegmentált kapcsoló (Story 8.2).
- * `compact`: csak ikonok (pl. a belépés oldal sarkában).
+ * Egyetlen ikon: megnyomásra vált világos ↔ sötét között (Story 8.2).
+ * Az ikon a jelenlegi módot mutatja (nap = világos, hold = sötét).
  */
-export function ModeSwitcher({ compact, className }: { compact?: boolean; className?: string }) {
+export function ModeSwitcher({ className }: { className?: string }) {
   const { mode } = useAppearance();
+  // A rendszerbeállítás csak böngészőben ismert – hidratálás után számoljuk.
+  const [systemDark, setSystemDark] = useState<boolean | null>(null);
+  useEffect(() => {
+    setSystemDark(systemPrefersDark());
+  }, []);
+
+  const dark =
+    systemDark === null ? null : resolveMode(mode, systemDark) === "dark";
+  const label = dark ? "Váltás világos módra" : "Váltás sötét módra";
+
   return (
-    <div
-      role="radiogroup"
-      aria-label="Megjelenés: világos, sötét vagy rendszer"
-      data-segmented
+    <button
+      type="button"
+      onClick={toggleMode}
+      aria-label={label}
+      title={label}
       className={cn(
-        "grid grid-cols-3 gap-0.5 p-0.5 rounded-xl bg-[var(--color-muted)]",
-        compact && "inline-grid rounded-full",
+        "w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-full ring-1 ring-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
         className,
       )}
     >
-      {modes.map(({ key, label, icon: Icon }) => {
-        const active = mode === key;
-        return (
-          <button
-            key={key}
-            type="button"
-            role="radio"
-            aria-checked={active}
-            aria-label={label}
-            title={label}
-            onClick={() => setAppearance({ mode: key })}
-            className={cn(
-              "flex items-center justify-center gap-1.5 font-medium transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-              compact ? "w-8 h-7 rounded-full" : "h-8 rounded-[10px] text-xs",
-              active
-                ? "bg-[var(--color-card)] text-[var(--color-foreground)] shadow-sm"
-                : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
-            )}
-          >
-            <Icon className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
-            {!compact && <span>{label}</span>}
-          </button>
-        );
-      })}
-    </div>
+      {dark === null ? null : dark ? (
+        <Moon className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+      ) : (
+        <Sun className="w-3.5 h-3.5" strokeWidth={2} aria-hidden />
+      )}
+    </button>
   );
 }

@@ -23,31 +23,41 @@ export function ThemeSwitcher({ className }: { className?: string }) {
 
   return (
     <div className={cn("space-y-3", className)}>
-      <ModeSwitcher />
-      <div className="flex items-center gap-2" role="radiogroup" aria-label="Témaszín">
-        {themes.map((t) => {
-          const active = theme === t.key;
-          return (
-            <button
-              key={t.key}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => setAppearance({ theme: t.key })}
-              aria-label={`Téma: ${t.label}`}
-              title={t.label}
-              className={cn(
-                "w-7 h-7 rounded-full transition ring-offset-2 ring-offset-[var(--color-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-                active
-                  ? "ring-2 ring-[var(--color-foreground)] scale-105"
-                  : "ring-1 ring-[var(--color-border)] hover:scale-105",
-              )}
-              style={{
-                backgroundImage: `linear-gradient(135deg, ${t.from}, ${t.to})`,
-              }}
-            />
-          );
-        })}
+      <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2"
+          role="radiogroup"
+          aria-label="Témaszín"
+        >
+          {themes.map((t) => {
+            const active = theme === t.key;
+            return (
+              <button
+                key={t.key}
+                type="button"
+                role="radio"
+                aria-checked={active}
+                onClick={() => setAppearance({ theme: t.key })}
+                aria-label={`Téma: ${t.label}`}
+                title={t.label}
+                className={cn(
+                  "w-7 h-7 rounded-full transition ring-offset-2 ring-offset-[var(--color-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
+                  active
+                    ? "ring-2 ring-[var(--color-foreground)] scale-105"
+                    : "ring-1 ring-[var(--color-border)] hover:scale-105",
+                )}
+                style={{
+                  backgroundImage: `linear-gradient(135deg, ${t.from}, ${t.to})`,
+                }}
+              />
+            );
+          })}
+        </div>
+        <span
+          aria-hidden
+          className="mx-0.5 h-5 w-px bg-[var(--color-border)]"
+        />
+        <ModeSwitcher />
       </div>
       <div
         className="grid grid-cols-2 gap-0.5 p-0.5 rounded-xl bg-[var(--color-muted)]"

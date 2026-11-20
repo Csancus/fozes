@@ -4,6 +4,7 @@
 
 export type Theme = "default" | "green" | "turquoise" | "blue";
 export type Style = "plain" | "csempe";
+// "system" = még nem választott; ilyenkor a rendszer dönt. A UI csak világos/sötét között vált.
 export type Mode = "light" | "dark" | "system";
 
 export const THEMES: readonly Theme[] = ["default", "green", "turquoise", "blue"];
@@ -74,6 +75,21 @@ export function applyAppearance(a: Appearance, root: HTMLElement = document.docu
     if (value === null) root.removeAttribute(attr);
     else root.setAttribute(attr, value);
   }
+}
+
+/** A rendszer sötét-e (csak böngészőben). */
+export function systemPrefersDark(): boolean {
+  try {
+    return window.matchMedia("(prefers-color-scheme: dark)").matches;
+  } catch {
+    return false;
+  }
+}
+
+/** Egy kattintás: a ténylegesen látszó módból a másikba vált, és ezt el is menti. */
+export function toggleMode() {
+  const current = resolveMode(readAppearance().mode, systemPrefersDark());
+  setAppearance({ mode: current === "dark" ? "light" : "dark" });
 }
 
 export function setAppearance(patch: Partial<Appearance>) {

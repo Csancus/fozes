@@ -459,18 +459,9 @@ a {
   --csempe-orb-b: var(--primary);
 }
 
-/* SF-szerű tipográfia (Apple-eszközön SF Pro, Windowson Segoe UI Variable) */
+/* A csempe NEM változtat betűtípust/méretet – csak az anyag más. */
 :root[data-style="csempe"] body {
   isolation: isolate;
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text",
-    "Segoe UI", system-ui, var(--font-sans), sans-serif;
-  letter-spacing: -0.008em;
-}
-:root[data-style="csempe"] h1,
-:root[data-style="csempe"] h2 {
-  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display",
-    "Segoe UI", system-ui, var(--font-sans), sans-serif;
-  letter-spacing: -0.022em;
 }
 
 /* nagy, lassú, visszafogott színfoltok a témaszínekből (fix réteg a tartalom mögött) */

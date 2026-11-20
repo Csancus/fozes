@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 import {
   htmlAttributes,
   parseMode,
@@ -81,3 +81,39 @@ describe("Story 8.2 – nappali / éjszakai / rendszer mód", () => {
     expect(() => new Function("document", "localStorage", themeInitScript)(document, localStorage)).not.toThrow();
   });
 });
+
+describe("Story 8.2 – egy-ikonos világos/sötét váltó", () => {
+  function stubBrowser(store: Record<string, string>, systemDark: boolean) {
+    const attrs: Record<string, string> = {};
+    vi.stubGlobal("localStorage", {
+      getItem: (k: string) => (k in store ? store[k] : null),
+      setItem: (k: string, v: string) => (store[k] = v),
+    });
+    vi.stubGlobal("window", {
+      matchMedia: () => ({ matches: systemDark }),
+      dispatchEvent: () => true,
+    });
+    vi.stubGlobal("document", {
+      documentElement: {
+        setAttribute: (k: string, v: string) => (attrs[k] = v),
+        removeAttribute: (k: string) => delete attrs[k],
+      },
+    });
+    vi.stubGlobal("Event", class {});
+    return attrs;
+  }
+
+  it("AC3: választás nélkül a rendszer szerinti módból a másikba vált és elmenti", async () => {
+    const { toggleMode } = await import("@/lib/appearance");
+    const store: Record<string, string> = {};
+    const attrs = stubBrowser(store, true);
+    toggleMode();
+    expect(store.mode).toBe("light");
+    expect(attrs["data-mode"]).toBe("light");
+    toggleMode();
+    expect(store.mode).toBe("dark");
+    expect(attrs["data-mode"]).toBe("dark");
+    vi.unstubAllGlobals();
+  });
+});
+

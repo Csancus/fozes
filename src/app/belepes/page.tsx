@@ -60,14 +60,12 @@ export default async function LoginPage({
 
   return (
     <main className="relative min-h-dvh flex items-center justify-center overflow-hidden px-4 pt-16 pb-10 sm:py-10 bg-[var(--color-background)]">
-      {/* Világos / sötét / rendszer mód már belépés előtt is (Story 8.2) */}
+      {/* Világos / sötét váltás már belépés előtt is (Story 8.2) */}
       <div
         className="absolute right-4 z-10"
         style={{ top: "max(1rem, env(safe-area-inset-top))" }}
       >
-        <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/70 p-0.5 shadow-sm backdrop-blur-md">
-          <ModeSwitcher compact className="bg-transparent" />
-        </div>
+        <ModeSwitcher className="w-9 h-9 shadow-sm backdrop-blur-md" />
       </div>
 
       <div aria-hidden data-plain-only className="pointer-events-none absolute inset-0">
