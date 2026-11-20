@@ -35,7 +35,9 @@ export default function RootLayout({
   return (
     <html
       lang="hu"
-      // A téma-script (data-theme / data-style) hidratálás előtt írja át a <html>-t.
+      // Üveges csempe minden témaszínnél alapból (Story 8.3).
+      data-style="csempe"
+      // A téma-script (data-theme / data-mode) hidratálás előtt írja át a <html>-t.
       suppressHydrationWarning
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >

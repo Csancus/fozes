@@ -1,6 +1,6 @@
 "use client";
 
-import { setAppearance, type Style, type Theme } from "@/lib/appearance";
+import { setAppearance, type Theme } from "@/lib/appearance";
 import { cn } from "@/lib/cn";
 import { ModeSwitcher } from "./ModeSwitcher";
 import { useAppearance } from "./useAppearance";
@@ -12,17 +12,11 @@ const themes: { key: Theme; label: string; from: string; to: string }[] = [
   { key: "blue", label: "Kék", from: "#2563eb", to: "#38bdf8" },
 ];
 
-// A stílus színfüggetlen: bármelyik témaszínnel együtt használható.
-const styles: { key: Style; label: string }[] = [
-  { key: "plain", label: "Sima" },
-  { key: "csempe", label: "Üveges csempe" },
-];
-
 export function ThemeSwitcher({ className }: { className?: string }) {
-  const { theme, style } = useAppearance();
+  const { theme } = useAppearance();
 
   return (
-    <div className={cn("space-y-3", className)}>
+    <div className={cn("flex items-center gap-2", className)}>
       <div className="flex items-center gap-2">
         <div
           className="flex items-center gap-2"
@@ -58,33 +52,6 @@ export function ThemeSwitcher({ className }: { className?: string }) {
           className="mx-0.5 h-5 w-px bg-[var(--color-border)]"
         />
         <ModeSwitcher />
-      </div>
-      <div
-        className="grid grid-cols-2 gap-0.5 p-0.5 rounded-xl bg-[var(--color-muted)]"
-        role="radiogroup"
-        aria-label="Stílus"
-        data-segmented
-      >
-        {styles.map((st) => {
-          const active = style === st.key;
-          return (
-            <button
-              key={st.key}
-              type="button"
-              role="radio"
-              aria-checked={active}
-              onClick={() => setAppearance({ style: st.key })}
-              className={cn(
-                "text-xs font-medium h-8 rounded-[10px] transition focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
-                active
-                  ? "bg-[var(--color-card)] text-[var(--color-foreground)] shadow-sm"
-                  : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]",
-              )}
-            >
-              {st.label}
-            </button>
-          );
-        })}
       </div>
     </div>
   );

@@ -19,7 +19,7 @@ const COOKING_PREFIXES = [
 ];
 
 const items = [
-  { href: "/", label: "Kezdő", icon: Home, match: (p: string) => p === "/" },
+  { href: "/", label: "Kezdőlap", icon: Home, match: (p: string) => p === "/" },
   {
     href: "/fozes",
     label: "Főzés",

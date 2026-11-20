@@ -1,23 +1,20 @@
-// Megjelenés-beállítások (Story 8.2): témaszín, stílus, világos/sötét mód.
+// Megjelenés-beállítások (Story 8.2, 8.3): témaszín és világos/sötét mód.
+// Az üveges csempe stílus mindig be van kapcsolva (layout.tsx: data-style="csempe").
 // Tiszta függvények + egy kis kliens-oldali „store”, hogy a több helyen
 // megjelenő kapcsolók (sidebar, belépés, Család oldal) szinkronban legyenek.
 
 export type Theme = "default" | "green" | "turquoise" | "blue";
-export type Style = "plain" | "csempe";
 // "system" = még nem választott; ilyenkor a rendszer dönt. A UI csak világos/sötét között vált.
 export type Mode = "light" | "dark" | "system";
 
 export const THEMES: readonly Theme[] = ["default", "green", "turquoise", "blue"];
 export const MODES: readonly Mode[] = ["light", "dark", "system"];
 
-export type Appearance = { theme: Theme; style: Style; mode: Mode };
-export const DEFAULT_APPEARANCE: Appearance = { theme: "default", style: "plain", mode: "system" };
+export type Appearance = { theme: Theme; mode: Mode };
+export const DEFAULT_APPEARANCE: Appearance = { theme: "default", mode: "system" };
 
 export function parseTheme(v: string | null | undefined): Theme {
   return THEMES.includes(v as Theme) ? (v as Theme) : "default";
-}
-export function parseStyle(v: string | null | undefined): Style {
-  return v === "csempe" ? "csempe" : "plain";
 }
 export function parseMode(v: string | null | undefined): Mode {
   return v === "light" || v === "dark" ? v : "system";
@@ -32,12 +29,10 @@ export function resolveMode(mode: Mode, systemDark: boolean): "light" | "dark" {
 /** A <html> data-* attribútumai; null = az attribútum hiányzik. */
 export function htmlAttributes(a: Appearance): {
   "data-theme": string | null;
-  "data-style": string | null;
   "data-mode": string | null;
 } {
   return {
     "data-theme": a.theme === "default" ? null : a.theme,
-    "data-style": a.style === "csempe" ? "csempe" : null,
     "data-mode": a.mode === "system" ? null : a.mode,
   };
 }
@@ -45,7 +40,7 @@ export function htmlAttributes(a: Appearance): {
 // ---- kliens-oldali store (csak böngészőben hívd) ----
 
 const EVENT = "appearance-change";
-const KEYS = { theme: "theme", style: "style", mode: "mode" } as const;
+const KEYS = { theme: "theme", mode: "mode" } as const;
 
 function safeGet(k: string): string | null {
   try {
@@ -60,11 +55,10 @@ let cache: Appearance = DEFAULT_APPEARANCE;
 export function readAppearance(): Appearance {
   const next: Appearance = {
     theme: parseTheme(safeGet(KEYS.theme)),
-    style: parseStyle(safeGet(KEYS.style)),
     mode: parseMode(safeGet(KEYS.mode)),
   };
   // useSyncExternalStore stabil referenciát vár, ha nem változott semmi.
-  if (next.theme !== cache.theme || next.style !== cache.style || next.mode !== cache.mode) {
+  if (next.theme !== cache.theme || next.mode !== cache.mode) {
     cache = next;
   }
   return cache;
@@ -96,8 +90,8 @@ export function setAppearance(patch: Partial<Appearance>) {
   const next = { ...readAppearance(), ...patch };
   try {
     localStorage.setItem(KEYS.theme, next.theme);
-    localStorage.setItem(KEYS.style, next.style);
     localStorage.setItem(KEYS.mode, next.mode);
+    localStorage.removeItem("style"); // régi kapcsoló maradványa
   } catch {}
   applyAppearance(next);
   window.dispatchEvent(new Event(EVENT));
