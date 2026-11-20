@@ -1,7 +1,7 @@
 # Story 10.1: Jobb képfelismerés (bank-kép, blokk, bakancslista, jegyzet)
 
 **Epic:** 10 (Képfelismerés) · **Méret:** L · **Kockázat:** MEDIUM (heurisztika + külső API opcionálisan; a régi út tartalékként megmarad)
-**Állapot:** kész (2026-11-20, lásd a commitot)
+**Állapot:** kész (2026-11-20, d1dba2b)
 **Forrás:** user, 2026-11-20: „A képfeltöltésen kellene még iterálni mert nem tud jól szöveget, számot adatokat olvasni képről. iterálj ezen 3x hogy ez sokkal jobb legyen. a gyors rögzítésre vagy a jegyzetek, bakancslistára gondolok”
 
 ## Felhasználói történet
