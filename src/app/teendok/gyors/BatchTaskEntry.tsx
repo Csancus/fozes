@@ -248,21 +248,21 @@ export function BatchTaskEntry({
         <button
           type="button"
           onClick={addRow}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
+          className="relative touch-hit inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
         >
           <Plus className="w-4 h-4" /> Új sor
         </button>
         <button
           type="button"
           onClick={addRowLikeLast}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+          className="relative touch-hit inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
           title="Új sor az előző sor adataival"
         >
           <CopyPlus className="w-4 h-4" /> Sor az előző adataival
         </button>
       </div>
 
-      <div className="mt-6 sticky bottom-0 -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
+      <div className="mt-6 sticky bottom-[var(--bottom-nav-h)] -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm text-[var(--color-muted-foreground)]">
             {valid.length} teendő

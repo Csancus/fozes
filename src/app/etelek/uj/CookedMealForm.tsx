@@ -122,7 +122,7 @@ export function CookedMealForm({
         </div>
       </Field>
 
-      <div className="grid grid-cols-2 gap-3">
+      <div className="grid sm:grid-cols-2 gap-3">
         <Field label="Dátum">
           <Input
             name="cookedAt"
@@ -146,7 +146,7 @@ export function CookedMealForm({
                   aria-checked={n === rating}
                   onClick={() => setRating(n)}
                   className={cn(
-                    "w-8 h-8 inline-flex items-center justify-center rounded-lg transition",
+                    "w-10 h-10 inline-flex items-center justify-center rounded-lg transition",
                     active
                       ? "text-amber-500"
                       : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"

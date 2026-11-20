@@ -35,7 +35,7 @@ export function ThemeSwitcher({ className }: { className?: string }) {
                 aria-label={`Téma: ${t.label}`}
                 title={t.label}
                 className={cn(
-                  "w-7 h-7 rounded-full transition ring-offset-2 ring-offset-[var(--color-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
+                  "relative touch-hit w-7 h-7 rounded-full transition ring-offset-2 ring-offset-[var(--color-card)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
                   active
                     ? "ring-2 ring-[var(--color-foreground)] scale-105"
                     : "ring-1 ring-[var(--color-border)] hover:scale-105",

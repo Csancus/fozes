@@ -213,7 +213,7 @@ export function JournalFields({
           <span className="text-sm font-medium">Fotók</span>
           <label
             htmlFor="journal-photos"
-            className="inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium cursor-pointer"
+            className="relative touch-hit inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium cursor-pointer"
           >
             <ImageIcon className="w-4 h-4" />
             {photoBusy ? "Feltöltés…" : "Kép hozzáadása"}
@@ -261,7 +261,7 @@ export function JournalFields({
           <span className="text-sm font-medium">Videó / csatolmány</span>
           <label
             htmlFor="journal-files"
-            className="inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium cursor-pointer"
+            className="relative touch-hit inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium cursor-pointer"
           >
             <Paperclip className="w-4 h-4" /> Csatolás
           </label>

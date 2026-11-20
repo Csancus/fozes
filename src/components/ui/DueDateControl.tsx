@@ -58,7 +58,7 @@ export function DueDateControl({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex items-center gap-1 rounded-full font-medium transition",
+          "relative touch-hit inline-flex items-center gap-1 rounded-full font-medium transition",
           dueDate
             ? overdue
               ? "bg-red-500/12 text-red-600 dark:text-red-400"

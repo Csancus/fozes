@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { BodyPortal } from "@/components/ui/BodyPortal";
 import { Input, Field } from "@/components/ui/Input";
 import { Button } from "@/components/ui/Button";
 import { SubmitButton } from "@/components/ui/SubmitButton";
@@ -541,40 +542,42 @@ export function EntityManager({
       </Card>
 
       {confirmDel && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4"
-          role="dialog"
-          aria-modal="true"
-          onClick={() => setConfirmDel(null)}
-        >
-          <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        <BodyPortal>
           <div
-            className="relative w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-50 flex items-center justify-center p-4"
+            role="dialog"
+            aria-modal="true"
+            onClick={() => setConfirmDel(null)}
           >
-            <h2 className="font-semibold text-[15px] flex items-center gap-2">
-              <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-500/10 text-red-600">
-                <X className="w-4.5 h-4.5" />
-              </span>
-              Biztosan törlöd?
-            </h2>
-            <p className="mt-3 text-sm text-[var(--color-muted-foreground)]">
-              <span className="font-medium text-[var(--color-foreground)]">{confirmDel.name}</span>{" "}
-              véglegesen törlődik. A hozzá rendelt tételek megmaradnak, csak a besorolásuk ürül.
-            </p>
-            <div className="mt-5 flex gap-2 justify-end">
-              <Button type="button" variant="secondary" onClick={() => setConfirmDel(null)}>
-                Mégse
-              </Button>
-              <form action={deleteAction} onSubmit={() => setConfirmDel(null)}>
-                <input type="hidden" name="id" value={confirmDel.id} />
-                <Button type="submit" variant="danger" leftIcon={<X className="w-4 h-4" />}>
-                  Törlés
+            <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+            <div
+              className="relative w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h2 className="font-semibold text-[15px] flex items-center gap-2">
+                <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-red-500/10 text-red-600">
+                  <X className="w-4.5 h-4.5" />
+                </span>
+                Biztosan törlöd?
+              </h2>
+              <p className="mt-3 text-sm text-[var(--color-muted-foreground)]">
+                <span className="font-medium text-[var(--color-foreground)]">{confirmDel.name}</span>{" "}
+                véglegesen törlődik. A hozzá rendelt tételek megmaradnak, csak a besorolásuk ürül.
+              </p>
+              <div className="mt-5 flex gap-2 justify-end">
+                <Button type="button" variant="secondary" onClick={() => setConfirmDel(null)}>
+                  Mégse
                 </Button>
-              </form>
+                <form action={deleteAction} onSubmit={() => setConfirmDel(null)}>
+                  <input type="hidden" name="id" value={confirmDel.id} />
+                  <Button type="submit" variant="danger" leftIcon={<X className="w-4 h-4" />}>
+                    Törlés
+                  </Button>
+                </form>
+              </div>
             </div>
           </div>
-        </div>
+        </BodyPortal>
       )}
     </div>
   );

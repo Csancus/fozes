@@ -247,7 +247,7 @@ export function TripPlanner({
                 <button
                   type="button"
                   onClick={() => removeDay(day.id)}
-                  className="mt-1 h-7 w-7 flex items-center justify-center rounded-lg text-[var(--color-muted-foreground)] hover:text-red-600 hover:bg-red-500/10"
+                  className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--color-muted-foreground)] hover:text-red-600 hover:bg-red-500/10"
                   aria-label="Nap törlése"
                   title={`${di + 1}. nap törlése`}
                 >
@@ -327,7 +327,7 @@ export function TripPlanner({
                             <button
                               type="button"
                               onClick={() => removeItem(day.id, it.id)}
-                              className="h-8 w-7 flex items-center justify-center rounded-lg text-[var(--color-muted-foreground)] hover:text-red-600"
+                              className="h-9 w-9 flex items-center justify-center rounded-lg text-[var(--color-muted-foreground)] hover:text-red-600"
                               aria-label="Sor törlése"
                             >
                               <X className="w-4 h-4" />
@@ -359,7 +359,7 @@ export function TripPlanner({
       <button
         type="button"
         onClick={addDay}
-        className="mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
+        className="relative touch-hit mt-4 inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
       >
         <Plus className="w-4 h-4" /> Új nap
       </button>
@@ -378,7 +378,7 @@ export function TripPlanner({
       </section>
 
       {/* Mentés-sáv */}
-      <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md md:pl-64">
+      <div className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-30 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md md:pl-64">
         <div className="max-w-md md:max-w-5xl mx-auto px-5 py-3 flex items-center justify-between gap-3">
           <div className="text-sm text-[var(--color-muted-foreground)]">
             {days.length} nap ·{" "}

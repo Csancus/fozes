@@ -231,7 +231,7 @@ export function TaskBoard({
 
       {/* Felvett kartya: koppints egy oszlopra */}
       {picked && (
-        <div className="sticky bottom-3 z-30 mt-2 flex items-center gap-2 rounded-2xl border border-[var(--color-primary)] bg-[var(--color-card)] p-3 shadow-lg">
+        <div className="sticky bottom-[calc(var(--bottom-nav-h)+0.75rem)] z-30 mt-2 flex items-center gap-2 rounded-2xl border border-[var(--color-primary)] bg-[var(--color-card)] p-3 shadow-lg">
           <Hand className="w-4 h-4 shrink-0 text-[var(--color-primary)]" />
           <p className="flex-1 min-w-0 text-xs">
             <span className="font-semibold">{picked.title}</span>
@@ -378,7 +378,7 @@ function BoardCard({
               title={`Áthelyezés: ${v.label}`}
               aria-label={`Áthelyezés: ${v.label}`}
               className={cn(
-                "h-6 w-6 rounded-lg flex items-center justify-center transition hover:brightness-95",
+                "relative touch-hit h-6 w-6 rounded-lg flex items-center justify-center transition hover:brightness-95",
                 v.soft,
                 v.text
               )}

@@ -114,7 +114,7 @@ export default async function TeendokPage() {
           </h2>
           <Link
             href="/teendok/listak/uj"
-            className="inline-flex items-center gap-1 text-[13px] font-medium text-[var(--color-primary)]"
+            className="relative touch-hit inline-flex items-center gap-1 text-[13px] font-medium text-[var(--color-primary)]"
           >
             <Plus className="w-4 h-4" /> Új lista
           </Link>

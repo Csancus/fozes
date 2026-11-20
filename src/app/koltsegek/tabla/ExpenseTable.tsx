@@ -514,7 +514,7 @@ export function ExpenseTable({
         <button
           type="button"
           onClick={addRowTop}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
+          className="relative touch-hit inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
         >
           <Plus className="w-4 h-4" /> Új tétel
         </button>
@@ -772,7 +772,7 @@ export function ExpenseTable({
                       <button
                         type="button"
                         onClick={() => undoDelete(r.id)}
-                        className="h-9 w-7 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-[var(--color-primary)]"
+                        className="h-9 w-9 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-[var(--color-primary)]"
                         aria-label="Törlés visszavonása"
                       >
                         <Undo2 className="w-4 h-4" />
@@ -781,7 +781,7 @@ export function ExpenseTable({
                       <button
                         type="button"
                         onClick={() => (r.id ? markDeleted(r.id) : removeNewRow(r.key))}
-                        className="h-9 w-7 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600"
+                        className="h-9 w-9 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600"
                         aria-label="Törlés"
                       >
                         <X className="w-4 h-4" />
@@ -805,13 +805,13 @@ export function ExpenseTable({
         <button
           type="button"
           onClick={addRowBottom}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
+          className="relative touch-hit inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
         >
           <Plus className="w-4 h-4" /> Új tétel
         </button>
       </div>
 
-      <div className="mt-6 sticky bottom-0 -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
+      <div className="mt-6 sticky bottom-[var(--bottom-nav-h)] -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm">
             <span className="font-semibold tabular-nums">

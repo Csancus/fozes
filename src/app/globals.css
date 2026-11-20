@@ -604,3 +604,39 @@ a {
     display: flex;
   }
 }
+
+/* ===== Mobil (Story 8.4) =====
+   iOS Safari ráközelít, ha egy 16 px-nél kisebb betűs mezőre koppintasz – mobilon
+   minden szöveges mező legalább 16 px. A nagyobb betűs mezők (pl. összeg) maradnak. */
+@media (max-width: 47.99rem) {
+  :is(
+      input:not([type="checkbox"], [type="radio"], [type="range"], [type="color"], [type="file"], [type="hidden"]),
+      select,
+      textarea,
+      [contenteditable="true"],
+      [contenteditable=""]
+    ):not([class*="text-base"], [class*="text-lg"], [class*="text-xl"], [class*="text-2xl"], [class*="text-3xl"], [class*="text-4xl"], [class*="text-5xl"]) {
+    font-size: 16px;
+  }
+}
+
+/* Kis ikon-gombok és szöveges akciók: láthatatlanul nagyobb érintési felület érintőképernyőn
+   (az elemnek pozicionáltnak kell lennie – `relative` vagy `absolute`). */
+@media (pointer: coarse) {
+  .touch-hit::after {
+    content: "";
+    position: absolute;
+    inset: -10px;
+  }
+}
+
+/* Az alsó menü (BottomNav) magassága: 60 px + 1 px szegély + iPhone home-sáv. A fix / sticky
+   alsó sávok ennyivel feljebb ülnek, hogy ne takarja őket a menü; asztali nézetben 0. */
+:root {
+  --bottom-nav-h: calc(61px + env(safe-area-inset-bottom));
+}
+@media (min-width: 48rem) {
+  :root {
+    --bottom-nav-h: 0px;
+  }
+}

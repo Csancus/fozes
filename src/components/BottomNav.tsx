@@ -64,7 +64,7 @@ export function BottomNav() {
               <Link
                 href={it.href}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-2.5 text-[11px] font-medium transition relative",
+                  "flex flex-col items-center justify-center gap-1 h-15 text-[11px] font-medium transition relative",
                   active
                     ? "text-[var(--color-primary)]"
                     : "text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"

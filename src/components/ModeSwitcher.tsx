@@ -29,7 +29,7 @@ export function ModeSwitcher({ className }: { className?: string }) {
       aria-label={label}
       title={label}
       className={cn(
-        "w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-full ring-1 ring-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
+        "relative touch-hit w-7 h-7 shrink-0 inline-flex items-center justify-center rounded-full ring-1 ring-[var(--color-border)] bg-[var(--color-card)] text-[var(--color-foreground)] transition hover:scale-105 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)]",
         className,
       )}
     >

@@ -134,7 +134,7 @@ export default async function KoltsegekPage({
         className="mt-3"
         leftIcon={<ImagePlus className="w-4 h-4" />}
       >
-        Kép alapján (képernyőkép → tételek)
+        Kép alapján<span className="hidden min-[400px]:inline"> (képernyőkép → tételek)</span>
       </Button>
 
       {expenses.filter((e) => e.review).length > 0 && (

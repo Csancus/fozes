@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { BodyPortal } from "@/components/ui/BodyPortal";
 import Link from "next/link";
 import { catColor, catIcon, payIcon } from "@/lib/expense-visuals";
 import { cn } from "@/lib/cn";
@@ -651,7 +652,7 @@ export function OverviewDashboard({
                 type="button"
                 onClick={() => setChartType("bar")}
                 className={cn(
-                  "h-7 px-2.5 rounded-md text-xs font-medium transition",
+                  "h-9 px-3 rounded-md text-xs font-medium transition",
                   chartType === "bar" ? "bg-[var(--color-primary)] text-white" : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
                 )}
               >
@@ -661,7 +662,7 @@ export function OverviewDashboard({
                 type="button"
                 onClick={() => setChartType("pie")}
                 className={cn(
-                  "h-7 px-2.5 rounded-md text-xs font-medium transition",
+                  "h-9 px-3 rounded-md text-xs font-medium transition",
                   chartType === "pie" ? "bg-[var(--color-primary)] text-white" : "text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)]"
                 )}
               >
@@ -1046,59 +1047,61 @@ function BreakdownModal({
   const max = Math.max(1, ...rows.map((r) => r.amount));
   const sum = rows.reduce((s, r) => s + r.amount, 0);
   return (
-    <div
-      className="fixed inset-0 z-50 flex items-center justify-center p-4"
-      role="dialog"
-      aria-modal="true"
-      onClick={onClose}
-    >
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+    <BodyPortal>
       <div
-        className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl"
-        onClick={(e) => e.stopPropagation()}
+        className="fixed inset-0 z-50 flex items-center justify-center p-4"
+        role="dialog"
+        aria-modal="true"
+        onClick={onClose}
       >
-        <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--color-border)]">
-          <div>
-            <h2 className="font-semibold">{title}</h2>
-            <p className="text-xs text-[var(--color-muted-foreground)]">
-              {rows.length} tétel · {fmtFt(sum)}
-            </p>
+        <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" />
+        <div
+          className="relative w-full max-w-lg max-h-[85vh] flex flex-col rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-2xl"
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div className="flex items-center justify-between gap-3 px-5 py-4 border-b border-[var(--color-border)]">
+            <div>
+              <h2 className="font-semibold">{title}</h2>
+              <p className="text-xs text-[var(--color-muted-foreground)]">
+                {rows.length} tétel · {fmtFt(sum)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Bezárás"
+              className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] transition"
+            >
+              <X className="w-5 h-5" />
+            </button>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            aria-label="Bezárás"
-            className="w-9 h-9 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] transition"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-        <div className="overflow-y-auto p-4 space-y-3">
-          {rows.map((row, i) => {
-            const col = catColor(row.color);
-            const pct = (total || sum) ? (row.amount / (total || sum)) * 100 : 0;
-            return (
-              <div key={i}>
-                <div className="flex items-center justify-between text-sm mb-1 gap-2">
-                  <span className="flex items-center gap-2 min-w-0">
-                    <span className="text-[var(--color-muted-foreground)] tabular-nums text-xs w-5 shrink-0">{i + 1}.</span>
-                    <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", col.dot)} />
-                    <span className="truncate">{row.label}</span>
-                  </span>
-                  <span className="tabular-nums font-medium shrink-0">
-                    {fmtFt(row.amount)}
-                    <span className="text-[var(--color-muted-foreground)] font-normal"> · {Math.round(pct)}%</span>
-                  </span>
+          <div className="overflow-y-auto p-4 space-y-3">
+            {rows.map((row, i) => {
+              const col = catColor(row.color);
+              const pct = (total || sum) ? (row.amount / (total || sum)) * 100 : 0;
+              return (
+                <div key={i}>
+                  <div className="flex items-center justify-between text-sm mb-1 gap-2">
+                    <span className="flex items-center gap-2 min-w-0">
+                      <span className="text-[var(--color-muted-foreground)] tabular-nums text-xs w-5 shrink-0">{i + 1}.</span>
+                      <span className={cn("w-2.5 h-2.5 rounded-full shrink-0", col.dot)} />
+                      <span className="truncate">{row.label}</span>
+                    </span>
+                    <span className="tabular-nums font-medium shrink-0">
+                      {fmtFt(row.amount)}
+                      <span className="text-[var(--color-muted-foreground)] font-normal"> · {Math.round(pct)}%</span>
+                    </span>
+                  </div>
+                  <div className="h-2 rounded-full bg-[var(--color-muted)] overflow-hidden ml-7">
+                    <div className={cn("h-full rounded-full", col.dot)} style={{ width: `${(row.amount / max) * 100}%` }} />
+                  </div>
                 </div>
-                <div className="h-2 rounded-full bg-[var(--color-muted)] overflow-hidden ml-7">
-                  <div className={cn("h-full rounded-full", col.dot)} style={{ width: `${(row.amount / max) * 100}%` }} />
-                </div>
-              </div>
-            );
-          })}
+              );
+            })}
+          </div>
         </div>
       </div>
-    </div>
+    </BodyPortal>
   );
 }
 

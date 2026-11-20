@@ -6,7 +6,7 @@ type Variant = "primary" | "secondary" | "ghost" | "danger" | "soft";
 type Size = "sm" | "md" | "lg";
 
 const base =
-  "inline-flex items-center justify-center gap-2 rounded-xl font-medium select-none transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50 disabled:pointer-events-none";
+  "inline-flex items-center justify-center gap-2 rounded-xl font-medium text-center select-none transition active:scale-[0.98] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--color-ring)] disabled:opacity-50 disabled:pointer-events-none";
 
 const variants: Record<Variant, string> = {
   primary:
@@ -24,7 +24,7 @@ const variants: Record<Variant, string> = {
 const sizes: Record<Size, string> = {
   sm: "h-9 px-3 text-sm",
   md: "h-11 px-4 text-sm",
-  lg: "h-12 px-5 text-base",
+  lg: "h-12 px-4 sm:px-5 text-base",
 };
 
 type Props = {
@@ -59,7 +59,8 @@ export function Button({
   const content = (
     <>
       {leftIcon}
-      <span>{children}</span>
+      {/* mobilon a hosszabb felirat két sorba törhet – szorosabb sorköz, hogy kiférjen */}
+      <span className="leading-tight">{children}</span>
       {rightIcon}
     </>
   );

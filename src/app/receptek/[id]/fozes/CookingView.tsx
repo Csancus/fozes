@@ -289,7 +289,7 @@ export function CookingView({
         )}
       </section>
 
-      <div className="fixed bottom-0 inset-x-0 md:left-64 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md p-4 z-40">
+      <div className="fixed bottom-[var(--bottom-nav-h)] inset-x-0 md:left-64 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md p-4 z-40">
         <div className="max-w-md md:max-w-3xl mx-auto flex items-center gap-3">
           <Button
             type="button"

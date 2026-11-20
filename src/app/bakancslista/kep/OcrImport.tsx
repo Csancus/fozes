@@ -304,7 +304,7 @@ export function OcrImport({
 
       {/* Mentés-sáv */}
       {drafts.length > 0 && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md md:pl-64">
+        <div className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-30 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md md:pl-64">
           <div className="max-w-md md:max-w-4xl mx-auto px-5 py-3 flex items-center justify-between gap-3">
             <button
               type="button"

@@ -204,7 +204,7 @@ function Row({
           type="submit"
           aria-label={task.done ? "Vissza" : "Kész"}
           className={cn(
-            "w-6 h-6 rounded-lg border flex items-center justify-center transition",
+            "relative touch-hit w-6 h-6 rounded-lg border flex items-center justify-center transition",
             task.done
               ? "bg-emerald-500 border-emerald-500 text-white"
               : "border-[var(--color-border)] text-transparent hover:border-emerald-500"

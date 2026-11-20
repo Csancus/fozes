@@ -21,7 +21,7 @@ export function PageHeader({
             <Link
               href={back}
               aria-label="Vissza"
-              className="-ml-1 w-9 h-9 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+              className="-ml-2 w-10 h-10 shrink-0 rounded-xl flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
             >
               <ChevronLeft className="w-5 h-5" />
             </Link>

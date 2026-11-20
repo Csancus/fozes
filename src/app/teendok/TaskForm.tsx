@@ -1,6 +1,7 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { BodyPortal } from "@/components/ui/BodyPortal";
 import { Input, Textarea, Field } from "@/components/ui/Input";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { TagInput } from "@/components/ui/TagInput";
@@ -343,70 +344,72 @@ export function TaskForm({
 
       {/* Új lista modál — az űrlap elhagyása nélkül */}
       {newList && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-xl">
-            <p className="mb-3 flex items-center gap-2 font-semibold">
-              <ListTodo className="w-4 h-4 text-[var(--color-primary)]" /> Új teendő-lista
-            </p>
-            <Input
-              autoFocus
-              value={newList.name}
-              onChange={(e) => setNewList({ ...newList, name: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  createList();
-                }
-                if (e.key === "Escape") setNewList(null);
-              }}
-              placeholder="pl. Csomagolás"
-            />
-            {(projectOptions.length > 0 || trips.length > 0) && (
-              <select
-                value={newList.parent}
-                onChange={(e) => setNewList({ ...newList, parent: e.target.value })}
-                className="mt-3 w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
-              >
-                <option value="">Mihez tartozik? — Önálló</option>
-                {projectOptions.length > 0 && (
-                  <optgroup label="Projekt">
-                    {projectOptions.map((p) => (
-                      <option key={p.id} value={"project:" + p.id}>
-                        {p.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {trips.length > 0 && (
-                  <optgroup label="Utazás">
-                    {trips.map((t) => (
-                      <option key={t.id} value={"trip:" + t.id}>
-                        {t.year} · {t.name}
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-              </select>
-            )}
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setNewList(null)}
-                className="h-11 rounded-xl border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-muted)]"
-              >
-                Mégse
-              </button>
-              <button
-                type="button"
-                onClick={createList}
-                disabled={!newList.name.trim() || creating}
-                className="h-11 rounded-xl bg-[var(--color-primary)] text-[var(--color-primary-foreground)] text-sm font-medium disabled:opacity-50"
-              >
-                {creating ? "Létrehozás…" : "Létrehozás"}
-              </button>
+        <BodyPortal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-xl">
+              <p className="mb-3 flex items-center gap-2 font-semibold">
+                <ListTodo className="w-4 h-4 text-[var(--color-primary)]" /> Új teendő-lista
+              </p>
+              <Input
+                autoFocus
+                value={newList.name}
+                onChange={(e) => setNewList({ ...newList, name: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    createList();
+                  }
+                  if (e.key === "Escape") setNewList(null);
+                }}
+                placeholder="pl. Csomagolás"
+              />
+              {(projectOptions.length > 0 || trips.length > 0) && (
+                <select
+                  value={newList.parent}
+                  onChange={(e) => setNewList({ ...newList, parent: e.target.value })}
+                  className="mt-3 w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)]"
+                >
+                  <option value="">Mihez tartozik? — Önálló</option>
+                  {projectOptions.length > 0 && (
+                    <optgroup label="Projekt">
+                      {projectOptions.map((p) => (
+                        <option key={p.id} value={"project:" + p.id}>
+                          {p.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                  {trips.length > 0 && (
+                    <optgroup label="Utazás">
+                      {trips.map((t) => (
+                        <option key={t.id} value={"trip:" + t.id}>
+                          {t.year} · {t.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
+                </select>
+              )}
+              <div className="mt-4 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={() => setNewList(null)}
+                  className="h-11 rounded-xl border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-muted)]"
+                >
+                  Mégse
+                </button>
+                <button
+                  type="button"
+                  onClick={createList}
+                  disabled={!newList.name.trim() || creating}
+                  className="h-11 rounded-xl bg-[var(--color-primary)] text-[var(--color-primary-foreground)] text-sm font-medium disabled:opacity-50"
+                >
+                  {creating ? "Létrehozás…" : "Létrehozás"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </BodyPortal>
       )}
 
       {/* Státusz (nem kötelező — alapból Teendő) */}
@@ -509,68 +512,70 @@ export function TaskForm({
 
       {/* Új projekt modál — az űrlap elhagyása nélkül */}
       {newProject && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-          <div className="w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-xl">
-            <p className="mb-3 flex items-center gap-2 font-semibold">
-              <FolderKanban
-                className={cn("w-4 h-4", catColor(newProject.color).text)}
-              />{" "}
-              Új projekt
-            </p>
-            <Input
-              autoFocus
-              value={newProject.name}
-              onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
-              onKeyDown={(e) => {
-                if (e.key === "Enter") {
-                  e.preventDefault();
-                  createProject();
-                }
-                if (e.key === "Escape") setNewProject(null);
-              }}
-              placeholder="pl. Lakásfelújítás"
-            />
-            <p className="mt-4 mb-2 text-xs font-medium text-[var(--color-muted-foreground)]">
-              Szín
-            </p>
-            <div className="flex flex-wrap gap-2">
-              {COLOR_KEYS.map((c) => (
+        <BodyPortal>
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+            <div className="w-full max-w-sm max-h-[calc(100dvh-2rem)] overflow-y-auto rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-xl">
+              <p className="mb-3 flex items-center gap-2 font-semibold">
+                <FolderKanban
+                  className={cn("w-4 h-4", catColor(newProject.color).text)}
+                />{" "}
+                Új projekt
+              </p>
+              <Input
+                autoFocus
+                value={newProject.name}
+                onChange={(e) => setNewProject({ ...newProject, name: e.target.value })}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    createProject();
+                  }
+                  if (e.key === "Escape") setNewProject(null);
+                }}
+                placeholder="pl. Lakásfelújítás"
+              />
+              <p className="mt-4 mb-2 text-xs font-medium text-[var(--color-muted-foreground)]">
+                Szín
+              </p>
+              <div className="flex flex-wrap gap-2">
+                {COLOR_KEYS.map((c) => (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setNewProject({ ...newProject, color: c })}
+                    aria-label={c}
+                    className={cn(
+                      "relative touch-hit w-7 h-7 rounded-full transition ring-offset-2 ring-offset-[var(--color-card)]",
+                      catColor(c).dot,
+                      newProject.color === c && "ring-2 ring-[var(--color-foreground)]"
+                    )}
+                  />
+                ))}
+              </div>
+              <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">
+                Teendő-projektként jön létre; a Beállításokban átállítható, hogy a
+                Költségeknél is megjelenjen.
+              </p>
+              <div className="mt-4 grid grid-cols-2 gap-2">
                 <button
-                  key={c}
                   type="button"
-                  onClick={() => setNewProject({ ...newProject, color: c })}
-                  aria-label={c}
-                  className={cn(
-                    "w-7 h-7 rounded-full transition ring-offset-2 ring-offset-[var(--color-card)]",
-                    catColor(c).dot,
-                    newProject.color === c && "ring-2 ring-[var(--color-foreground)]"
-                  )}
-                />
-              ))}
-            </div>
-            <p className="mt-3 text-xs text-[var(--color-muted-foreground)]">
-              Teendő-projektként jön létre; a Beállításokban átállítható, hogy a
-              Költségeknél is megjelenjen.
-            </p>
-            <div className="mt-4 grid grid-cols-2 gap-2">
-              <button
-                type="button"
-                onClick={() => setNewProject(null)}
-                className="h-11 rounded-xl border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-muted)]"
-              >
-                Mégse
-              </button>
-              <button
-                type="button"
-                onClick={createProject}
-                disabled={!newProject.name.trim() || creatingProject}
-                className="h-11 rounded-xl bg-[var(--color-primary)] text-[var(--color-primary-foreground)] text-sm font-medium disabled:opacity-50"
-              >
-                {creatingProject ? "Létrehozás…" : "Létrehozás"}
-              </button>
+                  onClick={() => setNewProject(null)}
+                  className="h-11 rounded-xl border border-[var(--color-border)] text-sm font-medium hover:bg-[var(--color-muted)]"
+                >
+                  Mégse
+                </button>
+                <button
+                  type="button"
+                  onClick={createProject}
+                  disabled={!newProject.name.trim() || creatingProject}
+                  className="h-11 rounded-xl bg-[var(--color-primary)] text-[var(--color-primary-foreground)] text-sm font-medium disabled:opacity-50"
+                >
+                  {creatingProject ? "Létrehozás…" : "Létrehozás"}
+                </button>
+              </div>
             </div>
           </div>
-        </div>
+        </BodyPortal>
       )}
 
       <Field label="Ár" hint="nem kötelező — pl. vizsgadíj, anyagköltség">
@@ -607,7 +612,7 @@ export function TaskForm({
           <button
             type="button"
             onClick={addSub}
-            className="inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium"
+            className="relative touch-hit inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium"
           >
             <Plus className="w-4 h-4" /> Alteendő
           </button>
@@ -682,7 +687,7 @@ export function TaskForm({
       <div>
         <div className="flex items-center justify-between mb-2">
           <span className="text-sm font-medium">Fájlok</span>
-          <label htmlFor="task-files" className="inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium cursor-pointer">
+          <label htmlFor="task-files" className="relative touch-hit inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium cursor-pointer">
             <Paperclip className="w-4 h-4" /> Csatolás
           </label>
         </div>

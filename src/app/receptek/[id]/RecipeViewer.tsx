@@ -59,7 +59,7 @@ export function RecipeViewer({ recipe }: { recipe: Recipe }) {
             type="button"
             aria-label="Kevesebb adag"
             onClick={() => setServings((s) => Math.max(1, s - 1))}
-            className="w-7 h-7 inline-flex items-center justify-center rounded-full text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition"
+            className="relative touch-hit w-8 h-8 inline-flex items-center justify-center rounded-full text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition"
           >
             <Minus className="w-4 h-4" />
           </button>
@@ -70,7 +70,7 @@ export function RecipeViewer({ recipe }: { recipe: Recipe }) {
             type="button"
             aria-label="Több adag"
             onClick={() => setServings((s) => s + 1)}
-            className="w-7 h-7 inline-flex items-center justify-center rounded-full text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition"
+            className="relative touch-hit w-8 h-8 inline-flex items-center justify-center rounded-full text-[var(--color-foreground)] hover:bg-[var(--color-muted)] transition"
           >
             <Plus className="w-4 h-4" />
           </button>

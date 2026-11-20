@@ -153,7 +153,7 @@ export function SavedBatchEntry({
                     <button
                       type="button"
                       onClick={() => removeRow(r.key)}
-                      className="h-9 w-7 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600"
+                      className="h-9 w-9 flex items-center justify-center text-[var(--color-muted-foreground)] hover:text-red-600"
                       aria-label="Sor törlése"
                     >
                       <X className="w-4 h-4" />
@@ -170,14 +170,14 @@ export function SavedBatchEntry({
         <button
           type="button"
           onClick={addRow}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
+          className="relative touch-hit inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-primary)] hover:brightness-110"
         >
           <Plus className="w-4 h-4" /> Új sor
         </button>
         <button
           type="button"
           onClick={addRowLikeLast}
-          className="inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
+          className="relative touch-hit inline-flex items-center gap-1.5 text-sm font-medium text-[var(--color-muted-foreground)] hover:text-[var(--color-foreground)]"
           title="Új sor az előző sor típusával, helyszínével és címkéivel"
         >
           <CopyPlus className="w-4 h-4" /> Sor az előző adataival
@@ -189,7 +189,7 @@ export function SavedBatchEntry({
         utólag egyenként tehetsz hozzá a tétel oldalán.
       </p>
 
-      <div className="mt-4 sticky bottom-0 -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
+      <div className="mt-4 sticky bottom-[var(--bottom-nav-h)] -mx-5 px-5 py-3 bg-[var(--color-background)]/95 backdrop-blur-md border-t border-[var(--color-border)]">
         <div className="flex items-center justify-between gap-3">
           <div className="text-sm">
             <span className="font-semibold tabular-nums">{valid.length}</span>

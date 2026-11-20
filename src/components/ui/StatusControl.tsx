@@ -56,7 +56,7 @@ export function StatusControl({
         type="button"
         onClick={() => setOpen((v) => !v)}
         className={cn(
-          "inline-flex items-center gap-1 rounded-full font-medium transition",
+          "relative touch-hit inline-flex items-center gap-1 rounded-full font-medium transition",
           vis.soft,
           vis.text,
           size === "sm" ? "px-2 py-0.5 text-[11px]" : "px-3 py-1 text-[13px]"

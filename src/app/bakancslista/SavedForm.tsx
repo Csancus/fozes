@@ -329,7 +329,7 @@ export function SavedForm({
           <button
             type="button"
             onClick={addLink}
-            className="inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium"
+            className="relative touch-hit inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium"
           >
             <Plus className="w-4 h-4" /> Link
           </button>
@@ -385,7 +385,7 @@ export function SavedForm({
           <span className="text-sm font-medium">Fájlok</span>
           <label
             htmlFor="saved-files"
-            className="inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium cursor-pointer"
+            className="relative touch-hit inline-flex items-center gap-1 text-[13px] text-[var(--color-primary)] font-medium cursor-pointer"
           >
             <Paperclip className="w-4 h-4" /> Csatolás
           </label>

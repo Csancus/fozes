@@ -275,7 +275,7 @@ export function SavedListClient({
 
       {/* Kijelölés akció-sáv */}
       {selectMode && (
-        <div className="fixed inset-x-0 bottom-0 z-30 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md">
+        <div className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-30 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md">
           <div className="max-w-md md:max-w-4xl mx-auto px-5 py-3">
             <div className="flex items-center gap-2 flex-wrap">
               <span className="text-sm font-medium">
