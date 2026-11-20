@@ -1,11 +1,13 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import { usePathname } from "next/navigation";
 import { isAuthRoute } from "@/lib/auth-routes";
 import { setSidebarCollapsed } from "@/lib/sidebar";
 import { logout } from "@/app/belepes/actions";
 import {
+  ChevronDown,
   Home,
   LogOut,
   PanelLeftClose,
@@ -112,23 +114,76 @@ function isActive(pathname: string, href: string) {
   return pathname === href || pathname.startsWith(href + "/");
 }
 
-function NavLink({ item, pathname }: { item: NavItem; pathname: string }) {
+function NavLink({
+  item,
+  pathname,
+  expanded,
+  onToggle,
+}: {
+  item: NavItem;
+  pathname: string;
+  /** van almenüje: kinyitva/összecsukva (Story 8.3 AC7) */
+  expanded?: boolean;
+  onToggle?: () => void;
+}) {
   const active = isActive(pathname, item.href);
   const Icon = item.icon;
   return (
-    <Link
-      href={item.href}
-      className={cn(
-        "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition",
-        active
-          ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)]"
-          : "text-[var(--color-foreground)] hover:bg-[var(--color-muted)]",
+    <div className="relative">
+      <Link
+        href={item.href}
+        className={cn(
+          "flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition",
+          onToggle && "pr-10",
+          active
+            ? "bg-[var(--color-primary-soft)] text-[var(--color-primary)]"
+            : "text-[var(--color-foreground)] hover:bg-[var(--color-muted)]",
+        )}
+      >
+        <Icon className="w-4.5 h-4.5" strokeWidth={active ? 2.25 : 1.85} />
+        <span>{item.label}</span>
+      </Link>
+      {onToggle && (
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-expanded={expanded}
+          aria-label={expanded ? `${item.label} almenü összecsukása` : `${item.label} almenü kinyitása`}
+          title={expanded ? "Összecsukás" : "Kinyitás"}
+          className="absolute right-1.5 top-1/2 -translate-y-1/2 w-7 h-7 rounded-lg flex items-center justify-center text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+        >
+          <ChevronDown className={cn("w-4 h-4 transition-transform", !expanded && "-rotate-90")} />
+        </button>
       )}
-    >
-      <Icon className="w-4.5 h-4.5" strokeWidth={active ? 2.25 : 1.85} />
-      <span>{item.label}</span>
-    </Link>
+    </div>
   );
+}
+
+// Összecsukott almenük (href-ek), localStorage-ban megjegyezve.
+const GROUPS_KEY = "sidebar-groups";
+function readGroups(): string[] {
+  try {
+    const v = JSON.parse(localStorage.getItem(GROUPS_KEY) ?? "[]");
+    return Array.isArray(v) ? v.filter((x): x is string => typeof x === "string") : [];
+  } catch {
+    return [];
+  }
+}
+function useCollapsedGroups() {
+  const [collapsed, setCollapsed] = useState<string[]>([]);
+  useEffect(() => {
+    const stored = readGroups();
+    if (stored.length) queueMicrotask(() => setCollapsed(stored));
+  }, []);
+  const toggle = (href: string) =>
+    setCollapsed((cur) => {
+      const next = cur.includes(href) ? cur.filter((h) => h !== href) : [...cur, href];
+      try {
+        localStorage.setItem(GROUPS_KEY, JSON.stringify(next));
+      } catch {}
+      return next;
+    });
+  return { isOpen: (href: string) => !collapsed.includes(href), toggle };
 }
 
 function SubLink({
@@ -162,6 +217,7 @@ function SubLink({
 
 export function Sidebar() {
   const pathname = usePathname() ?? "/";
+  const groups = useCollapsedGroups();
   if (isAuthRoute(pathname)) return null;
 
   const inCooking = COOKING_PREFIXES.some(
@@ -189,6 +245,12 @@ export function Sidebar() {
         { href: `/utazasok/${tripId}/terv`, label: "Terv", icon: MapIcon },
       ]
     : [];
+  const hasSub = (href: string) =>
+    (href === "/fozes" && inCooking) ||
+    (href === "/koltsegek" && inCosts) ||
+    (href === "/teendok" && inTodos) ||
+    (href === "/utazasok" && tripSub.length > 0);
+
 
   return (
     <>
@@ -233,15 +295,21 @@ export function Sidebar() {
         <nav className="flex-1 overflow-y-auto px-3 py-2 space-y-1">
           {primary.map((it) => (
             <div key={it.href}>
-              <NavLink item={it} pathname={pathname} />
-              {it.href === "/fozes" && inCooking && (
+              <NavLink
+                item={it}
+                pathname={pathname}
+                {...(hasSub(it.href)
+                  ? { expanded: groups.isOpen(it.href), onToggle: () => groups.toggle(it.href) }
+                  : {})}
+              />
+              {it.href === "/fozes" && inCooking && groups.isOpen(it.href) && (
                 <div className="mt-1 mb-1 space-y-0.5 border-l border-[var(--color-border)] ml-4">
                   {cooking.map((sub) => (
                     <SubLink key={sub.href} item={sub} pathname={pathname} />
                   ))}
                 </div>
               )}
-              {it.href === "/koltsegek" && inCosts && (
+              {it.href === "/koltsegek" && inCosts && groups.isOpen(it.href) && (
                 <div className="mt-1 mb-1 space-y-0.5 border-l border-[var(--color-border)] ml-4">
                   {costs.map((sub) => (
                     <SubLink
@@ -253,7 +321,7 @@ export function Sidebar() {
                   ))}
                 </div>
               )}
-              {it.href === "/teendok" && inTodos && (
+              {it.href === "/teendok" && inTodos && groups.isOpen(it.href) && (
                 <div className="mt-1 mb-1 space-y-0.5 border-l border-[var(--color-border)] ml-4">
                   {todos.map((sub) => (
                     <SubLink
@@ -265,7 +333,7 @@ export function Sidebar() {
                   ))}
                 </div>
               )}
-              {it.href === "/utazasok" && tripSub.length > 0 && (
+              {it.href === "/utazasok" && tripSub.length > 0 && groups.isOpen(it.href) && (
                 <div className="mt-1 mb-1 space-y-0.5 border-l border-[var(--color-border)] ml-4">
                   {tripSub.map((sub) => (
                     <SubLink
