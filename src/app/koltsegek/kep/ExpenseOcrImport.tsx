@@ -5,7 +5,7 @@ import { Loader2, ImagePlus, ScanText, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { BatchEntry } from "../gyors/BatchEntry";
-import { parseBankText, type ParsedTx } from "@/lib/bank-ocr";
+import { matchCategory, parseBankText, type ParsedTx } from "@/lib/bank-ocr";
 import { recognizeImage, tryVision } from "@/lib/ocr/client";
 import type {
   ExpenseCategory,
@@ -106,7 +106,10 @@ export function ExpenseOcrImport({
           kind: t.kind,
           amount: String(t.amount),
           merchant: t.merchant,
-          categoryId: t.kind === "expense" ? merchantMap[slugify(t.merchant)] ?? "" : "",
+          categoryId:
+            t.kind === "expense"
+              ? merchantMap[slugify(t.merchant)] || matchCategory(t.bankCategory, categories)
+              : "",
           spentAt: t.day,
           note: t.note,
         }));
@@ -118,7 +121,7 @@ export function ExpenseOcrImport({
       setBusy(false);
       setProgress(null);
     },
-    [merchantMap]
+    [merchantMap, categories]
   );
 
   function onPick(e: React.ChangeEvent<HTMLInputElement>) {

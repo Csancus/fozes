@@ -28,10 +28,10 @@ describe("Story 10.1 – bank-ocr parser", () => {
     ].join("\n");
     const tx = parseBankText(text, NOW);
     expect(tx).toEqual([
-      { kind: "expense", amount: 12345, merchant: "SPAR Budaörs", day: "2026-11-20", note: "" },
-      { kind: "expense", amount: 4990, merchant: "Wolt Budapest", day: "2026-11-19", note: "" },
+      { kind: "expense", amount: 12345, merchant: "Spar", day: "2026-11-20", note: "" },
+      { kind: "expense", amount: 4990, merchant: "Wolt", day: "2026-11-19", note: "" },
       { kind: "income", amount: 612000, merchant: "Fizetés ACME Kft", day: "2026-11-17", note: "" },
-      { kind: "expense", amount: 3299, merchant: "dm drogerie markt", day: "2026-11-15", note: "" },
+      { kind: "expense", amount: 3299, merchant: "dm", day: "2026-11-15", note: "" },
     ]);
   });
 
@@ -47,7 +47,7 @@ describe("Story 10.1 – bank-ocr parser", () => {
       "Előfizetés · 00:01",
     ].join("\n");
     expect(parseBankText(text, NOW)).toEqual([
-      { kind: "expense", amount: 4990, merchant: "Netflix.com", day: "2026-11-20", note: "" },
+      { kind: "expense", amount: 4990, merchant: "Netflix", day: "2026-11-20", note: "" },
       { kind: "expense", amount: 2351, merchant: "Bolt", day: "2026-11-20", note: "" },
       { kind: "expense", amount: 1990, merchant: "Spotify", day: "2026-11-16", note: "" },
     ]);
@@ -65,14 +65,14 @@ describe("Story 10.1 – bank-ocr parser", () => {
       "Kávé - 07:45 -1890 Ft",
     ].join("\n");
     const tx = parseBankText(text, NOW);
-    expect(tx.map((t) => t.merchant)).toEqual(["Netflix.com", "Bolt", "Starbucks"]);
+    expect(tx.map((t) => t.merchant)).toEqual(["Netflix", "Bolt", "Starbucks"]);
     expect(tx.map((t) => t.amount)).toEqual([4990, 2350, 1890]);
   });
 
   it("AC4: tipikus OCR-hibák – O/e/@ a számban, F+ az Ft helyett, aláhúzás a mínusz helyett", () => {
     const text = ["Tegnap", "IKEA Budaörs _45 99O Ft", "Tesco 1 2e5 F+", "MOL -3 @55 Ft"].join("\n");
     expect(parseBankText(text, NOW).map((t) => [t.merchant, t.amount, t.kind])).toEqual([
-      ["IKEA Budaörs", 45990, "expense"],
+      ["IKEA", 45990, "expense"],
       ["Tesco", 1205, "expense"],
       ["MOL", 3055, "expense"],
     ]);
@@ -81,7 +81,7 @@ describe("Story 10.1 – bank-ocr parser", () => {
   it("AC4: az egyenleg (címke alatti összeg) és az állapotsor nem tétel; dátum-fejléc nélkül is olvas", () => {
     const text = ["21:07 4G 52%", "Egyenleg", "284 512 Ft", "Lidl 0123 -8 761 Ft", "Kártyás vásárlás · 18:40"].join("\n");
     expect(parseBankText(text, NOW)).toEqual([
-      { kind: "expense", amount: 8761, merchant: "Lidl 0123", day: "2026-11-20", note: "" },
+      { kind: "expense", amount: 8761, merchant: "Lidl", day: "2026-11-20", note: "" },
     ]);
   });
 
@@ -100,14 +100,14 @@ describe("Story 10.1 – bank-ocr parser", () => {
       "2026,11.18 17:42", // OCR: pont → vessző
     ].join("\n");
     expect(parseBankText(text, NOW)).toEqual([
-      { kind: "expense", amount: 3055, merchant: "SPAR Magyarország Kft", day: "2026-11-18", note: "4 tétel a blokkon" },
+      { kind: "expense", amount: 3055, merchant: "Spar", day: "2026-11-18", note: "4 tétel a blokkon" },
     ]);
   });
 
   it("AC5: blokk pénznem nélküli végösszeggel – a kártyás fizetés sora erősíti meg", () => {
     const text = ["Lidl Magyarország Bt.", "NYUGTA", "KIFLI 89", "ÖSSZESEN: 1 234", "BANKKÁRTYA 1 234 Ft", "2026.11.02"].join("\n");
     expect(parseBankText(text, NOW)).toEqual([
-      { kind: "expense", amount: 1234, merchant: "Lidl Magyarország Bt", day: "2026-11-02", note: "" },
+      { kind: "expense", amount: 1234, merchant: "Lidl", day: "2026-11-02", note: "" },
     ]);
   });
 

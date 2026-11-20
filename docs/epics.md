@@ -75,3 +75,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | Story | Cím | Állapot |
 |---|---|---|
 | [10.1](stories/story-10.1-jobb-kepfelismeres.md) | Jobb képfelismerés: bank-kép, blokk, bakancslista, jegyzet (+ opcionális Claude) | ✅ |
+| [10.2](stories/story-10.2-erste-kepernyokep.md) | Erste-képernyőkép: dátum a tétel alatt, egységes boltnév, bank-kategória | ✅ |
