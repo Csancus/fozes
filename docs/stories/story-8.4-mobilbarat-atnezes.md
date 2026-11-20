@@ -1,7 +1,7 @@
 # Story 8.4: Mobilbarát átnézés – minden oldal telefonon
 
 **Epic:** 8 (Megjelenés és UX) · **Méret:** M · **Kockázat:** LOW (csak UI: Tailwind-osztályok, layout, CSS)
-**Állapot:** kész (2026-11-20)
+**Állapot:** kész (2026-11-20, 24b8803)
 **Forrás:** user, 2026-11-20 – „indíts egy háttér agentet aki minden screent átnéz mobilon és mobil baráttá teszi ha még nem az”
 
 ## Felhasználói történet
