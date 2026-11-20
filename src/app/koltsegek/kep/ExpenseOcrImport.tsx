@@ -5,7 +5,8 @@ import { Loader2, ImagePlus, ScanText, X } from "lucide-react";
 import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { BatchEntry } from "../gyors/BatchEntry";
-import { parseBankText } from "@/lib/bank-ocr";
+import { parseBankText, type ParsedTx } from "@/lib/bank-ocr";
+import { recognizeImage, tryVision } from "@/lib/ocr/client";
 import type {
   ExpenseCategory,
   PaymentMethod,
@@ -63,7 +64,7 @@ export function ExpenseOcrImport({
 }) {
   const [imports, setImports] = useState<Imported[]>([]);
   const [busy, setBusy] = useState(false);
-  const [progress, setProgress] = useState<{ done: number; total: number; pct: number } | null>(null);
+  const [progress, setProgress] = useState<{ done: number; total: number; pct: number; status: string } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [preview, setPreview] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
@@ -74,29 +75,34 @@ export function ExpenseOcrImport({
       const images = files.filter((f) => f.type.startsWith("image/"));
       if (images.length === 0) return;
       setBusy(true);
-      setProgress({ done: 0, total: images.length, pct: 0 });
-      const tesseract = await import("tesseract.js");
+      setProgress({ done: 0, total: images.length, pct: 0, status: "" });
 
       for (let i = 0; i < images.length; i++) {
         const file = images[i];
-        setProgress({ done: i, total: images.length, pct: 0 });
         const id = uid();
         const url = URL.createObjectURL(file);
 
-        let text = "";
-        try {
-          const result = await tesseract.recognize(file, "hun+eng", {
-            logger: (m: { status: string; progress?: number }) => {
-              if (typeof m.progress === "number")
-                setProgress((p) => (p ? { ...p, pct: Math.round(m.progress! * 100) } : p));
-            },
-          });
-          text = result.data.text ?? "";
-        } catch {
-          text = "";
+        // 1) Claude (ha a szerveren be van állítva), 2) böngészős felismerés.
+        let txs: ParsedTx[] = [];
+        setProgress({ done: i, total: images.length, pct: 0, status: "Kép elemzése…" });
+        const vision = await tryVision("expenses", file);
+        if (vision && vision.kind === "expenses") {
+          txs = vision.transactions;
+        } else {
+          try {
+            const result = await recognizeImage(file, {
+              layout: "list",
+              score: (t) => parseBankText(t).length,
+              onProgress: (p) =>
+                setProgress((cur) => (cur ? { ...cur, pct: p.pct, status: p.status } : cur)),
+            });
+            txs = parseBankText(result.text);
+          } catch {
+            txs = [];
+          }
         }
 
-        const seeds: Seed[] = parseBankText(text).map((t) => ({
+        const seeds: Seed[] = txs.map((t) => ({
           kind: t.kind,
           amount: String(t.amount),
           merchant: t.merchant,
@@ -106,7 +112,7 @@ export function ExpenseOcrImport({
         }));
 
         setImports((cur) => [...cur, { id, url, name: file.name, rows: seeds }]);
-        setProgress({ done: i + 1, total: images.length, pct: 100 });
+        setProgress({ done: i + 1, total: images.length, pct: 100, status: "" });
       }
 
       setBusy(false);
@@ -177,8 +183,8 @@ export function ExpenseOcrImport({
           </span>
           <span className="font-medium">Húzd ide a képeket, vagy kattints</span>
           <span className="text-sm text-[var(--color-muted-foreground)] max-w-sm">
-            Egy vagy több képernyőkép a bank appból — kiolvassa a tételeket egy
-            szerkeszthető táblázatba. A képeket a rendszer nem tárolja.
+            Képernyőkép a bank appból vagy fotó a blokkról. A tételek egy
+            szerkeszthető táblázatba kerülnek. A képet nem tároljuk.
           </span>
         </button>
       ) : (
@@ -231,7 +237,8 @@ export function ExpenseOcrImport({
             {busy && progress && (
               <div className="mt-3 flex items-center gap-2 text-xs text-[var(--color-muted-foreground)]">
                 <Loader2 className="w-4 h-4 animate-spin" />
-                Kiolvasás… {progress.done}/{progress.total} ({progress.pct}%)
+                {progress.status || "Kiolvasás…"} {Math.min(progress.done + 1, progress.total)}/{progress.total}
+                {progress.pct > 0 && progress.pct < 100 ? ` (${progress.pct}%)` : ""}
               </div>
             )}
             <p className="mt-2 text-[11px] text-[var(--color-muted-foreground)]">

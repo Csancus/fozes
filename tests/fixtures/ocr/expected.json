@@ -1,0 +1,237 @@
+{
+  "now": "2026-11-20T12:00:00",
+  "fixtures": [
+    {
+      "file": "bank-light.png",
+      "case": "Bank-app, világos, kis felbontás (390 px)",
+      "mode": "screenshot",
+      "use": "bank",
+      "text": "9:41 5G 87%\nSzámlatörténet\nEgyenleg\n284 512 Ft\nNovember 2026\nMa\nSPAR Budaörs -12 345 Ft\nKártyás vásárlás · 14:26\nTegnap\nWolt Budapest -4 990 Ft\nKártyás vásárlás · 19:02\nOTP Bank ATM -20 000 Ft\nKészpénzfelvétel · 08:15\nnov. 17.\nFizetés ACME Kft. +612 000 Ft\nÁtutalás · 06:00\nLidl 0123 -8 761 Ft\nKártyás vásárlás · 18:40\n2026. 11. 15.\nMOL Töltőállomás -21 450 Ft\nKártyás vásárlás · 10:11\ndm drogerie markt -3 299 Ft\nKártyás vásárlás · 16:33",
+      "tx": [
+        {
+          "merchant": "SPAR Budaörs",
+          "amount": 12345,
+          "day": "2026-11-20",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Wolt Budapest",
+          "amount": 4990,
+          "day": "2026-11-19",
+          "kind": "expense"
+        },
+        {
+          "merchant": "OTP Bank ATM",
+          "amount": 20000,
+          "day": "2026-11-19",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Fizetés ACME Kft.",
+          "amount": 612000,
+          "day": "2026-11-17",
+          "kind": "income"
+        },
+        {
+          "merchant": "Lidl 0123",
+          "amount": 8761,
+          "day": "2026-11-17",
+          "kind": "expense"
+        },
+        {
+          "merchant": "MOL Töltőállomás",
+          "amount": 21450,
+          "day": "2026-11-15",
+          "kind": "expense"
+        },
+        {
+          "merchant": "dm drogerie markt",
+          "amount": 3299,
+          "day": "2026-11-15",
+          "kind": "expense"
+        }
+      ]
+    },
+    {
+      "file": "bank-dark.jpg",
+      "case": "Bank-app, sötét mód, JPEG",
+      "mode": "screenshot",
+      "use": "bank",
+      "text": "21:07 4G 52%\nÖsszes tranzakció\nMa\nNetflix.com -4 990,00 Ft\nElőfizetés · 09:12\nBolt -2 350,00 Ft\nUtazás · 08:31\nTegnap\nTesco Extra Budaörs -15 678,00 Ft\nÉlelmiszer · 18:55\nAnna Kovács +5 000,00 Ft\nVisszatérítés · 12:40\nnov. 16.\nStarbucks -1 890 Ft\nKávé · 07:45\nSpotify -1 990 HUF\nElőfizetés · 00:01\nnov. 14.\nIKEA Budaörs -45 990 Ft\nOtthon · 15:20",
+      "tx": [
+        {
+          "merchant": "Netflix.com",
+          "amount": 4990,
+          "day": "2026-11-20",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Bolt",
+          "amount": 2350,
+          "day": "2026-11-20",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Tesco Extra Budaörs",
+          "amount": 15678,
+          "day": "2026-11-19",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Anna Kovács",
+          "amount": 5000,
+          "day": "2026-11-19",
+          "kind": "income"
+        },
+        {
+          "merchant": "Starbucks",
+          "amount": 1890,
+          "day": "2026-11-16",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Spotify",
+          "amount": 1990,
+          "day": "2026-11-16",
+          "kind": "expense"
+        },
+        {
+          "merchant": "IKEA Budaörs",
+          "amount": 45990,
+          "day": "2026-11-14",
+          "kind": "expense"
+        }
+      ]
+    },
+    {
+      "file": "bank-dark-small.jpg",
+      "case": "Bank-app, sötét mód, továbbküldött (0,5x, JPEG 60)",
+      "mode": "screenshot",
+      "use": "bank",
+      "text": "21:07 4G 52%\nÖsszes tranzakció\nMa\nNetflix.com -4 990,00 Ft\nElőfizetés · 09:12\nBolt -2 350,00 Ft\nUtazás · 08:31\nTegnap\nTesco Extra Budaörs -15 678,00 Ft\nÉlelmiszer · 18:55\nAnna Kovács +5 000,00 Ft\nVisszatérítés · 12:40\nnov. 16.\nStarbucks -1 890 Ft\nKávé · 07:45\nSpotify -1 990 HUF\nElőfizetés · 00:01\nnov. 14.\nIKEA Budaörs -45 990 Ft\nOtthon · 15:20",
+      "tx": [
+        {
+          "merchant": "Netflix.com",
+          "amount": 4990,
+          "day": "2026-11-20",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Bolt",
+          "amount": 2350,
+          "day": "2026-11-20",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Tesco Extra Budaörs",
+          "amount": 15678,
+          "day": "2026-11-19",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Anna Kovács",
+          "amount": 5000,
+          "day": "2026-11-19",
+          "kind": "income"
+        },
+        {
+          "merchant": "Starbucks",
+          "amount": 1890,
+          "day": "2026-11-16",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Spotify",
+          "amount": 1990,
+          "day": "2026-11-16",
+          "kind": "expense"
+        },
+        {
+          "merchant": "IKEA Budaörs",
+          "amount": 45990,
+          "day": "2026-11-14",
+          "kind": "expense"
+        }
+      ]
+    },
+    {
+      "file": "receipt-photo.jpg",
+      "case": "Blokk fotó: kis felbontás, dőlés, zaj, JPEG 55",
+      "mode": "photo",
+      "use": "bank",
+      "text": "SPAR Magyarország Kft.\n2040 Budaörs, Kinizsi u. 2.\nAdószám: 10485824-2-44\nNYUGTA\nTEJ 2,8% 1L 389 Ft\nKENYÉR FEHÉR 649 Ft\nBANÁN 1,2 kg 718 Ft\nSAJT TRAPPISTA 1 299 Ft\nÖSSZESEN: 3 055 Ft\nBANKKÁRTYA 3 055 Ft\n2026.11.18 17:42\nKöszönjük a vásárlást!",
+      "tx": [
+        {
+          "merchant": "SPAR Magyarország Kft.",
+          "amount": 3055,
+          "day": "2026-11-18",
+          "kind": "expense"
+        }
+      ]
+    },
+    {
+      "file": "receipt-small.jpg",
+      "case": "Blokk fotó, még kisebb (0,7x, JPEG 50)",
+      "mode": "photo",
+      "use": "bank",
+      "text": "SPAR Magyarország Kft.\n2040 Budaörs, Kinizsi u. 2.\nAdószám: 10485824-2-44\nNYUGTA\nTEJ 2,8% 1L 389 Ft\nKENYÉR FEHÉR 649 Ft\nBANÁN 1,2 kg 718 Ft\nSAJT TRAPPISTA 1 299 Ft\nÖSSZESEN: 3 055 Ft\nBANKKÁRTYA 3 055 Ft\n2026.11.18 17:42\nKöszönjük a vásárlást!",
+      "tx": [
+        {
+          "merchant": "SPAR Magyarország Kft.",
+          "amount": 3055,
+          "day": "2026-11-18",
+          "kind": "expense"
+        }
+      ]
+    },
+    {
+      "file": "insta-place.jpg",
+      "case": "Instagram-szerű poszt, sötét, link http nélkül",
+      "mode": "screenshot",
+      "use": "saved",
+      "text": "bistro_frank\n1 248 kedvelés\nbistro_frank Bisztró Frank\nHétvégi brunch és kézműves kávé a VII. kerületben.\n1072 Budapest, Klauzál tér 7.\nFoglalás: bistrofrank.hu/foglalas\n#brunch #budapest #étterem\n2 napja",
+      "saved": {
+        "title": "Bisztró Frank",
+        "kind": "etterem",
+        "location": "1072 Budapest, Klauzál tér 7.",
+        "links": [
+          "bistrofrank.hu/foglalas"
+        ]
+      }
+    },
+    {
+      "file": "maps-place.png",
+      "case": "Térkép-kártya képernyőkép (hely, cím, webhely)",
+      "mode": "screenshot",
+      "use": "saved",
+      "text": "Normafa Kilátó\n4,7 ★★★★★ (2 314)\nKilátó · Látnivaló\nCím: 1121 Budapest, Eötvös út 59.\nNyitva · Bezár: 20:00\nWebhely: https://normafa.hu",
+      "saved": {
+        "title": "Normafa Kilátó",
+        "kind": "helyszin",
+        "location": "1121 Budapest, Eötvös út 59.",
+        "links": [
+          "normafa.hu"
+        ]
+      }
+    },
+    {
+      "file": "note-handwritten.jpg",
+      "case": "Kézírás-szerű jegyzet vonalas lapon",
+      "mode": "text",
+      "use": "note",
+      "text": "Szombati teendők\n- tej, tojás (10 db), liszt 2 kg\n- Gázszámla befizetése: 18 450 Ft\n- Hívni Évát: 06 30 123 4567\n- Fogorvos dec. 3. 15:30\nNe felejtsd: kulcs a postaládában!",
+      "tokens": [
+        "Szombati teendők",
+        "tojás",
+        "10 db",
+        "2 kg",
+        "Gázszámla",
+        "18 450 Ft",
+        "06 30 123 4567",
+        "dec. 3.",
+        "15:30",
+        "postaládában"
+      ]
+    }
+  ]
+}

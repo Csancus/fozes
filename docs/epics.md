@@ -70,3 +70,8 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | Story | Cím | Állapot |
 |---|---|---|
 | [9.1](stories/story-9.1-aktualis-naptar.md) | „Aktuális” oldal naptárral (nap / hét / hónap) | ✅ |
+
+### Epic 10 – Képfelismerés
+| Story | Cím | Állapot |
+|---|---|---|
+| [10.1](stories/story-10.1-jobb-kepfelismeres.md) | Jobb képfelismerés: bank-kép, blokk, bakancslista, jegyzet (+ opcionális Claude) | ✅ |

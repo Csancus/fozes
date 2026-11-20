@@ -38,6 +38,10 @@ export const LIMITS = {
   forgotIp: { limit: 5, windowSec: 60 * 60 },
   /** Elfelejtett jelszó kérés email-címenként óránként. */
   forgotEmail: { limit: 3, windowSec: 60 * 60 },
+  /** Claude-os képfelismerés felhasználónként óránként (Story 10.1). */
+  ocrVisionUser: { limit: 40, windowSec: 60 * 60 },
+  /** Claude-os képfelismerés háztartásonként naponta (költségplafon, Story 10.1). */
+  ocrVisionHouseholdDay: { limit: 200, windowSec: 24 * 60 * 60 },
 } as const;
 
 /** Napi regisztrációs plafon az egész appra (env-ből felülírható). */

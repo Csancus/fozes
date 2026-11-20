@@ -39,7 +39,7 @@ export function NewPurchaseForm() {
     setOcrError(null);
     setOcrText("");
     setOcrProgress(0);
-    setOcrStatus("Modell betöltése...");
+    setOcrStatus("Kép előkészítése…");
 
     const url = URL.createObjectURL(file);
     setPhotoPreview((prev) => {
@@ -48,18 +48,16 @@ export function NewPurchaseForm() {
     });
 
     try {
-      const tesseract = await import("tesseract.js");
-      const result = await tesseract.recognize(file, "hun+eng", {
-        logger: (m: { status: string; progress?: number }) => {
-          if (typeof m.progress === "number") {
-            setOcrProgress(Math.round(m.progress * 100));
-          }
-          if (m.status) {
-            setOcrStatus(m.status);
-          }
+      // Story 10.1: közös OCR-modul (előfeldolgozás + újrahasznált worker).
+      const { recognizeImage } = await import("@/lib/ocr/client");
+      const result = await recognizeImage(file, {
+        layout: "list",
+        onProgress: (p) => {
+          setOcrProgress(p.pct);
+          setOcrStatus(p.status);
         },
       });
-      const text = result.data.text ?? "";
+      const text = result.text;
       setOcrText(text);
       setOcrProgress(100);
       setOcrStatus("Kész");

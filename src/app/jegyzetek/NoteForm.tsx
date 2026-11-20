@@ -5,6 +5,8 @@ import Link from "next/link";
 import { Input, Field } from "@/components/ui/Input";
 import { SubmitButton } from "@/components/ui/SubmitButton";
 import { RichTextEditor } from "@/components/ui/RichTextEditor";
+import { plainToRichText } from "@/lib/richtext";
+import { ImageTextButton } from "./ImageTextButton";
 import { cn } from "@/lib/cn";
 import { CAT_HEX } from "@/lib/expense-visuals";
 import type { Note } from "@/lib/types";
@@ -64,6 +66,9 @@ export function NoteForm({
   myId?: string;
 }) {
   const [body, setBody] = useState(initial?.body ?? "");
+  // A szerkesztő csak mountkor olvassa a value-t: képről beolvasott szövegnél
+  // új kezdőértékkel újramountoljuk (Story 10.1).
+  const [editorSeed, setEditorSeed] = useState({ key: 0, html: initial?.body ?? "" });
   const [color, setColor] = useState(initial?.color ?? "amber");
   const [pinned, setPinned] = useState(initial?.pinned ?? false);
   const [reminder, setReminder] = useState<string>(
@@ -118,7 +123,8 @@ export function NoteForm({
       <div>
         <span className="block text-sm font-medium mb-1.5">Tartalom</span>
         <RichTextEditor
-          value={initial?.body ?? ""}
+          key={editorSeed.key}
+          value={editorSeed.html}
           onChange={setBody}
           minHeight={220}
           placeholder="Írj ide bármit…"
@@ -127,6 +133,15 @@ export function NoteForm({
           Pipálható listához az eszköztár pipás lista-ikonja; utána a sor elején
           lévő négyzetre kattintva pipálhatsz — a jegyzet-kártyán is.
         </p>
+        <div className="mt-3">
+          <ImageTextButton
+            onText={(text) => {
+              const html = body + plainToRichText(text);
+              setBody(html);
+              setEditorSeed((s) => ({ key: s.key + 1, html }));
+            }}
+          />
+        </div>
       </div>
 
       {/* Szín */}
