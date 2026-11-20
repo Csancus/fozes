@@ -12,13 +12,12 @@ import {
   catColor,
   catIcon,
   payIcon,
-  nearestColorToken,
 } from "@/lib/expense-visuals";
 import { SAVED_ICON_KEYS, savedIcon } from "@/lib/saved-visuals";
 import { PAYMENT_KIND_LABEL, PROJECT_SCOPE_LABEL } from "@/lib/types";
 import type { PaymentKind, ProjectScope } from "@/lib/types";
 import { cn } from "@/lib/cn";
-import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers, Palette, Target } from "lucide-react";
+import { Plus, Pencil, X, Check, FolderKanban, Store, List, LayoutGrid, Layers, Target } from "lucide-react";
 
 export type Variant = "category" | "payment" | "person" | "project" | "merchant" | "group" | "goal" | "savedType";
 
@@ -76,6 +75,8 @@ const NAME_PLACEHOLDER: Record<Variant, string> = {
   savedType: "pl. Koncert, Kirándulás",
 };
 
+// Story 8.3 – a böngésző saját RGB-ablaka helyett csak a paletta: az úgyis a
+// legközelebbi palettaszínre kerekített, a natív ablak pedig nem stílusozható.
 function ColorPicker({
   value,
   onChange,
@@ -84,42 +85,35 @@ function ColorPicker({
   onChange: (c: string) => void;
 }) {
   return (
-    <div className="flex flex-wrap items-center gap-2">
+    <div
+      className="grid grid-cols-7 sm:grid-cols-[repeat(auto-fill,minmax(2.25rem,1fr))] gap-2 rounded-2xl border border-[var(--color-border)] bg-[var(--color-muted)]/40 p-2.5"
+      role="radiogroup"
+      aria-label="Szín"
+    >
       {COLOR_KEYS.map((c) => {
         const col = CAT_COLORS[c];
+        const active = value === c;
         return (
           <button
             type="button"
             key={c}
+            role="radio"
+            aria-checked={active}
             onClick={() => onChange(c)}
             aria-label={c}
+            title={c}
             className={cn(
-              "w-8 h-8 rounded-full transition",
+              "aspect-square w-full max-w-10 rounded-xl flex items-center justify-center transition shadow-sm",
               col.dot,
-              value === c
-                ? "ring-2 ring-offset-2 ring-offset-[var(--color-card)] " + col.ring
-                : "opacity-70 hover:opacity-100"
+              active
+                ? "ring-2 ring-offset-2 ring-offset-[var(--color-card)] scale-105 " + col.ring
+                : "hover:scale-105 hover:shadow-md"
             )}
-          />
+          >
+            {active && <Check className="w-4 h-4 text-white drop-shadow" strokeWidth={3} />}
+          </button>
         );
       })}
-      {/* RGB színválasztó — a paletta legközelebbi színére állít */}
-      <label
-        className="w-8 h-8 rounded-full border border-dashed border-[var(--color-border)] flex items-center justify-center cursor-pointer relative overflow-hidden"
-        title="Egyéni szín (RGB)"
-        style={{
-          background:
-            "conic-gradient(#ef4444,#f59e0b,#eab308,#22c55e,#06b6d4,#3b82f6,#8b5cf6,#ec4899,#ef4444)",
-        }}
-      >
-        <Palette className="w-4 h-4 text-white drop-shadow" />
-        <input
-          type="color"
-          onChange={(e) => onChange(nearestColorToken(e.target.value))}
-          className="absolute inset-0 opacity-0 cursor-pointer"
-          aria-label="Egyéni szín (RGB)"
-        />
-      </label>
     </div>
   );
 }

@@ -15,6 +15,7 @@
 3. **AC3** — A bal oldalsáv alján van egy „Kijelentkezés” gomb.
 4. **AC4** — Az oldalsáv fejlécében lévő gombbal becsukható. Ilyenkor a tartalom kitölti a helyét, bal lent egy gomb nyitja vissza, az állapotot pedig újratöltés után is villanás nélkül megtartja (localStorage `sidebar` → `data-sidebar="collapsed"`).
 5. **AC5** — A 404 oldal megmondja, mi történt, ad egy „Vissza a kezdőlapra” gombot és modul-linkeket.
+6. **AC6** — A kategória/projekt stb. színválasztóban nincs a böngésző natív RGB-ablaka (nem stílusozható, és úgyis a palettára kerekített); a paletta lekerekített négyzetekből álló rács, a kiválasztotton pipa.
 
 ## Megvalósítás
 
@@ -29,4 +30,4 @@
 |---|---|
 | AC1 | `tests/lib/appearance.test.ts › Story 8.3 › AC1` |
 | AC4 | `tests/lib/sidebar.test.ts › Story 8.3 – becsukható oldalsáv` |
-| AC2, AC3, AC5 | kézi |
+| AC2, AC3, AC5, AC6 | kézi |

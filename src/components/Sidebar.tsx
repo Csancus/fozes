@@ -58,7 +58,7 @@ const COOKING_PREFIXES = [
 
 const primary: NavItem[] = [
   { href: "/", label: "Kezdőlap", icon: Home },
-  { href: "/ma", label: "Ma", icon: CalendarCheck },
+  { href: "/ma", label: "Aktuális", icon: CalendarCheck },
   { href: "/fozes", label: "Főzés", icon: ChefHat },
   { href: "/koltsegek", label: "Költségek", icon: Wallet },
   { href: "/bakancslista", label: "Bakancslista", icon: Bookmark },
@@ -96,7 +96,7 @@ const costs: NavItem[] = [
 ];
 
 const todos: NavItem[] = [
-  { href: "/ma", label: "Ma", icon: CalendarCheck },
+  { href: "/ma", label: "Aktuális", icon: CalendarCheck },
   { href: "/teendok", label: "Teendők", icon: ListTodo },
   { href: "/teendok/board", label: "Board", icon: LayoutGrid },
   { href: "/teendok/gyors", label: "Gyors felvitel", icon: Table2 },

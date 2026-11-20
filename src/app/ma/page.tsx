@@ -22,6 +22,8 @@ import {
   Sparkles,
 } from "lucide-react";
 import { TaskListClient } from "../teendok/TaskListClient";
+import { PeriodPicker } from "./PeriodPicker";
+import { parsePeriod, periodHref, periodLabel, shiftPeriod } from "@/lib/period";
 import {
   toggleTaskDoneAction,
   deleteTaskFromListAction,
@@ -30,17 +32,15 @@ import {
   reorderTasksAction,
 } from "../teendok/actions";
 
-const MONTHS = [
-  "január", "február", "március", "április", "május", "június",
-  "július", "augusztus", "szeptember", "október", "november", "december",
-];
-const DOW_LONG = [
-  "vasárnap", "hétfő", "kedd", "szerda", "csütörtök", "péntek", "szombat",
-];
-
-// Napi áttekintő: ami lejárt, ami mára és holnapra esedékes — egy képernyőn.
-export default async function MaPage() {
+// „Aktuális” (Story 9.1): alapból a mai nap – ami lejárt, ami mára és holnapra
+// esedékes. A naptárral bármelyik nap, hét vagy hónap kiválasztható (?nap / ?het / ?ho).
+export default async function MaPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ nap?: string; het?: string; ho?: string }>;
+}) {
   const me = await requireUser();
+  const sp = await searchParams;
   const [tasks, members, projects, lists] = await Promise.all([
     listTasks(me.householdId),
     listHouseholdMembers(me.householdId),
@@ -50,6 +50,9 @@ export default async function MaPage() {
 
   const today = todayStr();
   const tomorrow = addInterval(today, { unit: "day", every: 1 });
+  const period = parsePeriod(sp, today);
+  // Alapnézet: a mai nap, a régi „Ma” logikával (lejárt + ma + holnap).
+  const isDefault = period.kind === "day" && period.start === today;
 
   const open = tasks.filter((t) => !t.done);
   const overdue = open.filter(
@@ -57,7 +60,24 @@ export default async function MaPage() {
   );
   const dueToday = open.filter((t) => t.dueDate === today);
   const dueTomorrow = open.filter((t) => t.dueDate === tomorrow);
-  const focus = [...overdue, ...dueToday, ...dueTomorrow];
+
+  // Kiválasztott időszak: a határidő az időszakba esik (nyitott és kész is).
+  const inPeriod = tasks.filter(
+    (t) => t.dueDate && t.dueDate >= period.start && t.dueDate <= period.end
+  );
+  const periodOpen = inPeriod.filter((t) => !t.done);
+  const periodDone = inPeriod.filter((t) => t.done);
+  const periodOverdue = periodOpen.filter(
+    (t) => (t.dueDate && t.dueDate < today) || isOverdue(t.dueDate, t.dueTime)
+  );
+
+  const focus = isDefault
+    ? [...overdue, ...dueToday, ...dueTomorrow]
+    : [...periodOpen, ...periodDone];
+
+  // Naptár-pöttyök: nyitott teendők határidő-naponként.
+  const counts: Record<string, number> = {};
+  for (const t of open) if (t.dueDate) counts[t.dueDate] = (counts[t.dueDate] ?? 0) + 1;
 
   const nameOf = (id: string | null) =>
     id && id !== SHARED_OWNER
@@ -79,25 +99,52 @@ export default async function MaPage() {
     })
     .filter((x) => x.total > 0 && x.done < x.total);
 
-  const now = new Date();
-  const dateLabel = `${now.getFullYear()}. ${MONTHS[now.getMonth()]} ${now.getDate()}., ${DOW_LONG[now.getDay()]}`;
+  const emptyTitle = isDefault
+    ? "Mára nincs esedékes teendő"
+    : period.kind === "day"
+      ? "Erre a napra nincs teendő"
+      : period.kind === "week"
+        ? "Erre a hétre nincs teendő"
+        : "Erre a hónapra nincs teendő";
+  const emptyText = isDefault
+    ? "Se lejárt, se mai, se holnapi határidő. Ha akarsz, nézd meg a teljes listát vagy vegyél fel valamit."
+    : "Egyik teendő határideje sem esik ebbe az időszakba. Válassz másikat a naptárban, vagy vegyél fel újat.";
 
   return (
     <main className="min-h-dvh px-5 pt-3 pb-8 max-w-md md:max-w-3xl mx-auto">
-      <PageHeader title="Ma" subtitle={dateLabel} back="/" />
+      <PageHeader title="Aktuális" subtitle={periodLabel(period, today)} back="/" />
 
-      <div className="mt-5 grid grid-cols-3 gap-3">
-        <Stat label="Lejárt" value={overdue.length} tone="red" />
-        <Stat label="Mára" value={dueToday.length} tone="primary" />
-        <Stat label="Holnap" value={dueTomorrow.length} tone="muted" />
-      </div>
+      <PeriodPicker
+        kind={period.kind}
+        start={period.start}
+        end={period.end}
+        today={today}
+        isCurrent={period.isCurrent}
+        prevHref={periodHref(shiftPeriod(period, -1, today), today)}
+        nextHref={periodHref(shiftPeriod(period, 1, today), today)}
+        counts={counts}
+      />
+
+      {isDefault ? (
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <Stat label="Lejárt" value={overdue.length} tone="red" />
+          <Stat label="Mára" value={dueToday.length} tone="primary" />
+          <Stat label="Holnap" value={dueTomorrow.length} tone="muted" />
+        </div>
+      ) : (
+        <div className="mt-4 grid grid-cols-3 gap-3">
+          <Stat label="Lejárt" value={periodOverdue.length} tone="red" />
+          <Stat label="Nyitott" value={periodOpen.length} tone="primary" />
+          <Stat label="Kész" value={periodDone.length} tone="muted" />
+        </div>
+      )}
 
       {focus.length === 0 ? (
         <div className="mt-6">
           <EmptyState
             icon={Sparkles}
-            title="Mára nincs esedékes teendő"
-            description="Se lejárt, se mai, se holnapi határidő. Ha akarsz, nézd meg a teljes listát vagy vegyél fel valamit."
+            title={emptyTitle}
+            description={emptyText}
             action={
               <Button href="/teendok" leftIcon={<ListTodo className="w-4 h-4" />}>
                 Minden teendő
