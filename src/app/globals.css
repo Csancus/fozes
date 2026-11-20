@@ -2,6 +2,9 @@
 
 
 :root {
+  color-scheme: light;
+  --scrollbar-thumb: rgba(60, 60, 67, 0.26);
+  --scrollbar-thumb-hover: rgba(60, 60, 67, 0.45);
   --background: #fafaf9;
   --foreground: #1c1917;
   --card: #ffffff;
@@ -16,6 +19,8 @@
 
   /* Default: Orange (Warm Kitchen) */
   --primary: #ea580c;
+  /* sötétebb árnyalat: fehér szöveggel is WCAG AA (csempe gombok) */
+  --primary-strong: #c2410c;
   --primary-foreground: #ffffff;
   --primary-soft: #fff7ed;
   --ring: rgba(234, 88, 12, 0.35);
@@ -25,6 +30,8 @@
 
 [data-theme="green"] {
   --primary: #059669;
+  /* sötétebb árnyalat: fehér szöveggel is WCAG AA (csempe gombok) */
+  --primary-strong: #047857;
   --primary-foreground: #ffffff;
   --primary-soft: #ecfdf5;
   --ring: rgba(5, 150, 105, 0.35);
@@ -34,6 +41,8 @@
 
 [data-theme="turquoise"] {
   --primary: #0d9488;
+  /* sötétebb árnyalat: fehér szöveggel is WCAG AA (csempe gombok) */
+  --primary-strong: #0f766e;
   --primary-foreground: #ffffff;
   --primary-soft: #f0fdfa;
   --ring: rgba(13, 148, 136, 0.35);
@@ -43,6 +52,8 @@
 
 [data-theme="blue"] {
   --primary: #2563eb;
+  /* sötétebb árnyalat: fehér szöveggel is WCAG AA (csempe gombok) */
+  --primary-strong: #1d4ed8;
   --primary-foreground: #ffffff;
   --primary-soft: #eff6ff;
   --ring: rgba(37, 99, 235, 0.35);
@@ -72,8 +83,27 @@
   --font-mono: var(--font-geist-mono);
 }
 
+/* ===== Világos / sötét / rendszer mód (Story 8.2) =====
+   html[data-mode="light"|"dark"]; ha nincs data-mode, a rendszer
+   (prefers-color-scheme) dönt. A sötét értékek ezért kétszer szerepelnek:
+   egyszer a rendszer-sötét ágon (ha nincs kényszerített világos), egyszer a
+   kényszerített sötét ágon. Ha módosítasz, MINDKETTŐT írd át!
+   (color-mix-et szándékosan nem használunk: a Next CSS-feldolgozója eldobta.) */
+@custom-variant dark {
+  &:where([data-mode="dark"], [data-mode="dark"] *) {
+    @slot;
+  }
+  @media (prefers-color-scheme: dark) {
+    &:where(:root:not([data-mode="light"]), :root:not([data-mode="light"]) *) {
+      @slot;
+    }
+  }
+}
+
+/* --- 1. ág: rendszer sötét, nincs kényszerített világos --- */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-mode="light"]) {
+    color-scheme: dark;
     --background: #0c0a09;
     --foreground: #fafaf9;
     --card: #1c1917;
@@ -85,37 +115,135 @@
     --success: #10b981;
     --warning: #f59e0b;
     --danger: #ef4444;
+    --scrollbar-thumb: rgba(235, 235, 245, 0.22);
+    --scrollbar-thumb-hover: rgba(235, 235, 245, 0.4);
 
     --primary: #f97316;
+    --primary-strong: #f97316;
     --primary-foreground: #1c1917;
     --primary-soft: rgba(249, 115, 22, 0.14);
     --ring: rgba(249, 115, 22, 0.4);
     --gradient-from: #f97316;
     --gradient-to: #fbbf24;
   }
-  [data-theme="green"] {
+  :root:not([data-mode="light"])[data-theme="green"] {
     --primary: #10b981;
+    --primary-strong: #10b981;
     --primary-foreground: #052e21;
     --primary-soft: rgba(16, 185, 129, 0.14);
     --ring: rgba(16, 185, 129, 0.4);
     --gradient-from: #10b981;
     --gradient-to: #34d399;
   }
-  [data-theme="turquoise"] {
+  :root:not([data-mode="light"])[data-theme="turquoise"] {
     --primary: #14b8a6;
+    --primary-strong: #14b8a6;
     --primary-foreground: #042f2e;
     --primary-soft: rgba(20, 184, 166, 0.14);
     --ring: rgba(20, 184, 166, 0.4);
     --gradient-from: #14b8a6;
     --gradient-to: #22d3ee;
   }
-  [data-theme="blue"] {
+  :root:not([data-mode="light"])[data-theme="blue"] {
     --primary: #3b82f6;
+    --primary-strong: #3b82f6;
     --primary-foreground: #0b1b3f;
     --primary-soft: rgba(59, 130, 246, 0.14);
     --ring: rgba(59, 130, 246, 0.4);
     --gradient-from: #3b82f6;
     --gradient-to: #38bdf8;
+  }
+}
+
+/* --- 2. ág: kényszerített sötét (ugyanazok az értékek) --- */
+:root[data-mode="dark"] {
+  color-scheme: dark;
+  --background: #0c0a09;
+  --foreground: #fafaf9;
+  --card: #1c1917;
+  --card-foreground: #fafaf9;
+  --muted: #292524;
+  --muted-foreground: #a8a29e;
+  --border: #292524;
+  --input-border: #44403c;
+  --success: #10b981;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --scrollbar-thumb: rgba(235, 235, 245, 0.22);
+  --scrollbar-thumb-hover: rgba(235, 235, 245, 0.4);
+
+  --primary: #f97316;
+  --primary-strong: #f97316;
+  --primary-foreground: #1c1917;
+  --primary-soft: rgba(249, 115, 22, 0.14);
+  --ring: rgba(249, 115, 22, 0.4);
+  --gradient-from: #f97316;
+  --gradient-to: #fbbf24;
+}
+:root[data-mode="dark"][data-theme="green"] {
+  --primary: #10b981;
+  --primary-strong: #10b981;
+  --primary-foreground: #052e21;
+  --primary-soft: rgba(16, 185, 129, 0.14);
+  --ring: rgba(16, 185, 129, 0.4);
+  --gradient-from: #10b981;
+  --gradient-to: #34d399;
+}
+:root[data-mode="dark"][data-theme="turquoise"] {
+  --primary: #14b8a6;
+  --primary-strong: #14b8a6;
+  --primary-foreground: #042f2e;
+  --primary-soft: rgba(20, 184, 166, 0.14);
+  --ring: rgba(20, 184, 166, 0.4);
+  --gradient-from: #14b8a6;
+  --gradient-to: #22d3ee;
+}
+:root[data-mode="dark"][data-theme="blue"] {
+  --primary: #3b82f6;
+  --primary-strong: #3b82f6;
+  --primary-foreground: #0b1b3f;
+  --primary-soft: rgba(59, 130, 246, 0.14);
+  --ring: rgba(59, 130, 246, 0.4);
+  --gradient-from: #3b82f6;
+  --gradient-to: #38bdf8;
+}
+
+/* ===== Görgetősávok (macOS-szerű: vékony, lekerekített, nyíl nélkül) =====
+   Chromium/Safari: ::-webkit-scrollbar (itt NEM állítunk scrollbar-color-t,
+   mert Chrome 121+-ban az kikapcsolná a webkit-szabályokat, és Windowson
+   vastag, nyilas sávot adna). Firefox: a szabványos scrollbar-* tulajdonságok. */
+@supports selector(::-webkit-scrollbar) {
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+    background: transparent;
+  }
+  ::-webkit-scrollbar-track,
+  ::-webkit-scrollbar-corner {
+    background: transparent;
+  }
+  ::-webkit-scrollbar-button {
+    display: none;
+    width: 0;
+    height: 0;
+  }
+  ::-webkit-scrollbar-thumb {
+    min-height: 36px;
+    min-width: 36px;
+    border-radius: 999px;
+    border: 2.5px solid transparent;
+    background-clip: padding-box;
+    background-color: var(--scrollbar-thumb);
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    border-width: 2px;
+    background-color: var(--scrollbar-thumb-hover);
+  }
+}
+@supports not selector(::-webkit-scrollbar) {
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb) transparent;
   }
 }
 
@@ -267,90 +395,206 @@ a {
   text-decoration: line-through;
 }
 
-/* ===== Üveges csempe stílus (a törvénysértésch-oldal mintájára) =====
-   Színfüggetlen: a választott téma színeivel és a világos/sötét móddal is megy.
-   html[data-style="csempe"] – a témaszín (data-theme) mellett külön kapcsoló.
-   (color-mix-et szándékosan nem használunk: a Next CSS-feldolgozója eldobta a blokkot.) */
+/* ===== Üveges csempe stílus – Apple „materials” irány (Story 8.1, 8.2) =====
+   Színfüggetlen: a választott témaszín (data-theme) marad, világos és sötét
+   módban is működik. html[data-style="csempe"] – külön kapcsoló.
+   Elvek: áttetsző, erősen elmosott + telített anyag; hajszálvékony szegély és
+   felső fény; lágy, nagy szórású, halvány árnyék; visszafogott, lassú
+   színfoltok; tömör témaszínű gombok; iOS-szerű szegmentált vezérlők.
+   (color-mix-et szándékosan nem használunk: a Next CSS-feldolgozója eldobta a blokkot.)
+   A sötét értékek két ágon szerepelnek (rendszer-sötét és data-mode="dark") – mindkettőt írd át! */
 :root[data-style="csempe"] {
-  --csempe-glass: rgba(255, 255, 255, 0.62);
-  --csempe-glass-strong: rgba(255, 255, 255, 0.8);
-  --csempe-line: rgba(28, 25, 23, 0.1);
-  --csempe-shadow: 0 24px 60px -24px rgba(20, 40, 90, 0.28), 0 2px 6px rgba(20, 40, 90, 0.06);
-  --csempe-orb-opacity: 0.28;
+  --background: #f2f2f7;
+  /* üvegen, színes folt fölött is AA kontraszt */
+  --muted-foreground: #66605b;
+  --muted: rgba(118, 118, 128, 0.12);
+  --border: rgba(60, 60, 67, 0.12);
+  --input-border: rgba(60, 60, 67, 0.18);
+  --csempe-glass: rgba(255, 255, 255, 0.72);
+  --csempe-glass-strong: rgba(255, 255, 255, 0.82);
+  --csempe-line: rgba(0, 0, 0, 0.06);
+  --csempe-highlight: rgba(255, 255, 255, 0.9);
+  --csempe-shadow: 0 1px 2px rgba(0, 0, 0, 0.04), 0 10px 40px -12px rgba(0, 0, 0, 0.12);
+  --csempe-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.05), 0 18px 50px -14px rgba(0, 0, 0, 0.18);
+  --csempe-thumb: #ffffff;
+  --csempe-thumb-shadow: 0 3px 8px rgba(0, 0, 0, 0.12), 0 1px 1px rgba(0, 0, 0, 0.04);
+  --csempe-orb-opacity: 0.2;
+  --csempe-orb-b: var(--gradient-to);
+  --csempe-radius: 20px;
 }
 @media (prefers-color-scheme: dark) {
-  :root[data-style="csempe"] {
-    --csempe-glass: rgba(255, 255, 255, 0.06);
-    --csempe-glass-strong: rgba(255, 255, 255, 0.09);
-    --csempe-line: rgba(255, 255, 255, 0.14);
-    --csempe-shadow: 0 24px 60px -20px rgba(0, 0, 0, 0.6), 0 2px 6px rgba(0, 0, 0, 0.25);
-    --csempe-orb-opacity: 0.32;
+  :root[data-style="csempe"]:not([data-mode="light"]) {
+    --background: #050505;
+    --muted-foreground: #a8a29e;
+    --muted: rgba(118, 118, 128, 0.24);
+    --border: rgba(84, 84, 88, 0.5);
+    --input-border: rgba(84, 84, 88, 0.65);
+    --csempe-glass: rgba(44, 44, 48, 0.5);
+    --csempe-glass-strong: rgba(44, 44, 46, 0.62);
+    --csempe-line: rgba(255, 255, 255, 0.1);
+    --csempe-highlight: rgba(255, 255, 255, 0.09);
+    --csempe-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+    --csempe-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 20px 50px -14px rgba(0, 0, 0, 0.7);
+    --csempe-thumb: #636366;
+    --csempe-thumb-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+    --csempe-orb-opacity: 0.3;
+    --csempe-orb-b: var(--primary);
   }
 }
+:root[data-style="csempe"][data-mode="dark"] {
+  --background: #050505;
+  --muted-foreground: #a8a29e;
+  --muted: rgba(118, 118, 128, 0.24);
+  --border: rgba(84, 84, 88, 0.5);
+  --input-border: rgba(84, 84, 88, 0.65);
+  --csempe-glass: rgba(44, 44, 48, 0.5);
+  --csempe-glass-strong: rgba(44, 44, 46, 0.62);
+  --csempe-line: rgba(255, 255, 255, 0.1);
+  --csempe-highlight: rgba(255, 255, 255, 0.09);
+  --csempe-shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 12px 40px -12px rgba(0, 0, 0, 0.6);
+  --csempe-shadow-hover: 0 2px 4px rgba(0, 0, 0, 0.35), 0 20px 50px -14px rgba(0, 0, 0, 0.7);
+  --csempe-thumb: #636366;
+  --csempe-thumb-shadow: 0 3px 8px rgba(0, 0, 0, 0.3);
+  --csempe-orb-opacity: 0.3;
+  --csempe-orb-b: var(--primary);
+}
 
-/* lebegő színfoltok a háttérben, a témaszínekből (fix réteg a tartalom mögött) */
+/* SF-szerű tipográfia (Apple-eszközön SF Pro, Windowson Segoe UI Variable) */
+:root[data-style="csempe"] body {
+  isolation: isolate;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI Variable Text",
+    "Segoe UI", system-ui, var(--font-sans), sans-serif;
+  letter-spacing: -0.008em;
+}
+:root[data-style="csempe"] h1,
+:root[data-style="csempe"] h2 {
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "Segoe UI Variable Display",
+    "Segoe UI", system-ui, var(--font-sans), sans-serif;
+  letter-spacing: -0.022em;
+}
+
+/* nagy, lassú, visszafogott színfoltok a témaszínekből (fix réteg a tartalom mögött) */
 :root[data-style="csempe"] body::before {
   content: "";
   position: fixed;
-  inset: 0;
+  inset: -10%;
   z-index: -1;
   pointer-events: none;
   opacity: var(--csempe-orb-opacity);
   background:
-    radial-gradient(520px 520px at -6% -8%, var(--gradient-from), transparent 70%),
-    radial-gradient(600px 600px at 106% 40%, var(--gradient-to), transparent 70%),
-    radial-gradient(520px 520px at 30% 112%, var(--gradient-from), transparent 70%);
+    radial-gradient(40vmax 40vmax at 22% 18%, var(--gradient-from), transparent 62%),
+    radial-gradient(42vmax 42vmax at 80% 62%, var(--csempe-orb-b), transparent 62%),
+    radial-gradient(34vmax 34vmax at 40% 100%, var(--gradient-from), transparent 62%);
+  animation: csempe-drift 60s ease-in-out infinite alternate;
 }
-:root[data-style="csempe"] body {
-  isolation: isolate;
+@keyframes csempe-drift {
+  from {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  to {
+    transform: translate3d(-3%, 2%, 0) scale(1.06);
+  }
+}
+/* app-ikon jellegű márkajel: felső fény + halvány, témaszínű árnyék */
+:root[data-style="csempe"] .brand-gradient {
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.35), inset 0 0 0 0.5px rgba(255, 255, 255, 0.2),
+    0 8px 20px -8px var(--ring);
 }
 /* a teljes oldalas háttérrel festett konténerek engedjék át a színfoltokat */
 :root[data-style="csempe"] main[class*="bg-[var(--color-background)]"] {
   background-color: transparent;
 }
+/* az oldal saját (sima stílushoz való) foltjai helyett a közös réteg látszik */
+:root[data-style="csempe"] [data-plain-only] {
+  display: none;
+}
 
-/* üveges csempék: minden kártya-hátterű elem áttetsző + elmosott + mély árnyék */
+/* üveges csempék: minden kártya-hátterű elem áttetsző anyag */
 :root[data-style="csempe"] [class*="bg-[var(--color-card)]"] {
   background-color: var(--csempe-glass);
   border-color: var(--csempe-line);
-  -webkit-backdrop-filter: blur(16px) saturate(1.4);
-  backdrop-filter: blur(16px) saturate(1.4);
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
 }
 :root[data-style="csempe"] .rounded-2xl[class*="bg-[var(--color-card)]"] {
-  border-radius: 1.5rem;
-  box-shadow: var(--csempe-shadow);
+  border-radius: var(--csempe-radius);
+  box-shadow: inset 0 1px 0 var(--csempe-highlight), var(--csempe-shadow);
 }
 :root[data-style="csempe"] a.rounded-2xl[class*="bg-[var(--color-card)]"] {
-  transition: transform 0.25s, box-shadow 0.25s, border-color 0.25s;
+  transition: transform 0.3s cubic-bezier(0.22, 1, 0.36, 1), box-shadow 0.3s;
 }
 :root[data-style="csempe"] a.rounded-2xl[class*="bg-[var(--color-card)]"]:hover {
-  transform: translateY(-3px);
-  border-color: var(--primary);
+  transform: translateY(-1px);
+  box-shadow: inset 0 1px 0 var(--csempe-highlight), var(--csempe-shadow-hover);
 }
+
+/* űrlapmezők: kicsit tömörebb anyag, finom fókusz-gyűrű */
 :root[data-style="csempe"] input[class*="bg-[var(--color-card)]"],
 :root[data-style="csempe"] textarea[class*="bg-[var(--color-card)]"],
 :root[data-style="csempe"] select[class*="bg-[var(--color-card)]"] {
   background-color: var(--csempe-glass-strong);
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+:root[data-style="csempe"] input[class*="bg-[var(--color-card)]"]:focus,
+:root[data-style="csempe"] textarea[class*="bg-[var(--color-card)]"]:focus,
+:root[data-style="csempe"] select[class*="bg-[var(--color-card)]"]:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--ring);
 }
 
-/* átmenetes „pill” gombok */
+/* gombok: tömör témaszín (AA-kontrasztú árnyalat), finom felső fény */
 :root[data-style="csempe"] button[class*="bg-[var(--color-primary)]"],
 :root[data-style="csempe"] a[class*="bg-[var(--color-primary)]"] {
-  background-image: linear-gradient(135deg, var(--gradient-from), var(--gradient-to));
-  background-size: 140% 140%;
-  background-position: 0 50%;
-  border-radius: 999px;
-  box-shadow: 0 12px 28px -10px rgba(0, 20, 60, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
-  transition: transform 0.2s, box-shadow 0.2s, background-position 0.4s;
+  background-color: var(--primary-strong);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.16), 0 1px 2px rgba(0, 0, 0, 0.1);
+  transition: filter 0.2s, transform 0.15s;
 }
 :root[data-style="csempe"] button[class*="bg-[var(--color-primary)]"]:hover,
 :root[data-style="csempe"] a[class*="bg-[var(--color-primary)]"]:hover {
-  background-position: 100% 50%;
-  transform: translateY(-1px);
+  filter: brightness(1.08);
 }
+
+/* témaszínű szöveg (linkek, aktív menüpont): világosban a sötétebb, AA-kontrasztú árnyalat */
+:root[data-style="csempe"] [class*="text-[var(--color-primary)]"] {
+  color: var(--primary-strong);
+}
+
+/* szegmentált vezérlők (fülek, kapcsolók) iOS-szerűen */
+:root[data-style="csempe"] [role="tablist"],
+:root[data-style="csempe"] [data-segmented] {
+  background-color: var(--muted);
+  padding: 2px;
+  border-radius: 10px;
+}
+:root[data-style="csempe"] [data-segmented].bg-transparent {
+  background-color: transparent;
+}
+:root[data-style="csempe"] [role="tablist"] > [aria-selected="true"],
+:root[data-style="csempe"] [data-segmented] > [aria-checked="true"] {
+  background-color: var(--csempe-thumb);
+  box-shadow: var(--csempe-thumb-shadow);
+  border-radius: 8px;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  :root[data-style="csempe"] a.rounded-2xl[class*="bg-[var(--color-card)]"]:hover,
-  :root[data-style="csempe"] button[class*="bg-[var(--color-primary)]"]:hover {
+  :root[data-style="csempe"] body::before {
+    animation: none;
+  }
+  :root[data-style="csempe"] a.rounded-2xl[class*="bg-[var(--color-card)]"]:hover {
     transform: none;
+  }
+}
+/* csökkentett átlátszóság: tömör kártyák, színfoltok nélkül */
+@media (prefers-reduced-transparency: reduce) {
+  :root[data-style="csempe"] body::before {
+    display: none;
+  }
+  :root[data-style="csempe"] [class*="bg-[var(--color-card)]"] {
+    background-color: var(--card);
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
   }
 }

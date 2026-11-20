@@ -63,3 +63,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | Story | Cím | Állapot |
 |---|---|---|
 | [8.1](stories/story-8.1-belepes-ux-es-csempe-stilus.md) | Középre igazított belépés oldal + üveges csempe stílus | ✅ |
+| [8.2](stories/story-8.2-vilagos-sotet-mod-es-apple-csempe.md) | Világos / sötét / rendszer mód + Apple-szerű csempe + görgetősávok | ✅ |

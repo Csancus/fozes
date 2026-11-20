@@ -21,6 +21,7 @@ import {
 import { Input, Field } from "@/components/ui/Input";
 import { PasswordInput } from "@/components/ui/PasswordInput";
 import { SubmitButton } from "@/components/ui/SubmitButton";
+import { ModeSwitcher } from "@/components/ModeSwitcher";
 import Link from "next/link";
 
 const MODULES = [
@@ -58,8 +59,18 @@ export default async function LoginPage({
       : "Lépj be a folytatáshoz.";
 
   return (
-    <main className="relative min-h-dvh flex items-center justify-center overflow-hidden px-4 py-10 bg-[var(--color-background)]">
-      <div aria-hidden className="pointer-events-none absolute inset-0">
+    <main className="relative min-h-dvh flex items-center justify-center overflow-hidden px-4 pt-16 pb-10 sm:py-10 bg-[var(--color-background)]">
+      {/* Világos / sötét / rendszer mód már belépés előtt is (Story 8.2) */}
+      <div
+        className="absolute right-4 z-10"
+        style={{ top: "max(1rem, env(safe-area-inset-top))" }}
+      >
+        <div className="rounded-full border border-[var(--color-border)] bg-[var(--color-card)]/70 p-0.5 shadow-sm backdrop-blur-md">
+          <ModeSwitcher compact className="bg-transparent" />
+        </div>
+      </div>
+
+      <div aria-hidden data-plain-only className="pointer-events-none absolute inset-0">
         <div
           className="absolute -top-40 -right-32 w-[28rem] h-[28rem] rounded-full blur-3xl opacity-25"
           style={{ background: "var(--color-gradient-from)" }}

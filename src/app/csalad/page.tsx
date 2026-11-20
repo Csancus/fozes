@@ -10,6 +10,7 @@ import { InvitesPanel } from "./InvitesPanel";
 import { MemberActions } from "./MemberActions";
 import { listInvites } from "@/lib/invites";
 import { SurprisePasswordForm } from "./SurprisePasswordForm";
+import { ThemeSwitcher } from "@/components/ThemeSwitcher";
 
 function initialsOf(name: string): string {
   return name
@@ -82,6 +83,15 @@ export default async function CsaladPage() {
               </div>
             </Card>
           )}
+        </Section>
+
+        {/* Mobilon nincs sidebar, ezért a megjelenés itt is állítható (Story 8.2). */}
+        <Section title="Megjelenés">
+          <Card>
+            <div className="p-4">
+              <ThemeSwitcher />
+            </div>
+          </Card>
         </Section>
 
         <Section title="Meglepetés-jelszó">
