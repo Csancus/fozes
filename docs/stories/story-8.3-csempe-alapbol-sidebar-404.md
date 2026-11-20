@@ -17,6 +17,7 @@
 5. **AC5** — A 404 oldal megmondja, mi történt, ad egy „Vissza a kezdőlapra” gombot és modul-linkeket.
 6. **AC6** — A kategória/projekt stb. színválasztóban nincs a böngésző natív RGB-ablaka (nem stílusozható, és úgyis a palettára kerekített); a paletta lekerekített négyzetekből álló rács, a kiválasztotton pipa.
 7. **AC7** — Az almenüs menüpontok (Főzés, Költségek, Teendők, utazás) mellett egy nyíllal az almenü összecsukható/kinyitható; az állapotot a böngésző megjegyzi (localStorage `sidebar-groups`).
+8. **AC8** — Mobilon a belépés oldal a gombbal együtt görgetés nélkül kifér (360×640-en és 375×560-on is): egysoros márka, modul-chipek és alcím csak sm-től.
 
 ## Megvalósítás
 
@@ -31,4 +32,4 @@
 |---|---|
 | AC1 | `tests/lib/appearance.test.ts › Story 8.3 › AC1` |
 | AC4 | `tests/lib/sidebar.test.ts › Story 8.3 – becsukható oldalsáv` |
-| AC2, AC3, AC5, AC6, AC7 | kézi |
+| AC2, AC3, AC5, AC6, AC7, AC8 | kézi (AC8: iframe-mérés 320–390 px szélességen) |

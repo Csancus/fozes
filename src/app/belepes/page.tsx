@@ -59,7 +59,7 @@ export default async function LoginPage({
       : "Lépj be a folytatáshoz.";
 
   return (
-    <main className="relative min-h-dvh flex items-center justify-center overflow-hidden px-4 pt-16 pb-10 sm:py-10 bg-[var(--color-background)]">
+    <main className="relative min-h-dvh flex items-center justify-center overflow-hidden px-4 pt-4 pb-4 sm:py-10 bg-[var(--color-background)]">
       {/* Világos / sötét váltás már belépés előtt is (Story 8.2) */}
       <div
         className="absolute right-4 z-10"
@@ -81,12 +81,13 @@ export default async function LoginPage({
 
       <div className="relative w-full max-w-[400px] animate-fade-up">
         {/* Márka */}
-        <div className="flex flex-col items-center text-center mb-7">
-          <div className="w-14 h-14 rounded-2xl brand-gradient flex items-center justify-center shadow-lg">
-            <Compass className="w-7 h-7 text-white" strokeWidth={2} />
+        {/* Mobilon tömör, egysoros márka, hogy az egész űrlap a gombbal együtt kiférjen (Story 8.3 AC8). */}
+        <div className="flex flex-row sm:flex-col items-center justify-center gap-2.5 sm:gap-0 text-center mb-4 sm:mb-7">
+          <div className="w-10 h-10 sm:w-14 sm:h-14 rounded-xl sm:rounded-2xl brand-gradient flex items-center justify-center shadow-lg">
+            <Compass className="w-5 h-5 sm:w-7 sm:h-7 text-white" strokeWidth={2} />
           </div>
-          <p className="mt-3 text-base font-semibold tracking-tight">Élet Portál</p>
-          <div className="mt-3 flex flex-wrap items-center justify-center gap-1.5">
+          <p className="sm:mt-3 text-base font-semibold tracking-tight">Élet Portál</p>
+          <div className="mt-3 hidden sm:flex flex-wrap items-center justify-center gap-1.5">
             {MODULES.map(({ icon: Icon, label }) => (
               <span
                 key={label}
@@ -99,7 +100,7 @@ export default async function LoginPage({
           </div>
         </div>
 
-        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-xl shadow-black/10 p-6 sm:p-7">
+        <div className="rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] shadow-xl shadow-black/10 p-4 sm:p-7">
           {isForgot ? (
             <Link
               href={loginHref}
@@ -108,7 +109,7 @@ export default async function LoginPage({
               <ArrowLeft className="w-4 h-4" /> Vissza a belépéshez
             </Link>
           ) : (
-            <div role="tablist" className="grid grid-cols-2 gap-1 mb-6 p-1 bg-[var(--color-muted)] rounded-xl">
+            <div role="tablist" className="grid grid-cols-2 gap-1 mb-3 sm:mb-6 p-1 bg-[var(--color-muted)] rounded-xl">
               <TabLink active={!isRegister} href={loginHref}>
                 Belépés
               </TabLink>
@@ -118,9 +119,9 @@ export default async function LoginPage({
             </div>
           )}
 
-          <div className="mb-5">
+          <div className="mb-3 sm:mb-5">
             <h1 className="text-xl font-bold tracking-tight">{title}</h1>
-            <p className="mt-1 text-sm text-[var(--color-muted-foreground)]">{subtitle}</p>
+            <p className="mt-1 hidden sm:block text-sm text-[var(--color-muted-foreground)]">{subtitle}</p>
           </div>
 
           {sp.inv && isRegister && (
@@ -150,7 +151,7 @@ export default async function LoginPage({
               </p>
             )
           ) : (
-            <form action={isRegister ? register : login} className="space-y-4">
+            <form action={isRegister ? register : login} className="space-y-3 sm:space-y-4">
               {isRegister && (
                 <>
                   <Field label="Név" required>
@@ -181,11 +182,7 @@ export default async function LoginPage({
               <EmailField defaultValue={sp.email} autoFocus={!isRegister && !sp.email} />
 
               <div>
-                <Field
-                  label="Jelszó"
-                  required
-                  hint={isRegister ? `Legalább ${MIN_PASSWORD_LENGTH} karakter` : undefined}
-                >
+                <Field label="Jelszó" required>
                   <PasswordInput
                     name="password"
                     required
@@ -196,7 +193,7 @@ export default async function LoginPage({
                   />
                 </Field>
                 {!isRegister && (
-                  <div className="mt-2 text-right">
+                  <div className="mt-1.5 text-right">
                     <Link
                       href="/belepes?mode=forgot"
                       className="text-xs font-medium text-[var(--color-primary)] hover:underline"
@@ -209,7 +206,7 @@ export default async function LoginPage({
 
               <CaptchaField a={captcha.a} b={captcha.b} token={captcha.token} />
 
-              <div className="pt-1">
+              <div className="sm:pt-1">
                 <SubmitButton size="lg" fullWidth pendingText={isRegister ? "Fiók létrehozása…" : "Belépés…"}>
                   {isRegister ? "Fiók létrehozása" : "Belépés"}
                 </SubmitButton>
@@ -219,7 +216,7 @@ export default async function LoginPage({
         </div>
 
         {isRegister && !invite && (
-          <p className="mt-5 flex items-start justify-center gap-1.5 text-center text-xs text-[var(--color-muted-foreground)]">
+          <p className="mt-5 hidden sm:flex items-start justify-center gap-1.5 text-center text-xs text-[var(--color-muted-foreground)]">
             <Users className="w-3.5 h-3.5 mt-px shrink-0" />
             Regisztrációkor saját háztartást kapsz, ahova később a családot is meghívhatod.
           </p>
@@ -262,7 +259,7 @@ function CaptchaField({
   autoFocus?: boolean;
 }) {
   return (
-    <Field label="Biztonsági kérdés" required hint="Így szűrjük ki a gépi próbálkozásokat.">
+    <Field label="Biztonsági kérdés" required>
       <input type="hidden" name="captchaToken" value={token} />
       <div className="flex items-center gap-3">
         <span
