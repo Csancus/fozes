@@ -76,6 +76,11 @@ function today(now: Date): string {
 // Kihagyandó (nem bolt / nem tétel / egyenleg) sorok.
 const SKIP_RE =
   /(ref\.?:|hitelkártya haszn|hitelkartya haszn|zárolt|egyenleg|számlacsomag|funkci|informáci|feltöltött pénz|elérhető|rendelkezésre|\bbalance\b|\bIBAN\b|HU\d{2}\b)/i;
+// Nem kiadás/bevétel: pénzváltás saját számlák között („HUF → CZK”), Revolut aprópénz-megtakarítás / széf.
+const NON_TX_RE = /\b[A-Z]{3}\s*(?:→|->|—>|=>|>|»)\s*[A-Z]{3}\b|apr[oó]p[eé]nz|megtakar[ií]t[aá]s|\bvault\b|\bsz[eé]f\b/i;
+// Másodlagos deviza-összeg: „-1 463 Kč”, „+6 648,16 Kč”, „12,50 EUR”, „€12.50”.
+const FOREIGN_AMOUNT_RE =
+  /[+\-]?\s?(?:\d{1,3}(?:[ .]\d{3})+|\d+)(?:[,.]\d{1,2})?\s*(?:Kč|Kc|CZK|EUR|€|USD|\$|GBP|£|PLN|zł|zl|RON|lei|CHF)(?![\p{L}])|(?:€|\$|£)\s?\d+(?:[,.]\d{1,2})?/giu;
 // Egyenleg-címke: a következő összeg-sor sem tétel.
 const BALANCE_LABEL_RE = /^(egyenleg|aktuális egyenleg|elérhető egyenleg|számlaegyenleg|balance|total balance)\b/i;
 // Hónap + év szekció-fejléc („November 2026”, „ebben a hónapban”).
@@ -188,7 +193,8 @@ function detectDateAfter(lines: string[], now: Date): boolean {
 export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] {
   const lines = cleanOcrText(text)
     .split("\n")
-    .map((l) => l.trim())
+    // Másodlagos devizás összeg (Revolut: „-1 463 Kč” a forint alatt) – csak a forint számít (Story 10.4).
+    .map((l) => l.replace(FOREIGN_AMOUNT_RE, " ").replace(/\s{2,}/g, " ").trim())
     .filter(Boolean);
 
   const receipt = parseReceipt(lines, now);
@@ -202,11 +208,30 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
   let lastTxHasDate = false;
   let candidates: string[] = []; // az utolsó összeg óta látott név-jelöltek
   let afterBalanceLabel = false;
+  // Revolut: a hosszú név második sora („McCarthy's Irish -13 260,62 Ft” / „Pub”) közvetlenül a tétel-sor után.
+  let canContinueName = false;
   const out: ParsedTx[] = [];
 
   for (const line of lines) {
     const low = fold(line);
     const amounts = findAmounts(line);
+    const continuation = canContinueName;
+    canContinueName = false;
+    if (
+      continuation &&
+      lastTx &&
+      !amounts.length &&
+      !/\d/.test(line) &&
+      letters(line) >= 2 &&
+      line.length <= 30 &&
+      !isSubtitle(line) &&
+      !bankCategoryOf(line) &&
+      !SKIP_RE.test(line) &&
+      !SECTION_RE.test(low.trim())
+    ) {
+      lastTx.merchant = normalizeMerchant(cleanMerchant(`${lastTx.merchant} ${line}`));
+      continue;
+    }
 
     // Dátum / szekció-kontextus (a sor lényegében csak dátum).
     if (!amounts.length) {
@@ -234,7 +259,7 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
     }
 
     if (amounts.length) {
-      const balance = afterBalanceLabel || SKIP_RE.test(line);
+      const balance = afterBalanceLabel || SKIP_RE.test(line) || NON_TX_RE.test(line);
       afterBalanceLabel = false;
       if (balance) {
         candidates = [];
@@ -269,6 +294,8 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
         };
         lastTxHasDate = hasInline;
         out.push(lastTx);
+        // csak ha a név ugyanebben a sorban volt (nem a fölötte lévő jelöltből)
+        canContinueName = !subtitle && letters(residual) >= 2;
       }
       candidates = [];
       continue;
@@ -279,7 +306,7 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
       afterBalanceLabel = true;
       continue;
     }
-    if (SKIP_RE.test(line)) continue;
+    if (SKIP_RE.test(line) || NON_TX_RE.test(line)) continue;
     if (/^\d{1,2}[:.]\d{2}\b/.test(line) && letters(line) < 4) continue; // állapotsor / idő
     if (/\d\s*(EUR|USD|€|\$)/i.test(line)) continue; // másodlagos devizás sor
     if (isSubtitle(line)) continue;

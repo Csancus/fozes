@@ -124,6 +124,7 @@ export function BatchEntry({
   knownMerchants,
   projectSuggest = { byCategory: {}, byMerchant: {} },
   initialRows,
+  defaultPersonId = "",
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
@@ -139,18 +140,24 @@ export function BatchEntry({
     byMerchant: Record<string, string>;
   };
   initialRows?: Array<Partial<Omit<Row, "key">>>;
+  /** a „Ki(nek)” alapértéke új soroknál (Story 10.3) */
+  defaultPersonId?: string;
 }) {
+  const blankRow = (kind: ExpenseKind = "expense"): Row => ({
+    ...emptyRow(kind),
+    personId: defaultPersonId && persons.some((p) => p.id === defaultPersonId) ? defaultPersonId : "",
+  });
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [incomeCatList, setIncomeCatList] =
     useState<ExpenseCategory[]>(incomeCategories);
   const [rows, setRows] = useState<Row[]>(() => {
     if (initialRows && initialRows.length) {
       return initialRows.map((seed) => ({
-        ...emptyRow((seed.kind as ExpenseKind) ?? "expense"),
-        ...seed,
+        ...blankRow((seed.kind as ExpenseKind) ?? "expense"),
+        ...Object.fromEntries(Object.entries(seed).filter(([, v]) => v !== "" && v !== undefined)),
       }));
     }
-    return [emptyRow(), emptyRow(), emptyRow(), emptyRow(), emptyRow()];
+    return [blankRow(), blankRow(), blankRow(), blankRow(), blankRow()];
   });
 
   const allColumns: ColumnDef[] = useMemo(() => {
@@ -221,13 +228,13 @@ export function BatchEntry({
   }
 
   function addRow() {
-    setRows((cur) => [...cur, emptyRow(cur[cur.length - 1]?.kind ?? "expense")]);
+    setRows((cur) => [...cur, blankRow(cur[cur.length - 1]?.kind ?? "expense")]);
   }
 
   function addRowLikeLast() {
     setRows((cur) => {
       const last = cur[cur.length - 1];
-      const r = emptyRow(last?.kind ?? "expense");
+      const r = blankRow(last?.kind ?? "expense");
       if (last) {
         r.spentAt = last.spentAt;
         r.paymentMethodId = last.paymentMethodId;

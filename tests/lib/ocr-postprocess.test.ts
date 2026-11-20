@@ -9,7 +9,7 @@ describe("Story 10.1 – OCR utófeldolgozás", () => {
     expect(parseHufNumber("12 345")).toBe(12345);
     expect(parseHufNumber("12.345")).toBe(12345);
     expect(parseHufNumber("4 990,00")).toBe(4990);
-    expect(parseHufNumber("2 350,50")).toBe(2351);
+    expect(parseHufNumber("2 350,50")).toBe(2350); // fillér levágva (Story 10.4)
     expect(parseHufNumber("1990")).toBe(1990);
     expect(parseHufNumber("4,990.00")).toBe(4990);
     expect(parseHufNumber("33 3 299")).toBeNull(); // hibás tagolás

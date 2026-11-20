@@ -19,6 +19,7 @@ import { SlidersHorizontal } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { CategoryRuleBanner } from "../CategoryRuleBanner";
 import { ExpenseOcrImport } from "./ExpenseOcrImport";
+import { buildMerchantProfiles, defaultPersonId } from "@/lib/merchant-match";
 import { saveExpensesBatchAction } from "../actions";
 
 export default async function KepImportPage() {
@@ -85,6 +86,8 @@ export default async function KepImportPage() {
         groups={groups}
         merchantMap={merchantMap}
         knownMerchants={knownMerchants}
+        profiles={buildMerchantProfiles(expenses)}
+        defaultPersonId={defaultPersonId(persons, me.name)}
       />
     </main>
   );

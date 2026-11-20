@@ -21,6 +21,7 @@ import Link from "next/link";
 import { SlidersHorizontal, ImagePlus } from "lucide-react";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { BatchEntry } from "./BatchEntry";
+import { defaultPersonId } from "@/lib/merchant-match";
 import { CategoryRuleBanner } from "../CategoryRuleBanner";
 import { saveExpensesBatchAction } from "../actions";
 
@@ -112,6 +113,7 @@ export default async function BatchPage() {
         merchantMap={merchantMap}
         knownMerchants={knownMerchants}
         projectSuggest={projectSuggest}
+        defaultPersonId={defaultPersonId(persons, me.name)}
       />
     </main>
   );

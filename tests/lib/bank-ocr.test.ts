@@ -48,7 +48,7 @@ describe("Story 10.1 – bank-ocr parser", () => {
     ].join("\n");
     expect(parseBankText(text, NOW)).toEqual([
       { kind: "expense", amount: 4990, merchant: "Netflix", day: "2026-11-20", note: "" },
-      { kind: "expense", amount: 2351, merchant: "Bolt", day: "2026-11-20", note: "" },
+      { kind: "expense", amount: 2350, merchant: "Bolt", day: "2026-11-20", note: "" },
       { kind: "expense", amount: 1990, merchant: "Spotify", day: "2026-11-16", note: "" },
     ]);
   });

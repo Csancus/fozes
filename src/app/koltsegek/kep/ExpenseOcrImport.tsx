@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { BatchEntry } from "../gyors/BatchEntry";
 import { matchCategory, parseBankText, type ParsedTx } from "@/lib/bank-ocr";
+import { dedupeAcrossImages, matchMerchant, type MerchantProfile } from "@/lib/merchant-match";
 import { recognizeImage, tryVision, readPickedFiles, UNREADABLE_IMAGE_MSG } from "@/lib/ocr/client";
 import type {
   ExpenseCategory,
@@ -13,6 +14,7 @@ import type {
   Person,
   Project,
   ExpenseGroup,
+  ExpenseNature,
 } from "@/lib/types";
 
 function slugify(s: string): string {
@@ -31,6 +33,12 @@ type Seed = {
   categoryId: string;
   spentAt: string;
   note: string;
+  // a korábbi, hasonló nevű tételből átvett paraméterek (Story 10.3)
+  paymentMethodId?: string;
+  personId?: string;
+  projectId?: string;
+  groupId?: string;
+  nature?: ExpenseNature;
 };
 // Egy feltöltött kép + a belőle kiolvasott sorok (a kép csak a böngészőben él).
 type Imported = { id: string; url: string; name: string; rows: Seed[] };
@@ -51,6 +59,8 @@ export function ExpenseOcrImport({
   groups,
   merchantMap,
   knownMerchants,
+  profiles = [],
+  defaultPersonId = "",
 }: {
   action: (fd: FormData) => void | Promise<void>;
   categories: ExpenseCategory[];
@@ -61,6 +71,8 @@ export function ExpenseOcrImport({
   groups: ExpenseGroup[];
   merchantMap: Record<string, string>;
   knownMerchants: string[];
+  profiles?: MerchantProfile[];
+  defaultPersonId?: string;
 }) {
   const [imports, setImports] = useState<Imported[]>([]);
   const [busy, setBusy] = useState(false);
@@ -103,17 +115,28 @@ export function ExpenseOcrImport({
           }
         }
 
-        const seeds: Seed[] = txs.map((t) => ({
-          kind: t.kind,
-          amount: String(t.amount),
-          merchant: t.merchant,
-          categoryId:
+        const seeds: Seed[] = txs.map((t) => {
+          // Volt már ilyen vagy nagyon hasonló nevű tétel? → annak a neve és paraméterei.
+          const prev = matchMerchant(t.merchant, t.kind, profiles);
+          const merchant = prev?.merchant ?? t.merchant;
+          const fallbackCat =
             t.kind === "expense"
-              ? merchantMap[slugify(t.merchant)] || matchCategory(t.bankCategory, categories)
-              : "",
-          spentAt: t.day,
-          note: t.note,
-        }));
+              ? merchantMap[slugify(merchant)] || matchCategory(t.bankCategory, categories)
+              : "";
+          return {
+            kind: t.kind,
+            amount: String(t.amount),
+            merchant,
+            categoryId: prev?.categoryId || fallbackCat,
+            spentAt: t.day,
+            note: t.note,
+            paymentMethodId: prev?.paymentMethodId || undefined,
+            personId: prev?.personId || undefined,
+            projectId: prev?.projectId || undefined,
+            groupId: prev?.groupId || undefined,
+            nature: prev?.nature,
+          };
+        });
 
         setImports((cur) => [...cur, { id, url, name: file.name, rows: seeds }]);
         setProgress({ done: i + 1, total: images.length, pct: 100, status: "" });
@@ -122,7 +145,7 @@ export function ExpenseOcrImport({
       setBusy(false);
       setProgress(null);
     },
-    [merchantMap, categories]
+    [merchantMap, categories, profiles]
   );
 
   // A fájlokat előbb memóriába olvassuk, csak utána ürítjük a választót (Android).
@@ -164,7 +187,8 @@ export function ExpenseOcrImport({
     if (dragDepth.current === 0) setDragOver(false);
   }
 
-  const allRows = imports.flatMap((im) => im.rows);
+  // Átfedő képernyőképek: ugyanaz a tétel csak egyszer (Story 10.3).
+  const { rows: allRows, removed: dupRemoved } = dedupeAcrossImages(imports.map((im) => im.rows));
   const hasResult = imports.length > 0;
   const batchKey = imports.map((im) => im.id).join("-") + ":" + allRows.length;
 
@@ -277,6 +301,7 @@ export function ExpenseOcrImport({
               <>
                 <p className="text-sm text-[var(--color-muted-foreground)] mb-1">
                   {allRows.length} tétel beolvasva — ellenőrizd és pontosítsd, majd mentsd.
+                  {dupRemoved > 0 && ` ${dupRemoved} ismétlődő tételt (több képen is szerepelt) kihagytam.`}
                 </p>
                 <BatchEntry
                   key={batchKey}
@@ -290,6 +315,7 @@ export function ExpenseOcrImport({
                   merchantMap={merchantMap}
                   knownMerchants={knownMerchants}
                   initialRows={allRows}
+                  defaultPersonId={defaultPersonId}
                 />
               </>
             )}

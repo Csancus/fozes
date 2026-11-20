@@ -88,3 +88,38 @@ describe("Story 10.2 – bank-kategória → saját kategória", () => {
     expect(matchCategory(undefined, cats)).toBe("");
   });
 });
+
+// Revolut (sötét) képernyőkép tesseract-szövege: egyenleg fent, hónap-fülek, pénzváltás,
+// forint + korona két sorban, kétsoros nevek, kerekítés-megtakarítás alcímek.
+const REVOLUT = `21:48 9 & R e 71%
+102 117,36 Ft
+nov. 13., 21:10
+ugusztus szeptember október november
+HUF → CZK -100 000 Ft
+21:10 +6 648,16 Kč
+Klášterní pivovar -21 983,52 Ft
+Strahov -1 463 Kč
+19:08 · -16,48 Ft
+Bakeshop -1 730,20 Ft
+15:25 · -69,80 Ft (8) -115 Kč
+Havelská Koruna -4 524,76 Ft
+14:44 · -75,24 Ft -301 Kč
+Kfc -3 315,62 Ft
+3:41 · -84,38 Ft -220 Kč
+McCarthy's Irish -13 260,62 Ft
+Pub -880 Kč
+2:23 · -39,38 Ft
+Aprópénz-megtakarítás 5 >`;
+
+describe("Story 10.4 – Revolut képernyőkép", () => {
+  it("AC1: név + forint-összeg (fillér levágva), a korona és a megtakarítás nem számít, kétsoros név egyben", () => {
+    const txs = parseBankText(REVOLUT, NOW);
+    expect(txs.map((t) => [t.merchant, t.amount, t.day, t.kind])).toEqual([
+      ["Klášterní pivovar Strahov", 21983, "2025-11-13", "expense"],
+      ["Bakeshop", 1730, "2025-11-13", "expense"],
+      ["Havelská Koruna", 4524, "2025-11-13", "expense"],
+      ["KFC", 3315, "2025-11-13", "expense"],
+      ["McCarthy's Irish Pub", 13260, "2025-11-13", "expense"],
+    ]);
+  });
+});

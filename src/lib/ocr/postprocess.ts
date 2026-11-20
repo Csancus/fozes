@@ -132,7 +132,7 @@ export function cleanOcrText(raw: string): string {
 }
 
 export type FoundAmount = {
-  /** Egész forint (a fillér kerekítve). */
+  /** Egész forint (a fillér levágva – Story 10.4: „1 730,20 Ft” → 1730). */
   value: number;
   sign: "+" | "-" | "";
   /** A találat kezdete és vége a sorban. */
@@ -151,14 +151,14 @@ export function parseHufNumber(s: string): number | null {
   let m = t.match(/^(\d{1,3}(?:[ .]\d{3})+|\d+)(?:,(\d{1,2}))?$/);
   if (m) {
     const int = parseInt(m[1].replace(/[ .]/g, ""), 10);
-    const frac = m[2] ? parseInt(m[2].padEnd(2, "0"), 10) : 0;
-    return Math.round(int + frac / 100);
+    // A fillért levágjuk, nem kerekítjük (a user kérése: „3 315,62 Ft” → 3315).
+    return int;
   }
   // Angol formátum: 4,990.00
   m = t.match(/^(\d{1,3}(?:,\d{3})+)(?:\.(\d{2}))?$/);
   if (m) {
     const int = parseInt(m[1].replace(/,/g, ""), 10);
-    return Math.round(int + (m[2] ? parseInt(m[2], 10) / 100 : 0));
+    return int;
   }
   return null;
 }
