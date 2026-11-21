@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { ColumnToggle, useColumnVisibility, type ColumnDef } from "@/components/ui/ColumnToggle";
+import {
+  ColHead,
+  COLLAPSED_W,
+  ColumnToggle,
+  useCollapsedColumns,
+  useColumnVisibility,
+  type ColumnDef,
+} from "@/components/ui/ColumnToggle";
 import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
@@ -185,6 +192,7 @@ export function BatchEntry({
     "cols:gyors-unified-v2",
     allColumns
   );
+  const { isCollapsed, toggleCollapsed, cellClass } = useCollapsedColumns("cols-collapsed:gyors");
 
   function update(key: string, patch: Partial<Row>) {
     setRows((cur) =>
@@ -283,7 +291,7 @@ export function BatchEntry({
 
   const minW =
     64 +
-    allColumns.reduce((s, c) => s + (isVisible(c.key) ? COL_W[c.key] ?? 120 : 0), 0);
+    allColumns.reduce((s, c) => s + (isVisible(c.key) ? (isCollapsed(c.key) ? COLLAPSED_W : COL_W[c.key] ?? 120) : 0), 0);
 
   return (
     <form action={action} className="mt-5">
@@ -307,21 +315,21 @@ export function BatchEntry({
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
               <th className="font-semibold w-7" />
-              <th className="font-semibold px-1 w-28">Típus</th>
-              <th className="font-semibold px-1">Megnevezés</th>
-              <th className="font-semibold px-1 w-28">Összeg</th>
-              {isVisible("category") && <th className="font-semibold px-1 w-40">Kategória</th>}
-              {isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
-              {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
-              {showPerson && <th className="font-semibold px-1 w-28">Ki(nek)</th>}
-              {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
-              {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
-              {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
-              {isVisible("planned") && <th className="font-semibold px-1 w-24 text-center">Terv</th>}
-              {isVisible("tax") && <th className="font-semibold px-1 w-20 text-center">Adó</th>}
-              {isVisible("recurring") && <th className="font-semibold px-1 w-28 text-center">Ismétlődő</th>}
-              {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
-              {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
+              <ColHead label="Típus" collapsed={isCollapsed("kind")} onToggle={() => toggleCollapsed("kind")} className="w-28" />
+              <ColHead label="Megnevezés" collapsed={isCollapsed("merchant")} onToggle={() => toggleCollapsed("merchant")} />
+              <ColHead label="Összeg" collapsed={isCollapsed("amount")} onToggle={() => toggleCollapsed("amount")} className="w-28" />
+              {isVisible("category") && <ColHead label="Kategória" collapsed={isCollapsed("category")} onToggle={() => toggleCollapsed("category")} className="w-40" />}
+              {isVisible("nature") && <ColHead label="Jelleg" collapsed={isCollapsed("nature")} onToggle={() => toggleCollapsed("nature")} className="w-32" />}
+              {isVisible("payment") && <ColHead label="Fizetés" collapsed={isCollapsed("payment")} onToggle={() => toggleCollapsed("payment")} className="w-36" />}
+              {showPerson && <ColHead label="Ki(nek)" collapsed={isCollapsed("person")} onToggle={() => toggleCollapsed("person")} className="w-28" />}
+              {showProject && <ColHead label="Projekt" collapsed={isCollapsed("project")} onToggle={() => toggleCollapsed("project")} className="w-32" />}
+              {showGroup && <ColHead label="Csoport" collapsed={isCollapsed("group")} onToggle={() => toggleCollapsed("group")} className="w-36" />}
+              {isVisible("review") && <ColHead label="Felülvizsg." collapsed={isCollapsed("review")} onToggle={() => toggleCollapsed("review")} className="w-28" center />}
+              {isVisible("planned") && <ColHead label="Terv" collapsed={isCollapsed("planned")} onToggle={() => toggleCollapsed("planned")} className="w-24" center />}
+              {isVisible("tax") && <ColHead label="Adó" collapsed={isCollapsed("tax")} onToggle={() => toggleCollapsed("tax")} className="w-20" center />}
+              {isVisible("recurring") && <ColHead label="Ismétlődő" collapsed={isCollapsed("recurring")} onToggle={() => toggleCollapsed("recurring")} className="w-28" center />}
+              {isVisible("date") && <ColHead label="Dátum" collapsed={isCollapsed("date")} onToggle={() => toggleCollapsed("date")} className="w-36" />}
+              {isVisible("note") && <ColHead label="Megjegyzés" collapsed={isCollapsed("note")} onToggle={() => toggleCollapsed("note")} className="w-48" />}
               <th className="w-7" />
             </tr>
           </thead>
@@ -334,7 +342,7 @@ export function BatchEntry({
                   <td className="text-xs text-[var(--color-muted-foreground)] tabular-nums pt-2">
                     {i + 1}.
                   </td>
-                  <td>
+                  <td className={cellClass("kind")}>
                     <select
                       value={r.kind}
                       onChange={(e) => update(r.key, { kind: e.target.value as ExpenseKind })}
@@ -348,7 +356,7 @@ export function BatchEntry({
                       <option value="income">Bevétel</option>
                     </select>
                   </td>
-                  <td>
+                  <td className={cellClass("merchant")}>
                     <input
                       value={r.merchant}
                       onChange={(e) => update(r.key, { merchant: e.target.value })}
@@ -357,7 +365,7 @@ export function BatchEntry({
                       className={ctrl}
                     />
                   </td>
-                  <td>
+                  <td className={cellClass("amount")}>
                     <input
                       inputMode="decimal"
                       value={r.amount}
@@ -369,7 +377,7 @@ export function BatchEntry({
                     />
                   </td>
                   {isVisible("category") && (
-                    <td>
+                    <td className={cellClass("category")}>
                       <CategorySelect
                         categories={rowCats}
                         value={r.categoryId}
@@ -384,7 +392,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {isVisible("nature") && (
-                    <td>
+                    <td className={cellClass("nature")}>
                       {inc ? (
                         <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
                       ) : (
@@ -400,7 +408,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {isVisible("payment") && (
-                    <td>
+                    <td className={cellClass("payment")}>
                       <select
                         value={r.paymentMethodId}
                         onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
@@ -416,7 +424,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {showPerson && (
-                    <td>
+                    <td className={cellClass("person")}>
                       <select
                         value={r.personId}
                         onChange={(e) => update(r.key, { personId: e.target.value })}
@@ -432,7 +440,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {showProject && (
-                    <td>
+                    <td className={cellClass("project")}>
                       <select
                         value={r.projectId}
                         onChange={(e) => update(r.key, { projectId: e.target.value })}
@@ -448,7 +456,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {showGroup && (
-                    <td>
+                    <td className={cellClass("group")}>
                       <select
                         value={r.groupId}
                         onChange={(e) => update(r.key, { groupId: e.target.value })}
@@ -464,7 +472,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {isVisible("review") && (
-                    <td>
+                    <td className={cellClass("review")}>
                       <div className={cn(ctrl, "flex items-center justify-center")}>
                         <input
                           type="checkbox"
@@ -477,7 +485,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {isVisible("planned") && (
-                    <td>
+                    <td className={cellClass("planned")}>
                       <div className={cn(ctrl, "flex items-center justify-center")}>
                         <input
                           type="checkbox"
@@ -490,7 +498,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {isVisible("tax") && (
-                    <td>
+                    <td className={cellClass("tax")}>
                       <div className={cn(ctrl, "flex items-center justify-center")}>
                         <input
                           type="checkbox"
@@ -503,7 +511,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {isVisible("recurring") && (
-                    <td>
+                    <td className={cellClass("recurring")}>
                       <div className={cn(ctrl, "flex items-center justify-center")}>
                         <input
                           type="checkbox"
@@ -516,7 +524,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {isVisible("date") && (
-                    <td>
+                    <td className={cellClass("date")}>
                       <input
                         type="date"
                         min="1970-01-01"
@@ -528,7 +536,7 @@ export function BatchEntry({
                     </td>
                   )}
                   {isVisible("note") && (
-                    <td>
+                    <td className={cellClass("note")}>
                       <input
                         value={r.note}
                         onChange={(e) => update(r.key, { note: e.target.value })}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { Columns3, Check } from "lucide-react";
+import { Columns3, Check, ChevronsLeftRight, ChevronsRightLeft } from "lucide-react";
 import { cn } from "@/lib/cn";
 
 export type ColumnDef = {
@@ -129,5 +129,98 @@ export function ColumnToggle({
         </div>
       )}
     </div>
+  );
+}
+
+// Story 10.7 – oszlopok egyenkénti összecsukása (kis képernyőn helytakarékos):
+// az összecsukott oszlop keskeny csík marad, a fejlécéből kinyitható. localStorage-ben tárolva.
+export const COLLAPSED_W = 28;
+
+export function useCollapsedColumns(storageKey: string) {
+  const [collapsed, setCollapsed] = useState<Set<string>>(() => new Set());
+  const loadedRef = useRef(false);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem(storageKey);
+      const arr = raw ? JSON.parse(raw) : null;
+      if (Array.isArray(arr)) setCollapsed(new Set(arr.map(String)));
+    } catch {
+      /* ignore */
+    }
+    loadedRef.current = true;
+  }, [storageKey]);
+
+  useEffect(() => {
+    if (!loadedRef.current) return;
+    try {
+      localStorage.setItem(storageKey, JSON.stringify([...collapsed]));
+    } catch {
+      /* ignore */
+    }
+  }, [collapsed, storageKey]);
+
+  const isCollapsed = (key: string) => collapsed.has(key);
+  function toggleCollapsed(key: string) {
+    setCollapsed((cur) => {
+      const n = new Set(cur);
+      if (n.has(key)) n.delete(key);
+      else n.add(key);
+      return n;
+    });
+  }
+  /** A cella osztálya: összecsukva a tartalom rejtve, keskeny csík marad. */
+  const cellClass = (key: string, extra?: string) =>
+    cn(extra, collapsed.has(key) && "col-collapsed");
+  return { isCollapsed, toggleCollapsed, cellClass };
+}
+
+/** Összecsukható oszlopfejléc. */
+export function ColHead({
+  label,
+  collapsed,
+  onToggle,
+  className,
+  center,
+}: {
+  label: string;
+  collapsed: boolean;
+  onToggle: () => void;
+  className?: string;
+  center?: boolean;
+}) {
+  if (collapsed) {
+    return (
+      <th className="w-7 px-0 align-bottom">
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={`${label} kinyitása`}
+          title={`${label} kinyitása`}
+          className="w-7 py-1 flex flex-col items-center gap-1 rounded-lg text-[var(--color-muted-foreground)] hover:bg-[var(--color-muted)] hover:text-[var(--color-foreground)] transition"
+        >
+          <span className="[writing-mode:vertical-rl] rotate-180 text-[10px] leading-none whitespace-nowrap">
+            {label}
+          </span>
+          <ChevronsLeftRight className="w-3.5 h-3.5 shrink-0" />
+        </button>
+      </th>
+    );
+  }
+  return (
+    <th className={cn("font-semibold px-1", className)}>
+      <span className={cn("flex items-center gap-0.5", center && "justify-center")}>
+        <span className="truncate">{label}</span>
+        <button
+          type="button"
+          onClick={onToggle}
+          aria-label={`${label} összecsukása`}
+          title={`${label} összecsukása`}
+          className="touch-hit relative shrink-0 w-5 h-5 rounded flex items-center justify-center opacity-60 hover:opacity-100 hover:bg-[var(--color-muted)] transition"
+        >
+          <ChevronsRightLeft className="w-3 h-3" />
+        </button>
+      </span>
+    </th>
   );
 }

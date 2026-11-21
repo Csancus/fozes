@@ -2,7 +2,14 @@
 
 import { useMemo, useState } from "react";
 import { SubmitButton } from "@/components/ui/SubmitButton";
-import { ColumnToggle, useColumnVisibility, type ColumnDef } from "@/components/ui/ColumnToggle";
+import {
+  ColHead,
+  COLLAPSED_W,
+  ColumnToggle,
+  useCollapsedColumns,
+  useColumnVisibility,
+  type ColumnDef,
+} from "@/components/ui/ColumnToggle";
 import { cn } from "@/lib/cn";
 import { catColor } from "@/lib/expense-visuals";
 import { X, Search, Undo2, Trash2, SlidersHorizontal, Plus } from "lucide-react";
@@ -213,6 +220,7 @@ export function ExpenseTable({
     "cols:koltsegek-tabla-v2",
     allColumns
   );
+  const { isCollapsed, toggleCollapsed, cellClass } = useCollapsedColumns("cols-collapsed:tabla");
 
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [incomeCatList, setIncomeCatList] = useState<ExpenseCategory[]>(incomeCategories);
@@ -355,7 +363,7 @@ export function ExpenseTable({
   const showGroup = groups.length > 0 && isVisible("group");
   const minW =
     40 +
-    allColumns.reduce((s, c) => s + (isVisible(c.key) ? COL_W[c.key] ?? 120 : 0), 0);
+    allColumns.reduce((s, c) => s + (isVisible(c.key) ? (isCollapsed(c.key) ? COLLAPSED_W : COL_W[c.key] ?? 120) : 0), 0);
 
   const visibleTotal = visible
     .filter((r) => !deleted.has(r.id))
@@ -527,20 +535,20 @@ export function ExpenseTable({
         >
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wider text-[var(--color-muted-foreground)]">
-              <th className="font-semibold px-1 w-28">Típus</th>
-              {isVisible("date") && <th className="font-semibold px-1 w-36">Dátum</th>}
-              <th className="font-semibold px-1">Megnevezés</th>
-              <th className="font-semibold px-1 w-28">Összeg</th>
-              {isVisible("category") && <th className="font-semibold px-1 w-40">Kategória</th>}
-              {isVisible("nature") && <th className="font-semibold px-1 w-32">Jelleg</th>}
-              {isVisible("payment") && <th className="font-semibold px-1 w-36">Fizetés</th>}
-              {showPerson && <th className="font-semibold px-1 w-28">Ki(nek)</th>}
-              {showProject && <th className="font-semibold px-1 w-32">Projekt</th>}
-              {showGroup && <th className="font-semibold px-1 w-36">Csoport</th>}
-              {isVisible("review") && <th className="font-semibold px-1 w-28 text-center">Felülvizsg.</th>}
-              {isVisible("planned") && <th className="font-semibold px-1 w-24 text-center">Terv</th>}
-              {isVisible("tax") && <th className="font-semibold px-1 w-20 text-center">Adó</th>}
-              {isVisible("note") && <th className="font-semibold px-1 w-48">Megjegyzés</th>}
+              <ColHead label="Típus" collapsed={isCollapsed("kind")} onToggle={() => toggleCollapsed("kind")} className="w-28" />
+              {isVisible("date") && <ColHead label="Dátum" collapsed={isCollapsed("date")} onToggle={() => toggleCollapsed("date")} className="w-36" />}
+              <ColHead label="Megnevezés" collapsed={isCollapsed("merchant")} onToggle={() => toggleCollapsed("merchant")} />
+              <ColHead label="Összeg" collapsed={isCollapsed("amount")} onToggle={() => toggleCollapsed("amount")} className="w-28" />
+              {isVisible("category") && <ColHead label="Kategória" collapsed={isCollapsed("category")} onToggle={() => toggleCollapsed("category")} className="w-40" />}
+              {isVisible("nature") && <ColHead label="Jelleg" collapsed={isCollapsed("nature")} onToggle={() => toggleCollapsed("nature")} className="w-32" />}
+              {isVisible("payment") && <ColHead label="Fizetés" collapsed={isCollapsed("payment")} onToggle={() => toggleCollapsed("payment")} className="w-36" />}
+              {showPerson && <ColHead label="Ki(nek)" collapsed={isCollapsed("person")} onToggle={() => toggleCollapsed("person")} className="w-28" />}
+              {showProject && <ColHead label="Projekt" collapsed={isCollapsed("project")} onToggle={() => toggleCollapsed("project")} className="w-32" />}
+              {showGroup && <ColHead label="Csoport" collapsed={isCollapsed("group")} onToggle={() => toggleCollapsed("group")} className="w-36" />}
+              {isVisible("review") && <ColHead label="Felülvizsg." collapsed={isCollapsed("review")} onToggle={() => toggleCollapsed("review")} className="w-28" center />}
+              {isVisible("planned") && <ColHead label="Terv" collapsed={isCollapsed("planned")} onToggle={() => toggleCollapsed("planned")} className="w-24" center />}
+              {isVisible("tax") && <ColHead label="Adó" collapsed={isCollapsed("tax")} onToggle={() => toggleCollapsed("tax")} className="w-20" center />}
+              {isVisible("note") && <ColHead label="Megjegyzés" collapsed={isCollapsed("note")} onToggle={() => toggleCollapsed("note")} className="w-48" />}
               <th className="w-7" />
             </tr>
           </thead>
@@ -559,7 +567,7 @@ export function ExpenseTable({
                     isDirty && "ring-1 ring-[var(--color-primary)]/30 rounded-lg"
                   )}
                 >
-                  <td>
+                  <td className={cellClass("kind")}>
                     <select
                       value={r.kind}
                       disabled={isDeleted}
@@ -575,7 +583,7 @@ export function ExpenseTable({
                     </select>
                   </td>
                   {isVisible("date") && (
-                    <td>
+                    <td className={cellClass("date")}>
                       <input
                         type="date"
                         min="1970-01-01"
@@ -587,7 +595,7 @@ export function ExpenseTable({
                       />
                     </td>
                   )}
-                  <td>
+                  <td className={cellClass("merchant")}>
                     <input
                       value={r.merchant}
                       disabled={isDeleted}
@@ -596,7 +604,7 @@ export function ExpenseTable({
                       className={ctrl}
                     />
                   </td>
-                  <td>
+                  <td className={cellClass("amount")}>
                     <input
                       inputMode="decimal"
                       value={r.amount}
@@ -608,7 +616,7 @@ export function ExpenseTable({
                     />
                   </td>
                   {isVisible("category") && (
-                    <td>
+                    <td className={cellClass("category")}>
                       <CategorySelect
                         categories={r.kind === "income" ? incomeCatList : catList}
                         value={r.categoryId}
@@ -624,7 +632,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {isVisible("nature") && (
-                    <td>
+                    <td className={cellClass("nature")}>
                       {r.kind === "income" ? (
                         <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
                       ) : (
@@ -641,7 +649,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {isVisible("payment") && (
-                    <td>
+                    <td className={cellClass("payment")}>
                       <select
                         value={r.paymentMethodId}
                         disabled={isDeleted}
@@ -660,7 +668,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {showPerson && (
-                    <td>
+                    <td className={cellClass("person")}>
                       <select
                         value={r.personId}
                         disabled={isDeleted}
@@ -679,7 +687,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {showProject && (
-                    <td>
+                    <td className={cellClass("project")}>
                       <select
                         value={r.projectId}
                         disabled={isDeleted}
@@ -698,7 +706,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {showGroup && (
-                    <td>
+                    <td className={cellClass("group")}>
                       <select
                         value={r.groupId}
                         disabled={isDeleted}
@@ -715,7 +723,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {isVisible("review") && (
-                    <td>
+                    <td className={cellClass("review")}>
                       <div className={cn(ctrl, "flex items-center justify-center")}>
                         <input
                           type="checkbox"
@@ -729,7 +737,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {isVisible("planned") && (
-                    <td>
+                    <td className={cellClass("planned")}>
                       <div className={cn(ctrl, "flex items-center justify-center")}>
                         <input
                           type="checkbox"
@@ -743,7 +751,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {isVisible("tax") && (
-                    <td>
+                    <td className={cellClass("tax")}>
                       <div className={cn(ctrl, "flex items-center justify-center")}>
                         <input
                           type="checkbox"
@@ -757,7 +765,7 @@ export function ExpenseTable({
                     </td>
                   )}
                   {isVisible("note") && (
-                    <td>
+                    <td className={cellClass("note")}>
                       <input
                         value={r.note}
                         disabled={isDeleted}

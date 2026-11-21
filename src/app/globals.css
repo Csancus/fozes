@@ -640,3 +640,17 @@ a {
     --bottom-nav-h: 0px;
   }
 }
+
+/* Story 10.7 – összecsukott táblázat-oszlop: a cella tartalma rejtve, halvány keskeny csík marad. */
+td.col-collapsed {
+  width: 1.75rem;
+  min-width: 1.75rem;
+  max-width: 1.75rem;
+  padding: 0;
+  border-radius: 0.5rem;
+  background: var(--color-muted);
+  opacity: 0.55;
+}
+td.col-collapsed > * {
+  display: none !important;
+}
