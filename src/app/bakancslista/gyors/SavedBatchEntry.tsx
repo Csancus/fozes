@@ -92,7 +92,7 @@ export function SavedBatchEntry({
     <form action={action} className="mt-5">
       <input type="hidden" name="rows" value={payload} />
 
-      <div className="overflow-x-auto -mx-5 px-5">
+      <div className="sticky-table -mx-5 px-5">
         <table
           className="w-full border-separate border-spacing-x-1.5 border-spacing-y-1.5"
           style={{ minWidth: "820px" }}

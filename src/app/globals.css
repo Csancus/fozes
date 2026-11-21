@@ -654,3 +654,17 @@ td.col-collapsed {
 td.col-collapsed > * {
   display: none !important;
 }
+
+/* Story 10.8 – rögzített táblázat-fejléc: a vízszintesen görgető dobozban a sticky nem
+   követi az oldal görgetését, ezért a fejléc-cellákat a StickyTableHeads tolja (--thead-y). */
+.sticky-table {
+  overflow-x: auto;
+}
+.sticky-table thead th {
+  position: relative;
+  z-index: 5;
+  transform: translateY(var(--thead-y, 0px));
+  background: var(--color-background);
+  /* a cellák közti térközt (border-spacing) is takarja, hogy ne látsszon át a sor */
+  box-shadow: 0 0 0 6px var(--color-background);
+}

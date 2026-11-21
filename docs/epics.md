@@ -82,3 +82,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | [10.5](stories/story-10.5-valodi-ocr-revolut.md) | Revolut + Erste a valódi OCR-kimenettel: állapotsor, díj-alsor, ikon-zaj, dátum-pótlás | ✅ |
 | [10.6](stories/story-10.6-kepsav-idorend.md) | Képes rögzítés: képsáv felül, tételek időrendben (legalul a legrégebbi) | ✅ |
 | [10.7](stories/story-10.7-oszlop-osszecsukas.md) | Tétel-tábla és gyors rögzítés: oszlopok egyenkénti összecsukása / kinyitása | ✅ |
+| [10.8](stories/story-10.8-rogzitett-fejlec.md) | Táblázatok: rögzített oszlopfejléc görgetéskor | ✅ |

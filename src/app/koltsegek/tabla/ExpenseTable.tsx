@@ -528,7 +528,7 @@ export function ExpenseTable({
         </button>
       </div>
 
-      <div className="mt-2 overflow-x-auto -mx-5 px-5">
+      <div className="mt-2 sticky-table -mx-5 px-5">
         <table
           className="w-full border-separate border-spacing-x-1.5 border-spacing-y-1.5"
           style={{ minWidth: `${minW}px` }}
