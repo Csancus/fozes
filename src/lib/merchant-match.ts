@@ -149,3 +149,20 @@ export function dedupeAcrossImages<
   });
   return { rows: kept.map((k) => k.row), removed };
 }
+
+/**
+ * Időrend (Story 10.6): legfelül a legfrissebb, legalul a legrégebbi tétel. Azonos napon
+ * a képeken belüli sorrend marad (a bank-lista is így mutatja); a képek egymás közt a
+ * legfrissebb tételük szerint jönnek, hogy a feltöltés sorrendje ne számítson.
+ */
+export function sortNewestFirst<T extends { spentAt: string }>(groups: T[][]): T[] {
+  const newest = (rows: T[]) => rows.reduce((m, r) => (r.spentAt > m ? r.spentAt : m), "");
+  const ordered = groups
+    .map((rows, i) => ({ rows, i, top: newest(rows) }))
+    .sort((a, b) => (a.top === b.top ? a.i - b.i : a.top < b.top ? 1 : -1));
+  return ordered
+    .flatMap((g) => g.rows)
+    .map((row, i) => ({ row, i }))
+    .sort((a, b) => (a.row.spentAt === b.row.spentAt ? a.i - b.i : a.row.spentAt < b.row.spentAt ? 1 : -1))
+    .map((x) => x.row);
+}

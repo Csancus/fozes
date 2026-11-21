@@ -4,6 +4,7 @@ import {
   dedupeAcrossImages,
   defaultPersonId,
   matchMerchant,
+  sortNewestFirst,
 } from "@/lib/merchant-match";
 import type { Expense } from "@/lib/types";
 
@@ -87,5 +88,19 @@ describe("Story 10.3 – korábbi, hasonló nevű tétel átvétele", () => {
       "GoBuda Mozi:4900:2026-08-06",
       "KFC:3315:2026-08-05",
     ]);
+  });
+});
+
+describe("Story 10.6 – több kép tételei időrendben", () => {
+  const r = (merchant: string, spentAt: string) => ({ merchant, spentAt });
+  it("AC2: legfelül a legfrissebb, legalul a legrégebbi – a feltöltés sorrendjétől függetlenül", () => {
+    const regebbi = [r("Lidl", "2026-08-04"), r("McDonald's", "2026-08-03"), r("Perem", "2026-08-03")];
+    const ujabb = [r("GoBuda", "2026-08-05"), r("Lidl nagy", "2026-08-05"), r("Lidl", "2026-08-04")];
+    const out = sortNewestFirst([regebbi, ujabb]).map((x) => x.merchant);
+    expect(out).toEqual(["GoBuda", "Lidl nagy", "Lidl", "Lidl", "McDonald's", "Perem"]);
+  });
+  it("AC2: azonos napon a képen belüli sorrend marad", () => {
+    const egy = [r("B", "2026-11-13"), r("A", "2026-11-13"), r("C", "2026-11-12")];
+    expect(sortNewestFirst([egy]).map((x) => x.merchant)).toEqual(["B", "A", "C"]);
   });
 });

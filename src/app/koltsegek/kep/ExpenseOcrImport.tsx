@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/Button";
 import { cn } from "@/lib/cn";
 import { BatchEntry } from "../gyors/BatchEntry";
 import { matchCategory, parseBankText, type ParsedTx } from "@/lib/bank-ocr";
-import { dedupeAcrossImages, matchMerchant, type MerchantProfile } from "@/lib/merchant-match";
+import { dedupeAcrossImages, matchMerchant, sortNewestFirst, type MerchantProfile } from "@/lib/merchant-match";
 import { recognizeImage, tryVision, readPickedFiles, UNREADABLE_IMAGE_MSG } from "@/lib/ocr/client";
 import type {
   ExpenseCategory,
@@ -188,7 +188,10 @@ export function ExpenseOcrImport({
   }
 
   // Átfedő képernyőképek: ugyanaz a tétel csak egyszer (Story 10.3).
-  const { rows: allRows, removed: dupRemoved } = dedupeAcrossImages(imports.map((im) => im.rows));
+  const { rows: uniqueRows, removed: dupRemoved } = dedupeAcrossImages(imports.map((im) => im.rows));
+  // Időrendben: legfelül a legfrissebb, legalul a legrégebbi (Story 10.6).
+  const kept = new Set(uniqueRows);
+  const allRows = sortNewestFirst(imports.map((im) => im.rows.filter((r) => kept.has(r))));
   const hasResult = imports.length > 0;
   const batchKey = imports.map((im) => im.id).join("-") + ":" + allRows.length;
 
@@ -230,12 +233,12 @@ export function ExpenseOcrImport({
       ) : (
         <div
           className={cn(
-            "grid grid-cols-1 lg:grid-cols-[240px_1fr] gap-4 rounded-2xl transition",
+            "flex flex-col gap-4 rounded-2xl transition",
             dragOver && "ring-2 ring-[var(--color-primary)] ring-offset-2 ring-offset-[var(--color-background)]"
           )}
         >
           {/* Képek kicsiben, X-szel törölhető */}
-          <div className="lg:sticky lg:top-3 self-start">
+          <div>
             <div className="flex items-center justify-between mb-2">
               <p className="text-[11px] font-semibold text-[var(--color-muted-foreground)] uppercase tracking-wider">
                 Képek ({imports.length})
@@ -249,15 +252,15 @@ export function ExpenseOcrImport({
                 <ImagePlus className="w-3.5 h-3.5" /> Több
               </button>
             </div>
-            <div className="grid grid-cols-3 lg:grid-cols-2 gap-2">
+            <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
               {imports.map((im) => (
-                <div key={im.id} className="relative group">
+                <div key={im.id} className="relative group shrink-0 w-20">
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={im.url}
                     alt={im.name}
                     onClick={() => setPreview(im.url)}
-                    className="w-full h-28 object-cover rounded-lg border border-[var(--color-border)] cursor-zoom-in"
+                    className="w-20 h-24 object-cover object-top rounded-lg border border-[var(--color-border)] cursor-zoom-in"
                   />
                   <span className="absolute bottom-1 left-1 text-[10px] px-1.5 py-0.5 rounded bg-black/60 text-white tabular-nums pointer-events-none">
                     {im.rows.length} tétel
@@ -281,7 +284,7 @@ export function ExpenseOcrImport({
                 {progress.pct > 0 && progress.pct < 100 ? ` (${progress.pct}%)` : ""}
               </div>
             )}
-            <p className="mt-2 text-[11px] text-[var(--color-muted-foreground)]">
+            <p className="mt-1 text-[11px] text-[var(--color-muted-foreground)] hidden md:block">
               Húzhatsz ide új képet is.
             </p>
           </div>
