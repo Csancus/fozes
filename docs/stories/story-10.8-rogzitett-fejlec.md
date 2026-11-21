@@ -13,12 +13,15 @@
 
 - A táblázat-dobozok vízszintesen görgetnek, így bennük a CSS `sticky` az oldal görgetését nem követi.
   Először belső függőleges görgetéssel próbáltuk, de az oldal görgetésekor a fejléc kicsúszott (helyi
-  Playwright mutatta meg) – helyette `src/components/StickyTableHeads.tsx` (az AppShellben) a
-  `--thead-y` változóval tolja a fejléc-cellákat; a változó a `<html>`-en van (nincs hydration-eltérés).
+  Playwright mutatta meg). A második változat görgetésenként JS-sel tolta a fejlécet – telefonon
+  szaggatott (user, 2026-11-21: „kicsit szaggat görgetéskor”). Végleges: `src/components/StickyTableHeads.tsx`
+  (az AppShellben) egy `position: fixed` fejléc-másolatot mutat az oldal fejléce alatt, amikor az eredeti
+  kicsúszik; függőlegesen nem mozog (nem szaggat), vízszintesen a doboz görgetését követi, a gombjai az
+  eredeti fejléc gombjait nyomják meg.
 - `globals.css`: `.sticky-table`; a négy táblázat dobozán `sticky-table` osztály.
 
 ## Tesztek
 
 | AC | Teszt |
 |---|---|
-| AC1–AC2 | kézi: helyi Playwright 375 px-en, gyors + tábla 17 sorral, oldalgörgetés után a fejléc látszik |
+| AC1–AC2 | kézi: helyi Playwright 375 px-en, gyors + tábla 17 sorral: a másolat teteje görgetés közben végig 69 px, vízszintes szinkron, összecsukás a másolatból, az oldal tetején rejtve |

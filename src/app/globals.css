@@ -656,15 +656,20 @@ td.col-collapsed > * {
 }
 
 /* Story 10.8 – rögzített táblázat-fejléc: a vízszintesen görgető dobozban a sticky nem
-   követi az oldal görgetését, ezért a fejléc-cellákat a StickyTableHeads tolja (--thead-y). */
+   követi az oldal görgetését, ezért a StickyTableHeads egy fixed másolatot mutat. */
 .sticky-table {
   overflow-x: auto;
 }
-.sticky-table thead th {
-  position: relative;
-  z-index: 5;
-  transform: translateY(var(--thead-y, 0px));
+.sticky-table-clone {
+  position: fixed;
+  z-index: 25;
+  overflow: hidden;
   background: var(--color-background);
-  /* a cellák közti térközt (border-spacing) is takarja, hogy ne látsszon át a sor */
-  box-shadow: 0 0 0 6px var(--color-background);
+  border-bottom: 1px solid var(--color-border);
+}
+.sticky-table-clone table {
+  margin: 0;
+}
+.sticky-table-clone th {
+  background: var(--color-background);
 }
