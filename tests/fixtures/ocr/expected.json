@@ -232,6 +232,84 @@
         "15:30",
         "postaládában"
       ]
+    },
+    {
+      "file": "real-revolut-dark.png",
+      "case": "Valodi Revolut (sotet)",
+      "mode": "screenshot",
+      "use": "bank",
+      "text": "",
+      "tx": [
+        {
+          "merchant": "Klášterní pivovar Strahov",
+          "amount": 21983,
+          "day": "2026-11-13",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Bakeshop",
+          "amount": 1730,
+          "day": "2026-11-13",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Havelská Koruna",
+          "amount": 4524,
+          "day": "2026-11-13",
+          "kind": "expense"
+        },
+        {
+          "merchant": "KFC",
+          "amount": 3315,
+          "day": "2026-11-13",
+          "kind": "expense"
+        },
+        {
+          "merchant": "McCarthy's Irish Pub",
+          "amount": 13260,
+          "day": "2026-11-13",
+          "kind": "expense"
+        }
+      ]
+    },
+    {
+      "file": "real-erste-dark.jpg",
+      "case": "Valodi Erste (sotet)",
+      "mode": "screenshot",
+      "use": "bank",
+      "text": "",
+      "tx": [
+        {
+          "merchant": "GoBuda Mozi",
+          "amount": 4900,
+          "day": "2026-08-05",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Lidl",
+          "amount": 25333,
+          "day": "2026-08-05",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Lidl",
+          "amount": 1324,
+          "day": "2026-08-04",
+          "kind": "expense"
+        },
+        {
+          "merchant": "McDonald's",
+          "amount": 8060,
+          "day": "2026-08-03",
+          "kind": "expense"
+        },
+        {
+          "merchant": "Perem Bisztro",
+          "amount": 4347,
+          "day": "2026-08-03",
+          "kind": "expense"
+        }
+      ]
     }
   ]
 }

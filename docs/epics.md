@@ -79,3 +79,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | [10.2](stories/story-10.2-erste-kepernyokep.md) | Erste-képernyőkép: dátum a tétel alatt, egységes boltnév, bank-kategória | ✅ |
 | [10.3](stories/story-10.3-korabbi-tetel-atvetele.md) | Korábbi hasonló tétel átvétele, képek közti duplikáció-szűrés, Ki(nek) alapérték | ✅ |
 | [10.4](stories/story-10.4-revolut-kepernyokep.md) | Revolut-képernyőkép: fillér levágva, deviza és pénzváltás kihagyva, kétsoros név | ✅ |
+| [10.5](stories/story-10.5-valodi-ocr-revolut.md) | Revolut + Erste a valódi OCR-kimenettel: állapotsor, díj-alsor, ikon-zaj, dátum-pótlás | ✅ |

@@ -77,10 +77,15 @@ function today(now: Date): string {
 const SKIP_RE =
   /(ref\.?:|hitelkártya haszn|hitelkartya haszn|zárolt|egyenleg|számlacsomag|funkci|informáci|feltöltött pénz|elérhető|rendelkezésre|\bbalance\b|\bIBAN\b|HU\d{2}\b)/i;
 // Nem kiadás/bevétel: pénzváltás saját számlák között („HUF → CZK”), Revolut aprópénz-megtakarítás / széf.
-const NON_TX_RE = /\b[A-Z]{3}\s*(?:→|->|—>|=>|>|»)\s*[A-Z]{3}\b|apr[oó]p[eé]nz|megtakar[ií]t[aá]s|\bvault\b|\bsz[eé]f\b/i;
+const CUR = "(?:HUF|CZK|EUR|USD|GBP|PLN|RON|CHF)";
+const NON_TX_RE = new RegExp(
+  String.raw`\b[A-Z]{3}\s*(?:→|->|—>|=>|>|»)\s*[A-Z]{3}\b|\b${CUR}\s*[-–—~]+\s*${CUR}\b|` +
+    String.raw`apr[oó]p[eé]nz|megtakar[ií]t[aá]s|\bvault\b|\bsz[eé]f\b`,
+  "i"
+);
 // Másodlagos deviza-összeg: „-1 463 Kč”, „+6 648,16 Kč”, „12,50 EUR”, „€12.50”.
 const FOREIGN_AMOUNT_RE =
-  /[+\-]?\s?(?:\d{1,3}(?:[ .]\d{3})+|\d+)(?:[,.]\d{1,2})?\s*(?:Kč|Kc|CZK|EUR|€|USD|\$|GBP|£|PLN|zł|zl|RON|lei|CHF)(?![\p{L}])|(?:€|\$|£)\s?\d+(?:[,.]\d{1,2})?/giu;
+  /[+\-]?\s?(?:\d{1,3}(?:[ .]\d{3})+|\d+)(?:[,.]\d{1,2})?\s*(?:K[čcöoóeé0]|CZK|EUR|€|USD|\$|GBP|£|PLN|zł|zl|RON|lei|CHF)(?![\p{L}])|(?:€|\$|£)\s?\d+(?:[,.]\d{1,2})?/giu;
 // Egyenleg-címke: a következő összeg-sor sem tétel.
 const BALANCE_LABEL_RE = /^(egyenleg|aktuális egyenleg|elérhető egyenleg|számlaegyenleg|balance|total balance)\b/i;
 // Hónap + év szekció-fejléc („November 2026”, „ebben a hónapban”).
@@ -90,6 +95,10 @@ const SECTION_RE =
 const GENERIC_RE =
   /^(kartyas vasarlas|vasarlas|atutalas|keszpenzfelvetel|keszpenz felvetel|elofizetes|jovairas|terheles|beerkezo|kimeno|card payment|transfer|pending|folyamatban|fuggo)/;
 const TRAILING_TIME_RE = /(?:^|[·•\-:.,|]\s*|\s)([01]?\d|2[0-3])[:.\-]?([0-5]\d)\s*$/;
+
+// Revolut-alsor: „19:08 · -16,48 Ft” (idő + váltási díj; az OCR a „·”-ot „-”-nak olvassa) – nem tétel.
+// Elöl lehet egy rövid ikon-zaj token („KORA 14:44 - -75,24 Ft”).
+const FEE_LINE_RE = /^(?:\S{1,5}\s+)?([01]?\d|2[0-3])[:.][0-5]\d\s*[-–·•.+]*\s*[-+]?\s?\d/;
 
 function letters(s: string): number {
   return (s.match(/\p{L}/gu) ?? []).length;
@@ -108,6 +117,15 @@ function isSubtitle(s: string): boolean {
 export function cleanMerchant(s: string): string {
   let t = s.replace(/\s{2,}/g, " ").trim();
   t = t.replace(/^[^\p{L}\p{N}]+/u, "");
+  // elöl ikonból olvasott zaj-token: betű nélküli („<2’”, „==”), írásjeles vagy kisbetűs
+  // 1–2 betűs („o Bakeshop”, „fo! GoBuda”, „sm Strahov”), vagy két nagybetű egy
+  // Nagybetűs szó előtt („MW Havelska”)
+  for (let i = 0; i < 2; i++) {
+    t = t
+      .replace(/^(?:[^\p{L}\s]+\s+)+(?=\S)/u, "")
+      .replace(/^(?:\p{L}{1,2}|\S{1,2}[^\p{L}\p{N}\s])\s+(?=\p{Lu}\p{Ll}{2})/u, "")
+      .replace(/^(?:\p{Ll}{1,2}[^\p{L}\s]?|\S{1,2}[^\p{L}\p{N}\s])\s+(?=\p{Lu})/u, "");
+  }
   for (let i = 0; i < 3; i++) {
     const before = t;
     t = t.replace(/[\s·•\-.,:;|_~!\]\[]+$/u, "");
@@ -196,6 +214,10 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
     // Másodlagos devizás összeg (Revolut: „-1 463 Kč” a forint alatt) – csak a forint számít (Story 10.4).
     .map((l) => l.replace(FOREIGN_AMOUNT_RE, " ").replace(/\s{2,}/g, " ").trim())
     .filter(Boolean);
+  // A telefon állapotsora (óra + ikonok + akku: „21:48 … 71%”, OCR-rel gyakran „2148 … 7158”) nem tétel-név.
+  if (lines.length && /^\d{1,2}[:.]?\d{2}\b/.test(lines[0]) && !findAmounts(lines[0]).length && !findDate(lines[0], now)) {
+    lines.shift();
+  }
 
   const receipt = parseReceipt(lines, now);
   if (receipt) return [receipt];
@@ -206,6 +228,7 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
   const dateAfter = detectDateAfter(lines, now);
   let lastTx: ParsedTx | null = null;
   let lastTxHasDate = false;
+  const undated = new Set<ParsedTx>();
   let candidates: string[] = []; // az utolsó összeg óta látott név-jelöltek
   let afterBalanceLabel = false;
   // Revolut: a hosszú név második sora („McCarthy's Irish -13 260,62 Ft” / „Pub”) közvetlenül a tétel-sor után.
@@ -217,11 +240,12 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
     const amounts = findAmounts(line);
     const continuation = canContinueName;
     canContinueName = false;
+    const contLine = continuation ? cleanMerchant(line) : "";
     if (
       continuation &&
       lastTx &&
       !amounts.length &&
-      !/\d/.test(line) &&
+      !/\d/.test(contLine) &&
       letters(line) >= 2 &&
       line.length <= 30 &&
       !isSubtitle(line) &&
@@ -229,7 +253,7 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
       !SKIP_RE.test(line) &&
       !SECTION_RE.test(low.trim())
     ) {
-      lastTx.merchant = normalizeMerchant(cleanMerchant(`${lastTx.merchant} ${line}`));
+      lastTx.merchant = normalizeMerchant(cleanMerchant(`${lastTx.merchant} ${contLine}`));
       continue;
     }
 
@@ -242,6 +266,7 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
           if (lastTx && !lastTxHasDate) {
             lastTx.day = d.day;
             lastTxHasDate = true;
+            undated.delete(lastTx);
           }
         } else currentDay = d.day;
         candidates = [];
@@ -257,6 +282,8 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
         continue;
       }
     }
+
+    if (amounts.length && FEE_LINE_RE.test(line)) continue;
 
     if (amounts.length) {
       const balance = afterBalanceLabel || SKIP_RE.test(line) || NON_TX_RE.test(line);
@@ -283,7 +310,10 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
       else if (nearest) merchant = nearest;
       else merchant = residual.replace(TRAILING_TIME_RE, "");
       merchant = normalizeMerchant(cleanMerchant(merchant));
-      if (letters(merchant) >= 2) {
+      // állapotsor-zaj („2148 SH ® & RR » =u”, „… 71%”): sok írásjel vagy akku-százalék
+      const symbols = (merchant.match(/[^\p{L}\p{N}\s.'’&\-]/gu) ?? []).length;
+      const statusBar = symbols > letters(merchant) * 0.3 || /\d\s?%/.test(`${residual} ${merchant}`);
+      if (letters(merchant) >= 2 && !statusBar) {
         const hasInline = Boolean(inlineDate && !inlineDate.relative);
         lastTx = {
           kind: a.sign === "+" ? "income" : "expense",
@@ -293,6 +323,7 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
           note: "",
         };
         lastTxHasDate = hasInline;
+        if (!hasInline) undated.add(lastTx);
         out.push(lastTx);
         // csak ha a név ugyanebben a sorban volt (nem a fölötte lévő jelöltből)
         canContinueName = !subtitle && letters(residual) >= 2;
@@ -313,6 +344,16 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
     if (letters(line) >= 2 && line.length <= 48) candidates.push(line);
   }
 
+  // „Alatta” módban a dátumát elvesztett tétel (OCR-hiba: „5026.08. 05.”) a következő
+  // tétel napját kapja – a lista időrendben csökken, így ez a legközelebbi ismert nap.
+  if (dateAfter && undated.size) {
+    let next: string | null = null;
+    for (let i = out.length - 1; i >= 0; i--) {
+      if (undated.has(out[i])) {
+        if (next) out[i].day = next;
+      } else next = out[i].day;
+    }
+  }
   return out;
 }
 
