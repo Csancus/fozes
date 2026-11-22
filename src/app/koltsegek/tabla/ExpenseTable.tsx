@@ -15,6 +15,7 @@ import { catColor } from "@/lib/expense-visuals";
 import { X, Search, Undo2, Trash2, SlidersHorizontal, Plus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
 import { ProjectSelect } from "../ProjectSelect";
+import { CreatableSelect } from "../CreatableSelect";
 import { Dropdown } from "@/components/ui/Dropdown";
 import { createIncomeCategoryInline } from "../actions";
 import type {
@@ -208,15 +209,15 @@ export function ExpenseTable({
       { key: "nature", label: "Jelleg" },
       { key: "payment", label: "Fizetés" },
     ];
-    if (persons.length) cols.push({ key: "person", label: "Ki(nek)" });
+    cols.push({ key: "person", label: "Ki(nek)" });
     cols.push({ key: "project", label: "Projekt" });
-    if (groups.length) cols.push({ key: "group", label: "Csoport" });
+    cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
     cols.push({ key: "planned", label: "Jövőbeni terv" });
     cols.push({ key: "tax", label: "Adó" });
     cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
-  }, [persons.length, groups.length]);
+  }, []);
 
   const { isVisible, hidden, toggle } = useColumnVisibility(
     "cols:koltsegek-tabla-v2",
@@ -226,6 +227,9 @@ export function ExpenseTable({
 
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [projList, setProjList] = useState<Project[]>(projects);
+  const [payList, setPayList] = useState(paymentMethods);
+  const [personList, setPersonList] = useState(persons);
+  const [groupList, setGroupList] = useState(groups);
   const [incomeCatList, setIncomeCatList] = useState<ExpenseCategory[]>(incomeCategories);
   const [rows, setRows] = useState<Row[]>(() => allItems.map(toRow));
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
@@ -378,9 +382,9 @@ export function ExpenseTable({
   );
   const deletedPayload = JSON.stringify([...deleted]);
 
-  const showPerson = persons.length > 0 && isVisible("person");
+  const showPerson = isVisible("person");
   const showProject = isVisible("project");
-  const showGroup = groups.length > 0 && isVisible("group");
+  const showGroup = isVisible("group");
   const minW =
     40 +
     allColumns.reduce((s, c) => s + (isVisible(c.key) ? (isCollapsed(c.key) ? COLLAPSED_W : COL_W[c.key] ?? 120) : 0), 0);
@@ -483,16 +487,16 @@ export function ExpenseTable({
           )}
           {paymentMethods.length > 0 && (
             <TChipGroup label="Fizetés">
-              {paymentMethods.map((p) => (
+              {payList.map((p) => (
                 <DotChip key={p.id} color={p.color} active={pays.has(p.id)} onClick={() => toggleSet(pays, setPays, p.id)}>
                   {p.name}
                 </DotChip>
               ))}
             </TChipGroup>
           )}
-          {persons.length > 0 && (
+          {personList.length > 0 && (
             <TChipGroup label="Ki(nek)">
-              {persons.map((p) => (
+              {personList.map((p) => (
                 <DotChip key={p.id} color={p.color} active={people.has(p.id)} onClick={() => toggleSet(people, setPeople, p.id)}>
                   {p.name}
                 </DotChip>
@@ -508,9 +512,9 @@ export function ExpenseTable({
               ))}
             </TChipGroup>
           )}
-          {groups.length > 0 && (
+          {groupList.length > 0 && (
             <TChipGroup label="Csoport">
-              {groups.map((g) => (
+              {groupList.map((g) => (
                 <DotChip key={g.id} color={g.color} active={grps.has(g.id)} onClick={() => toggleSet(grps, setGrps, g.id)}>
                   {g.name}
                 </DotChip>
@@ -655,12 +659,12 @@ export function ExpenseTable({
                   )}
                   {isVisible("payment") && (
                     <td className={cellClass("payment")}>
-                      <Dropdown value={r.paymentMethodId} disabled={isDeleted} onChange={(v) => update(r.key, { paymentMethodId: v })} options={paymentMethods.map((pm) => ({ value: pm.id, label: pm.name }))} className={cn(ctrl, "appearance-none")} />
+                      <CreatableSelect kind="payment" items={payList} value={r.paymentMethodId} disabled={isDeleted} onChange={(v) => update(r.key, { paymentMethodId: v })} onCreated={(x) => setPayList((cur) => [...cur, x])} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {showPerson && (
                     <td className={cellClass("person")}>
-                      <Dropdown value={r.personId} disabled={isDeleted} onChange={(v) => update(r.key, { personId: v })} options={persons.map((p) => ({ value: p.id, label: p.name }))} className={cn(ctrl, "appearance-none")} />
+                      <CreatableSelect kind="person" items={personList} value={r.personId} disabled={isDeleted} onChange={(v) => update(r.key, { personId: v })} onCreated={(x) => setPersonList((cur) => [...cur, x])} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {showProject && (
@@ -677,7 +681,7 @@ export function ExpenseTable({
                   )}
                   {showGroup && (
                     <td className={cellClass("group")}>
-                      <Dropdown value={r.groupId} disabled={isDeleted} onChange={(v) => update(r.key, { groupId: v })} options={groups.map((g) => ({ value: g.id, label: g.name }))} className={cn(ctrl, "appearance-none")} />
+                      <CreatableSelect kind="group" items={groupList} value={r.groupId} disabled={isDeleted} onChange={(v) => update(r.key, { groupId: v })} onCreated={(x) => setGroupList((cur) => [...cur, x])} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {isVisible("review") && (

@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
 import { ProjectSelect } from "../ProjectSelect";
+import { CreatableSelect } from "../CreatableSelect";
 import { Dropdown } from "@/components/ui/Dropdown";
 import type {
   ExpenseCategory,
@@ -158,6 +159,9 @@ export function BatchEntry({
   });
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
   const [projList, setProjList] = useState<Project[]>(projects);
+  const [payList, setPayList] = useState(paymentMethods);
+  const [personList, setPersonList] = useState(persons);
+  const [groupList, setGroupList] = useState(groups);
   const [incomeCatList, setIncomeCatList] =
     useState<ExpenseCategory[]>(incomeCategories);
   const [rows, setRows] = useState<Row[]>(() => {
@@ -179,9 +183,9 @@ export function BatchEntry({
       { key: "nature", label: "Jelleg" },
       { key: "payment", label: "Fizetés" },
     ];
-    if (persons.length) cols.push({ key: "person", label: "Ki(nek)" });
+    cols.push({ key: "person", label: "Ki(nek)" });
     cols.push({ key: "project", label: "Projekt" });
-    if (groups.length) cols.push({ key: "group", label: "Csoport" });
+    cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
     cols.push({ key: "planned", label: "Jövőbeni terv" });
     cols.push({ key: "tax", label: "Adó" });
@@ -189,7 +193,7 @@ export function BatchEntry({
     cols.push({ key: "date", label: "Dátum" });
     cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
-  }, [persons.length, groups.length]);
+  }, []);
 
   const { isVisible, hidden, toggle } = useColumnVisibility(
     "cols:gyors-unified-v2",
@@ -288,9 +292,9 @@ export function BatchEntry({
     }))
   );
 
-  const showPerson = persons.length > 0 && isVisible("person");
+  const showPerson = isVisible("person");
   const showProject = isVisible("project");
-  const showGroup = groups.length > 0 && isVisible("group");
+  const showGroup = isVisible("group");
 
   const minW =
     64 +
@@ -398,12 +402,12 @@ export function BatchEntry({
                   )}
                   {isVisible("payment") && (
                     <td className={cellClass("payment")}>
-                      <Dropdown value={r.paymentMethodId} onChange={(v) => update(r.key, { paymentMethodId: v })} options={paymentMethods.map((pm) => ({ value: pm.id, label: pm.name }))} className={cn(ctrl, "appearance-none")} />
+                      <CreatableSelect kind="payment" items={payList} value={r.paymentMethodId} onChange={(v) => update(r.key, { paymentMethodId: v })} onCreated={(x) => setPayList((cur) => [...cur, x])} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {showPerson && (
                     <td className={cellClass("person")}>
-                      <Dropdown value={r.personId} onChange={(v) => update(r.key, { personId: v })} options={persons.map((p) => ({ value: p.id, label: p.name }))} className={cn(ctrl, "appearance-none")} />
+                      <CreatableSelect kind="person" items={personList} value={r.personId} onChange={(v) => update(r.key, { personId: v })} onCreated={(x) => setPersonList((cur) => [...cur, x])} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {showProject && (
@@ -419,7 +423,7 @@ export function BatchEntry({
                   )}
                   {showGroup && (
                     <td className={cellClass("group")}>
-                      <Dropdown value={r.groupId} onChange={(v) => update(r.key, { groupId: v })} options={groups.map((g) => ({ value: g.id, label: g.name }))} className={cn(ctrl, "appearance-none")} />
+                      <CreatableSelect kind="group" items={groupList} value={r.groupId} onChange={(v) => update(r.key, { groupId: v })} onCreated={(x) => setGroupList((cur) => [...cur, x])} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {isVisible("review") && (

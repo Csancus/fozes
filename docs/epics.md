@@ -89,3 +89,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | [10.12](stories/story-10.12-revolut-havi-nezet.md) | Revolut havi nézet: napfejléc napi összeggel, fejléc, fillér-vessző, névtisztítás | ✅ |
 | [10.13](stories/story-10.13-uj-tetel-szurovel.md) | Tétel-tábla: az „Új tétel” szűrés mellett is látszik és a szűrő értékeit kapja | ✅ |
 | [10.14](stories/story-10.14-projektek-koltseg-beallitasban.md) | Projektek szerkesztése a költség-beállításokban | ✅ |
+| [10.15](stories/story-10.15-uj-elem-legordulobol.md) | Új csoport / fizetési mód / ki(nek) a rögzítő táblák legördülőjéből | ✅ |

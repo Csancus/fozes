@@ -744,3 +744,34 @@ export async function updateExpensesBatchAction(fd: FormData) {
   revalidatePath("/");
   redirect("/koltsegek/tabla");
 }
+
+// Story 10.15 – helyben létrehozás a rögzítő táblák legördülőiből (fizetési mód, ki(nek), csoport).
+export async function createPaymentMethodInline(name: string) {
+  const me = await requireUser();
+  const n = name.trim();
+  if (!n) return null;
+  const pm = await createPaymentMethod(me.householdId, { name: n, kind: "card", color: "zinc", last4: null });
+  revalidatePath("/koltsegek");
+  revalidatePath("/koltsegek/beallitasok");
+  return pm;
+}
+
+export async function createPersonInline(name: string) {
+  const me = await requireUser();
+  const n = name.trim();
+  if (!n) return null;
+  const p = await createPerson(me.householdId, { name: n, color: "sky" });
+  revalidatePath("/koltsegek");
+  revalidatePath("/koltsegek/beallitasok");
+  return p;
+}
+
+export async function createGroupInline(name: string) {
+  const me = await requireUser();
+  const n = name.trim();
+  if (!n) return null;
+  const g = await createGroup(me.householdId, { name: n, color: "violet" });
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek/csoportok");
+  return g;
+}
