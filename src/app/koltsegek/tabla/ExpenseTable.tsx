@@ -306,17 +306,34 @@ export function ExpenseTable({
   function removeNewRow(key: string) {
     setRows((cur) => cur.filter((r) => r.key !== key));
   }
+  // Story 10.13: az új sor az aktív szűrők egyértelmű értékeit kapja (pl. szűrés Raiffeisenre →
+  // az új tétel fizetési módja Raiffeisen), és szűrőtől függetlenül mindig látszik.
+  function newRow(): Row {
+    const one = (s: Set<string>) => (s.size === 1 ? [...s][0] : "");
+    const r = emptyRow();
+    if (kindF !== "all") r.kind = kindF;
+    if (natureF !== "all") r.nature = natureF;
+    if (plannedF === "planned") r.planned = true;
+    if (reviewF) r.review = true;
+    r.categoryId = one(cats);
+    r.paymentMethodId = one(pays);
+    r.personId = one(people);
+    r.projectId = one(projs);
+    r.groupId = one(grps);
+    return r;
+  }
   function addRowTop() {
     setMonth("all");
-    setRows((cur) => [emptyRow(), ...cur]);
+    setRows((cur) => [newRow(), ...cur]);
   }
   function addRowBottom() {
     setMonth("all");
-    setRows((cur) => [...cur, emptyRow()]);
+    setRows((cur) => [...cur, newRow()]);
   }
 
   const q = search.trim().toLowerCase();
   const visible = rows.filter((r) => {
+    if (!r.id) return true; // új, még nem mentett sor: a szűrők nem rejtik el
     if (month !== "all" && r.spentAt.slice(0, 7) !== month) return false;
     if (kindF !== "all" && (r.kind ?? "expense") !== kindF) return false;
     if (natureF !== "all" && !((r.kind ?? "expense") === "expense" && r.nature === natureF)) return false;
