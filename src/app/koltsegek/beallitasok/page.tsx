@@ -6,6 +6,8 @@ import {
   listGroups,
   listMerchants,
   listIncomeCategories,
+  listProjects,
+  listGoals,
   ensureCostDefaults,
 } from "@/lib/data";
 import Link from "next/link";
@@ -34,13 +36,16 @@ import {
   createGroupAction,
   updateGroupAction,
   deleteGroupAction,
+  createProjectAction,
+  updateProjectAction,
+  deleteProjectAction,
 } from "../actions";
 import { restartCostSetupAction } from "../bevezeto/actions";
 
 export default async function BeallitasokPage() {
   const me = await requireUser();
   await ensureCostDefaults(me.householdId, { expense: true, income: true, payment: true, merchants: true });
-  const [categories, incomeCategories, paymentMethods, persons, groups, merchants] =
+  const [categories, incomeCategories, paymentMethods, persons, groups, merchants, projects, goals] =
     await Promise.all([
       listExpenseCategories(me.householdId),
       listIncomeCategories(me.householdId),
@@ -48,6 +53,8 @@ export default async function BeallitasokPage() {
       listPersons(me.householdId),
       listGroups(me.householdId),
       listMerchants(me.householdId),
+      listProjects(me.householdId),
+      listGoals(me.householdId),
     ]);
 
   return (
@@ -133,6 +140,22 @@ export default async function BeallitasokPage() {
             createAction={createCategoryAction}
             updateAction={updateCategoryAction}
             deleteAction={deleteCategoryAction}
+          />
+        </CollapsiblePanel>
+
+        {/* Story 10.14: a projektek itt is szerkeszthetők (eddig csak a /beallitasok oldalon). */}
+        <CollapsiblePanel title="Projektek" count={projects.length}>
+          <p className="mb-3 text-xs text-[var(--color-muted-foreground)]">
+            Megosztott a Teendőkkel: egy projekt lehet csak Költségekhez, csak Teendőkhöz vagy mindkettőhöz
+            tartozó, és célhoz is köthető. Új projektet a rögzítő táblák Projekt oszlopából is felvehetsz.
+          </p>
+          <EntityManager
+            variant="project"
+            items={projects}
+            goals={goals}
+            createAction={createProjectAction}
+            updateAction={updateProjectAction}
+            deleteAction={deleteProjectAction}
           />
         </CollapsiblePanel>
 

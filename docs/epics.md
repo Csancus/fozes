@@ -88,3 +88,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | [10.11](stories/story-10.11-gyorsabb-oldalvaltas.md) | Gyorsabb oldalváltás: azonnali töltő, kevesebb soros Redis-kör, kliens-gyorsítótár | ✅ |
 | [10.12](stories/story-10.12-revolut-havi-nezet.md) | Revolut havi nézet: napfejléc napi összeggel, fejléc, fillér-vessző, névtisztítás | ✅ |
 | [10.13](stories/story-10.13-uj-tetel-szurovel.md) | Tétel-tábla: az „Új tétel” szűrés mellett is látszik és a szűrő értékeit kapja | ✅ |
+| [10.14](stories/story-10.14-projektek-koltseg-beallitasban.md) | Projektek szerkesztése a költség-beállításokban | ✅ |
