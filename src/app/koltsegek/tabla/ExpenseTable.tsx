@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import { catColor } from "@/lib/expense-visuals";
 import { X, Search, Undo2, Trash2, SlidersHorizontal, Plus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
+import { ProjectSelect } from "../ProjectSelect";
 import { createIncomeCategoryInline } from "../actions";
 import type {
   Expense,
@@ -207,14 +208,14 @@ export function ExpenseTable({
       { key: "payment", label: "Fizetés" },
     ];
     if (persons.length) cols.push({ key: "person", label: "Ki(nek)" });
-    if (projects.length) cols.push({ key: "project", label: "Projekt" });
+    cols.push({ key: "project", label: "Projekt" });
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
     cols.push({ key: "planned", label: "Jövőbeni terv" });
     cols.push({ key: "tax", label: "Adó" });
     cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
-  }, [persons.length, projects.length, groups.length]);
+  }, [persons.length, groups.length]);
 
   const { isVisible, hidden, toggle } = useColumnVisibility(
     "cols:koltsegek-tabla-v2",
@@ -223,6 +224,7 @@ export function ExpenseTable({
   const { isCollapsed, toggleCollapsed, cellClass } = useCollapsedColumns("cols-collapsed:tabla");
 
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
+  const [projList, setProjList] = useState<Project[]>(projects);
   const [incomeCatList, setIncomeCatList] = useState<ExpenseCategory[]>(incomeCategories);
   const [rows, setRows] = useState<Row[]>(() => allItems.map(toRow));
   const [deleted, setDeleted] = useState<Set<string>>(new Set());
@@ -359,7 +361,7 @@ export function ExpenseTable({
   const deletedPayload = JSON.stringify([...deleted]);
 
   const showPerson = persons.length > 0 && isVisible("person");
-  const showProject = projects.length > 0 && isVisible("project");
+  const showProject = isVisible("project");
   const showGroup = groups.length > 0 && isVisible("group");
   const minW =
     40 +
@@ -479,9 +481,9 @@ export function ExpenseTable({
               ))}
             </TChipGroup>
           )}
-          {projects.length > 0 && (
+          {projList.length > 0 && (
             <TChipGroup label="Projekt">
-              {projects.map((p) => (
+              {projList.map((p) => (
                 <DotChip key={p.id} color={p.color} active={projs.has(p.id)} onClick={() => toggleSet(projs, setProjs, p.id)}>
                   {p.name}
                 </DotChip>
@@ -688,21 +690,14 @@ export function ExpenseTable({
                   )}
                   {showProject && (
                     <td className={cellClass("project")}>
-                      <select
+                      <ProjectSelect
+                        projects={projList}
                         value={r.projectId}
                         disabled={isDeleted}
-                        onChange={(e) =>
-                          update(r.key, { projectId: e.target.value })
-                        }
+                        onChange={(id) => update(r.key, { projectId: id })}
+                        onCreated={(p) => setProjList((cur) => [...cur, p])}
                         className={cn(ctrl, "appearance-none")}
-                      >
-                        <option value="">—</option>
-                        {projects.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </td>
                   )}
                   {showGroup && (

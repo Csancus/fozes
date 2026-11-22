@@ -2,10 +2,11 @@
 
 import { useCallback, useRef, useState } from "react";
 import { BodyPortal } from "@/components/ui/BodyPortal";
-import { Loader2, Tag } from "lucide-react";
+import { FolderKanban, Loader2, Tag } from "lucide-react";
+import type { ReactNode } from "react";
 import { Button } from "@/components/ui/Button";
-import { createCategoryInline } from "./actions";
-import type { ExpenseCategory } from "@/lib/types";
+import { createCategoryInline, createProjectInline } from "./actions";
+import type { ExpenseCategory, Project } from "@/lib/types";
 
 // Szép saját modál az "Új kategória" bevitelhez a natív window.prompt helyett.
 // Használat: const { open, modal } = useCategoryCreator();
@@ -14,14 +15,39 @@ import type { ExpenseCategory } from "@/lib/types";
 export function useCategoryCreator(
   createFn: (name: string) => Promise<ExpenseCategory | null> = createCategoryInline
 ) {
+  return useNamedCreator(createFn, {
+    title: "Új kategória",
+    placeholder: "pl. Ajándék, Autó, Nyaralás",
+    hint: "Színt és ikont később a Beállításokban állíthatsz be.",
+    icon: <Tag className="w-4.5 h-4.5" />,
+  });
+}
+
+// Story 10.9 – új projekt helyben (táblázatból / gyors rögzítésből).
+export function useProjectCreator() {
+  return useNamedCreator<Project>(createProjectInline, {
+    title: "Új projekt",
+    placeholder: "pl. Autóvásárlás, Olaszország-út",
+    hint: "Színt, célt és hatókört később a Beállításokban állíthatsz be.",
+    icon: <FolderKanban className="w-4.5 h-4.5" />,
+  });
+}
+
+type CreatorText = { title: string; placeholder: string; hint: string; icon: ReactNode };
+
+// Általános „név megadása → létrehozás" modál (kategória, projekt).
+export function useNamedCreator<T>(
+  createFn: (name: string) => Promise<T | null>,
+  text: CreatorText
+) {
   const [visible, setVisible] = useState(false);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
-  const resolverRef = useRef<((c: ExpenseCategory | null) => void) | null>(null);
+  const resolverRef = useRef<((c: T | null) => void) | null>(null);
 
   const open = useCallback(
     () =>
-      new Promise<ExpenseCategory | null>((resolve) => {
+      new Promise<T | null>((resolve) => {
         resolverRef.current = resolve;
         setName("");
         setBusy(false);
@@ -30,7 +56,7 @@ export function useCategoryCreator(
     []
   );
 
-  const finish = useCallback((result: ExpenseCategory | null) => {
+  const finish = useCallback((result: T | null) => {
     setVisible(false);
     setBusy(false);
     resolverRef.current?.(result);
@@ -58,7 +84,7 @@ export function useCategoryCreator(
         className="fixed inset-0 z-50 flex items-center justify-center p-4"
         role="dialog"
         aria-modal="true"
-        aria-label="Új kategória"
+        aria-label={text.title}
       >
         <button
           type="button"
@@ -69,9 +95,9 @@ export function useCategoryCreator(
         <div className="relative w-full max-w-sm rounded-2xl border border-[var(--color-border)] bg-[var(--color-card)] p-5 shadow-2xl">
           <div className="flex items-center gap-2.5 mb-4">
             <span className="w-9 h-9 rounded-xl flex items-center justify-center bg-[var(--color-primary-soft)] text-[var(--color-primary)]">
-              <Tag className="w-4.5 h-4.5" />
+              {text.icon}
             </span>
-            <h2 className="font-semibold text-[15px]">Új kategória</h2>
+            <h2 className="font-semibold text-[15px]">{text.title}</h2>
           </div>
           <input
             autoFocus
@@ -87,11 +113,11 @@ export function useCategoryCreator(
                 finish(null);
               }
             }}
-            placeholder="pl. Ajándék, Autó, Nyaralás"
+            placeholder={text.placeholder}
             className="w-full h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-background)] px-3 text-sm focus:outline-none focus:ring-2 focus:ring-[var(--color-ring)] focus:border-[var(--color-primary)]"
           />
           <p className="mt-2 text-xs text-[var(--color-muted-foreground)]">
-            Színt és ikont később a Beállításokban állíthatsz be.
+            {text.hint}
           </p>
           <div className="mt-5 flex gap-2 justify-end">
             <Button type="button" variant="secondary" onClick={() => finish(null)}>

@@ -366,6 +366,18 @@ export async function createProjectAction(fd: FormData) {
   revalidatePath("/teendok");
 }
 
+// Story 10.9 – helyben létrehozott projekt (táblázatból / gyors rögzítésből). Visszaadja az újat.
+export async function createProjectInline(name: string) {
+  const me = await requireUser();
+  const n = name.trim();
+  if (!n) return null;
+  const p = await createProject(me.householdId, { name: n, color: "violet", scope: "expense" });
+  revalidatePath("/beallitasok");
+  revalidatePath("/koltsegek/beallitasok");
+  revalidatePath("/koltsegek");
+  return p;
+}
+
 export async function updateProjectAction(fd: FormData) {
   const me = await requireUser();
   const id = String(fd.get("id") ?? "");

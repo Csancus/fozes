@@ -13,6 +13,7 @@ import {
 import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
+import { ProjectSelect } from "../ProjectSelect";
 import type {
   ExpenseCategory,
   ExpenseKind,
@@ -155,6 +156,7 @@ export function BatchEntry({
     personId: defaultPersonId && persons.some((p) => p.id === defaultPersonId) ? defaultPersonId : "",
   });
   const [catList, setCatList] = useState<ExpenseCategory[]>(categories);
+  const [projList, setProjList] = useState<Project[]>(projects);
   const [incomeCatList, setIncomeCatList] =
     useState<ExpenseCategory[]>(incomeCategories);
   const [rows, setRows] = useState<Row[]>(() => {
@@ -177,7 +179,7 @@ export function BatchEntry({
       { key: "payment", label: "Fizetés" },
     ];
     if (persons.length) cols.push({ key: "person", label: "Ki(nek)" });
-    if (projects.length) cols.push({ key: "project", label: "Projekt" });
+    cols.push({ key: "project", label: "Projekt" });
     if (groups.length) cols.push({ key: "group", label: "Csoport" });
     cols.push({ key: "review", label: "Felülvizsgálat" });
     cols.push({ key: "planned", label: "Jövőbeni terv" });
@@ -186,7 +188,7 @@ export function BatchEntry({
     cols.push({ key: "date", label: "Dátum" });
     cols.push({ key: "note", label: "Megjegyzés" });
     return cols;
-  }, [persons.length, projects.length, groups.length]);
+  }, [persons.length, groups.length]);
 
   const { isVisible, hidden, toggle } = useColumnVisibility(
     "cols:gyors-unified-v2",
@@ -220,7 +222,7 @@ export function BatchEntry({
             (next.categoryId
               ? projectSuggest.byCategory[next.categoryId]
               : undefined);
-          if (sug && projects.some((p) => p.id === sug)) next.projectId = sug;
+          if (sug && projList.some((p) => p.id === sug)) next.projectId = sug;
         }
         // Típusváltáskor a kategória ürül (más a készlet).
         if (patch.kind !== undefined && patch.kind !== r.kind) {
@@ -286,7 +288,7 @@ export function BatchEntry({
   );
 
   const showPerson = persons.length > 0 && isVisible("person");
-  const showProject = projects.length > 0 && isVisible("project");
+  const showProject = isVisible("project");
   const showGroup = groups.length > 0 && isVisible("group");
 
   const minW =
@@ -441,18 +443,13 @@ export function BatchEntry({
                   )}
                   {showProject && (
                     <td className={cellClass("project")}>
-                      <select
+                      <ProjectSelect
+                        projects={projList}
                         value={r.projectId}
-                        onChange={(e) => update(r.key, { projectId: e.target.value })}
+                        onChange={(id) => update(r.key, { projectId: id })}
+                        onCreated={(p) => setProjList((cur) => [...cur, p])}
                         className={cn(ctrl, "appearance-none")}
-                      >
-                        <option value="">—</option>
-                        {projects.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </td>
                   )}
                   {showGroup && (
