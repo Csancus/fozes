@@ -46,15 +46,14 @@ export function StickyTableHeads() {
       entries.delete(en.box);
     };
 
-    const rebuild = (en: Entry, table: HTMLTableElement, thead: HTMLTableSectionElement) => {
+    const rebuild = (en: Entry, table: HTMLTableElement, thead: HTMLTableSectionElement, widths: number[]) => {
       const t = document.createElement("table");
       t.className = table.className;
       t.style.width = `${table.getBoundingClientRect().width}px`;
       t.style.tableLayout = "fixed";
       const copy = thead.cloneNode(true) as HTMLTableSectionElement;
-      const src = thead.querySelectorAll("th");
       copy.querySelectorAll("th").forEach((th, i) => {
-        const w = src[i]?.getBoundingClientRect().width ?? 0;
+        const w = widths[i] ?? 0;
         th.style.width = `${w}px`;
         th.style.minWidth = `${w}px`;
         th.style.maxWidth = `${w}px`;
@@ -84,9 +83,12 @@ export function StickyTableHeads() {
           en.clone.style.display = "none";
           return;
         }
-        const sig = `${thead.innerHTML}|${Math.round(table.getBoundingClientRect().width)}|${Math.round(r.width)}`;
+        // Az oszlopszélességek a sorok tartalmától is függnek (gépelés, betöltés) – ezt a
+        // fejléc HTML-je nem mutatja, ezért minden oszlop mért szélessége is az aláírás része.
+        const widths = Array.from(thead.querySelectorAll("th"), (th) => th.getBoundingClientRect().width);
+        const sig = `${thead.innerHTML}|${table.getBoundingClientRect().width.toFixed(1)}|${Math.round(r.width)}|${widths.map((w) => w.toFixed(1)).join(",")}`;
         if (sig !== en.sig) {
-          rebuild(en, table, thead);
+          rebuild(en, table, thead, widths);
           en.sig = sig;
         }
         const cs = getComputedStyle(box);

@@ -25,3 +25,8 @@
 | AC | Teszt |
 |---|---|
 | AC1–AC2 | kézi: helyi Playwright 375 px-en, gyors + tábla 17 sorral: a másolat teteje görgetés közben végig 69 px, vízszintes szinkron, összecsukás a másolatból, az oldal tetején rejtve |
+
+### Javítás (2026-11-22) – szétcsúszó fejléc-másolat
+Görgetés közben néha szétcsúszott a rögzített fejléc: a másolat csak akkor épült újra, ha a fejléc HTML-je vagy a
+táblázat szélessége változott, de az oszlopok szélessége a sorok tartalmától (gépelés, betöltés) is függ. Most minden
+oszlop mért szélessége is az újraépítési aláírás része → eltérésnél azonnal újraépül. Ellenőrzés: kézi.
