@@ -2,12 +2,11 @@ import { requireUser } from "@/lib/auth";
 import {
   listExpensesByGroups,
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
   listIncomeCategories,
-  ensureDefaultIncomeCategories,
   listPersons,
   listGroups,
   runDueRecurring,
+  ensureCostDefaults,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -17,8 +16,7 @@ import { GroupsView } from "./GroupsView";
 
 export default async function CsoportokPage() {
   const me = await requireUser();
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
+  await ensureCostDefaults(me.householdId, { expense: true, income: true, payment: false, merchants: false });
   await runDueRecurring(me.householdId);
   // Csak a csoportokhoz TARTOZÓ tételek kellenek — csoport-index halmazokból.
   const groupsFirst = await listGroups(me.householdId);

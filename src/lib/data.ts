@@ -763,6 +763,28 @@ export async function ensureDefaultPaymentMethods(
   return listPaymentMethods(hh);
 }
 
+// Story 10.11 – a költség-oldalak alapérték-ellenőrzése egy körben: a halmazok méretét
+// párhuzamosan kérjük le (1 hálózati kör), és csak a hiányzót töltjük fel. Korábban oldalanként
+// 3–4 ensure* futott egymás után, mindegyik smembers + mget → 6–8 soros Redis-kör minden betöltéskor.
+export async function ensureCostDefaults(
+  hh: string,
+  opts: { expense?: boolean; income?: boolean; payment?: boolean; merchants?: boolean } = {}
+): Promise<void> {
+  const { expense = true, income = true, payment = false, merchants = false } = opts;
+  const [e, i, p, m] = await Promise.all([
+    expense ? redis.scard(key.expenseCategories(hh)) : 1,
+    income ? redis.scard(key.incomeCategories(hh)) : 1,
+    payment ? redis.scard(key.paymentMethods(hh)) : 1,
+    merchants ? redis.scard(key.merchants(hh)) : 1,
+  ]);
+  await Promise.all([
+    e ? null : ensureDefaultExpenseCategories(hh),
+    i ? null : ensureDefaultIncomeCategories(hh),
+    p ? null : ensureDefaultPaymentMethods(hh),
+    m ? null : ensureMerchantsFromHistory(hh),
+  ]);
+}
+
 // ============ KÖLTSÉGKEZELŐ BEVEZETŐ (varázsló állapota) ============
 
 export async function getCostSetup(hh: string): Promise<CostSetup> {

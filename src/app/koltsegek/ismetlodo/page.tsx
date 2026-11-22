@@ -3,14 +3,12 @@ import {
   listRecurrings,
   runDueRecurring,
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
-  ensureDefaultPaymentMethods,
   listPaymentMethods,
   listPersons,
   listExpenseProjects,
   listMerchants,
-  ensureMerchantsFromHistory,
   getMerchantMap,
+  ensureCostDefaults,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { Card } from "@/components/ui/Card";
@@ -26,9 +24,7 @@ import {
 
 export default async function IsmetlodoPage() {
   const me = await requireUser();
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultPaymentMethods(me.householdId);
-  await ensureMerchantsFromHistory(me.householdId);
+  await ensureCostDefaults(me.householdId, { expense: true, income: false, payment: true, merchants: true });
   await runDueRecurring(me.householdId);
 
   const [rules, categories, paymentMethods, persons, projects, merchantMap, merchants] =

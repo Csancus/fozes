@@ -5,16 +5,14 @@ import {
   recentYms,
   ymsBetween,
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
   listIncomeCategories,
-  ensureDefaultIncomeCategories,
   listPaymentMethods,
-  ensureDefaultPaymentMethods,
   listPersons,
   listExpenseProjects,
   listGroups,
   runDueRecurring,
   getCostSetup,
+  ensureCostDefaults,
 } from "@/lib/data";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -35,20 +33,23 @@ export default async function KoltsegekPage({
   const keptCount = Number(megtartva ?? 0) || 0;
 
   // Új háztartás: az első tétel előtt végigvezetjük a beállításon.
-  const setup = await getCostSetup(me.householdId);
+  // Story 10.11: a varázsló-állapot és az alapértékek egy körben.
+  const [setup] = await Promise.all([
+    getCostSetup(me.householdId),
+    ensureCostDefaults(me.householdId, { expense: true, income: true, payment: true, merchants: false }),
+  ]);
   if (!setup.done) {
     if ((await countExpenses(me.householdId)) === 0) {
       redirect("/koltsegek/bevezeto");
     }
   }
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultPaymentMethods(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
-  await runDueRecurring(me.householdId);
   // A számla-egyenleg a kezdő egyenleg dátumától MINDEN tételt igényel, ezért
   // a fizetési módok alapján számoljuk ki, meddig kell visszamenni; egyébként
   // a 13 hónapos ablak elég (12 hónapos trend + aktuális hó).
-  const paymentMethods = await listPaymentMethods(me.householdId);
+  const [, paymentMethods] = await Promise.all([
+    runDueRecurring(me.householdId),
+    listPaymentMethods(me.householdId),
+  ]);
   const trackedFrom = paymentMethods
     .map((p) => p.openingAt)
     .filter((v): v is number => v !== null)

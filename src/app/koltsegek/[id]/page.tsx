@@ -5,14 +5,12 @@ import {
   countExpenses,
   listExpenseCategories,
   listIncomeCategories,
-  ensureDefaultExpenseCategories,
-  ensureDefaultIncomeCategories,
   ensureDefaultPaymentMethods,
   listPersons,
   listExpenseProjects,
   listGroups,
   getMerchantMap,
-  ensureMerchantsFromHistory,
+  ensureCostDefaults,
 } from "@/lib/data";
 import { notFound } from "next/navigation";
 import { PageHeader } from "@/components/ui/PageHeader";
@@ -29,9 +27,7 @@ export default async function EditExpensePage({
 }) {
   const { id } = await params;
   const me = await requireUser();
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
-  await ensureMerchantsFromHistory(me.householdId);
+  await ensureCostDefaults(me.householdId, { expense: true, income: true, payment: false, merchants: true });
 
   const [
     expense,

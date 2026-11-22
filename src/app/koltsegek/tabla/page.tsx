@@ -3,17 +3,14 @@ import {
   listExpensesRecent,
   listExpenses,
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
   listIncomeCategories,
-  ensureDefaultIncomeCategories,
-  ensureDefaultPaymentMethods,
   listPaymentMethods,
   listPersons,
   listExpenseProjects,
   listGroups,
   listMerchants,
-  ensureMerchantsFromHistory,
   getMerchantMap,
+  ensureCostDefaults,
 } from "@/lib/data";
 import Link from "next/link";
 import { SlidersHorizontal, Plus } from "lucide-react";
@@ -33,10 +30,7 @@ export default async function TablaPage({
   const { minden } = await searchParams;
   const all = minden === "1";
   const me = await requireUser();
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
-  await ensureDefaultPaymentMethods(me.householdId);
-  await ensureMerchantsFromHistory(me.householdId);
+  await ensureCostDefaults(me.householdId, { expense: true, income: true, payment: true, merchants: true });
   const [expenses, categories, incomeCategories, paymentMethods, persons, projects, groups, merchantMap, merchants] =
     await Promise.all([
       // Alapból az utolsó 13 hónap; a teljes előzmény a „minden" linkkel jön.

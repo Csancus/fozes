@@ -2,15 +2,13 @@ import { requireUser } from "@/lib/auth";
 import {
   listExpensesRecent,
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
   listIncomeCategories,
-  ensureDefaultIncomeCategories,
   listPaymentMethods,
-  ensureDefaultPaymentMethods,
   listPersons,
   listExpenseProjects,
   listGroups,
   runDueRecurring,
+  ensureCostDefaults,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -20,10 +18,10 @@ import { OverviewDashboard } from "./OverviewDashboard";
 
 export default async function AttekintesPage() {
   const me = await requireUser();
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultPaymentMethods(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
-  await runDueRecurring(me.householdId);
+  await Promise.all([
+    ensureCostDefaults(me.householdId, { expense: true, income: true, payment: true, merchants: false }),
+    runDueRecurring(me.householdId),
+  ]);
   const [expenses, categories, incomeCategories, paymentMethods, persons, projects, groups] =
     await Promise.all([
       // Az oldal a 12 hónapos trendet mutatja — ennyit olvasunk be.

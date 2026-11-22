@@ -2,10 +2,9 @@ import { requireUser } from "@/lib/auth";
 import {
   listExpensesForReview,
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
   listIncomeCategories,
-  ensureDefaultIncomeCategories,
   listPersons,
+  ensureCostDefaults,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { EmptyState } from "@/components/ui/EmptyState";
@@ -15,8 +14,7 @@ import { setExpenseReviewAction } from "../actions";
 
 export default async function TeendokPage() {
   const me = await requireUser();
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
+  await ensureCostDefaults(me.householdId, { expense: true, income: true, payment: false, merchants: false });
   const [expenses, categories, incomeCategories, persons] = await Promise.all([
     // Csak a megjelölt tételek — index-halmazból, nem a teljes előzményből.
     listExpensesForReview(me.householdId),

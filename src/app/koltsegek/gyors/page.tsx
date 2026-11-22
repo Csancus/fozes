@@ -3,18 +3,16 @@ import {
   listExpensesRecent,
   countExpenses,
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
   listIncomeCategories,
-  ensureDefaultIncomeCategories,
   ensureDefaultPaymentMethods,
   listPersons,
   listExpenseProjects,
   listGroups,
   listMerchants,
-  ensureMerchantsFromHistory,
   getMerchantMap,
   projectSuggestionsFrom,
   getCostSetup,
+  ensureCostDefaults,
 } from "@/lib/data";
 import { redirect } from "next/navigation";
 import Link from "next/link";
@@ -29,15 +27,16 @@ export default async function BatchPage() {
   const me = await requireUser();
 
   // Új háztartás: az első tétel előtt a beállító varázsló jön.
-  const setup = await getCostSetup(me.householdId);
+  // Story 10.11: a varázsló-állapot és az alapértékek egy körben.
+  const [setup] = await Promise.all([
+    getCostSetup(me.householdId),
+    ensureCostDefaults(me.householdId, { expense: true, income: true, payment: false, merchants: true }),
+  ]);
   if (!setup.done) {
     if ((await countExpenses(me.householdId)) === 0) {
       redirect("/koltsegek/bevezeto");
     }
   }
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
-  await ensureMerchantsFromHistory(me.householdId);
   const [
     categories,
     incomeCategories,

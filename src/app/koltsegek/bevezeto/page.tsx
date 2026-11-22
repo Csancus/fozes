@@ -1,13 +1,11 @@
 import { requireUser } from "@/lib/auth";
 import {
-  ensureDefaultExpenseCategories,
-  ensureDefaultPaymentMethods,
-  ensureDefaultIncomeCategories,
   listPaymentMethods,
   listPersons,
   listExpenseCategories,
   listIncomeCategories,
   listHouseholdMembers,
+  ensureCostDefaults,
 } from "@/lib/data";
 import { PageHeader } from "@/components/ui/PageHeader";
 import { SetupWizard } from "./SetupWizard";
@@ -17,9 +15,7 @@ export default async function BevezetoPage() {
   const me = await requireUser();
   const hh = me.householdId;
   // Az alapkészletet felajánljuk kiindulásnak (a varázslóban ki lehet kapcsolni).
-  await ensureDefaultExpenseCategories(hh);
-  await ensureDefaultPaymentMethods(hh);
-  await ensureDefaultIncomeCategories(hh);
+  await ensureCostDefaults(hh, { expense: true, income: true, payment: true, merchants: false });
 
   const [paymentMethods, persons, categories, incomeCategories, members] =
     await Promise.all([

@@ -3,16 +3,14 @@ import {
   listExpensesRecent,
   countExpenses,
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
   listIncomeCategories,
-  ensureDefaultIncomeCategories,
   ensureDefaultPaymentMethods,
   listPersons,
   listExpenseProjects,
   listGroups,
   listMerchants,
-  ensureMerchantsFromHistory,
   getMerchantMap,
+  ensureCostDefaults,
 } from "@/lib/data";
 import Link from "next/link";
 import { SlidersHorizontal } from "lucide-react";
@@ -24,9 +22,7 @@ import { saveExpensesBatchAction } from "../actions";
 
 export default async function KepImportPage() {
   const me = await requireUser();
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
-  await ensureMerchantsFromHistory(me.householdId);
+  await ensureCostDefaults(me.householdId, { expense: true, income: true, payment: false, merchants: true });
   const [
     categories,
     incomeCategories,

@@ -1,15 +1,12 @@
 import { requireUser } from "@/lib/auth";
 import {
   listExpenseCategories,
-  ensureDefaultExpenseCategories,
   listPaymentMethods,
-  ensureDefaultPaymentMethods,
   listPersons,
   listGroups,
   listMerchants,
   listIncomeCategories,
-  ensureDefaultIncomeCategories,
-  ensureMerchantsFromHistory,
+  ensureCostDefaults,
 } from "@/lib/data";
 import Link from "next/link";
 import { RotateCcw, FolderKanban, ChevronRight, Sparkles, HelpCircle } from "lucide-react";
@@ -42,10 +39,7 @@ import { restartCostSetupAction } from "../bevezeto/actions";
 
 export default async function BeallitasokPage() {
   const me = await requireUser();
-  await ensureDefaultExpenseCategories(me.householdId);
-  await ensureDefaultPaymentMethods(me.householdId);
-  await ensureDefaultIncomeCategories(me.householdId);
-  await ensureMerchantsFromHistory(me.householdId);
+  await ensureCostDefaults(me.householdId, { expense: true, income: true, payment: true, merchants: true });
   const [categories, incomeCategories, paymentMethods, persons, groups, merchants] =
     await Promise.all([
       listExpenseCategories(me.householdId),

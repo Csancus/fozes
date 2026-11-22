@@ -85,3 +85,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | [10.8](stories/story-10.8-rogzitett-fejlec.md) | Táblázatok: rögzített oszlopfejléc görgetéskor | ✅ |
 | [10.9](stories/story-10.9-projekt-helyben.md) | Új projekt helyben a gyors / képes rögzítésből és a tétel-táblából | ✅ |
 | [10.10](stories/story-10.10-sajat-legordulo.md) | Saját, sötét módban is szép legördülő a rögzítő táblákban | ✅ |
+| [10.11](stories/story-10.11-gyorsabb-oldalvaltas.md) | Gyorsabb oldalváltás: azonnali töltő, kevesebb soros Redis-kör, kliens-gyorsítótár | ✅ |
