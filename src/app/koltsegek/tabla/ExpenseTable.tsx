@@ -15,6 +15,7 @@ import { catColor } from "@/lib/expense-visuals";
 import { X, Search, Undo2, Trash2, SlidersHorizontal, Plus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
 import { ProjectSelect } from "../ProjectSelect";
+import { Dropdown } from "@/components/ui/Dropdown";
 import { createIncomeCategoryInline } from "../actions";
 import type {
   Expense,
@@ -570,19 +571,11 @@ export function ExpenseTable({
                   )}
                 >
                   <td className={cellClass("kind")}>
-                    <select
-                      value={r.kind}
-                      disabled={isDeleted}
-                      onChange={(e) => update(r.key, { kind: e.target.value as ExpenseKind })}
-                      className={cn(
+                    <Dropdown value={r.kind} disabled={isDeleted} onChange={(v) => update(r.key, { kind: v as ExpenseKind })} options={[{ value: "expense", label: "Kiadás" }, { value: "income", label: "Bevétel" }]} emptyOption={false} className={cn(
                         ctrl,
                         "appearance-none font-medium",
                         r.kind === "income" && "text-emerald-600 dark:text-emerald-400"
-                      )}
-                    >
-                      <option value="expense">Kiadás</option>
-                      <option value="income">Bevétel</option>
-                    </select>
+                      )} />
                   </td>
                   {isVisible("date") && (
                     <td className={cellClass("date")}>
@@ -629,7 +622,8 @@ export function ExpenseTable({
                             : setCatList((cur) => [...cur, c])
                         }
                         createFn={r.kind === "income" ? createIncomeCategoryInline : undefined}
-                        className={cn(ctrl, "appearance-none", isDeleted && "pointer-events-none")}
+                        disabled={isDeleted}
+                        className={cn(ctrl, "appearance-none")}
                       />
                     </td>
                   )}
@@ -638,54 +632,18 @@ export function ExpenseTable({
                       {r.kind === "income" ? (
                         <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
                       ) : (
-                        <select
-                          value={r.nature}
-                          disabled={isDeleted}
-                          onChange={(e) => update(r.key, { nature: e.target.value })}
-                          className={cn(ctrl, "appearance-none")}
-                        >
-                          <option value="avg">Havi átlagos</option>
-                          <option value="project">Eseti projekt</option>
-                        </select>
+                        <Dropdown value={r.nature} disabled={isDeleted} onChange={(v) => update(r.key, { nature: v })} options={[{ value: "avg", label: "Havi átlagos" }, { value: "project", label: "Eseti projekt" }]} emptyOption={false} className={cn(ctrl, "appearance-none")} />
                       )}
                     </td>
                   )}
                   {isVisible("payment") && (
                     <td className={cellClass("payment")}>
-                      <select
-                        value={r.paymentMethodId}
-                        disabled={isDeleted}
-                        onChange={(e) =>
-                          update(r.key, { paymentMethodId: e.target.value })
-                        }
-                        className={cn(ctrl, "appearance-none")}
-                      >
-                        <option value="">—</option>
-                        {paymentMethods.map((pm) => (
-                          <option key={pm.id} value={pm.id}>
-                            {pm.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Dropdown value={r.paymentMethodId} disabled={isDeleted} onChange={(v) => update(r.key, { paymentMethodId: v })} options={paymentMethods.map((pm) => ({ value: pm.id, label: pm.name }))} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {showPerson && (
                     <td className={cellClass("person")}>
-                      <select
-                        value={r.personId}
-                        disabled={isDeleted}
-                        onChange={(e) =>
-                          update(r.key, { personId: e.target.value })
-                        }
-                        className={cn(ctrl, "appearance-none")}
-                      >
-                        <option value="">—</option>
-                        {persons.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Dropdown value={r.personId} disabled={isDeleted} onChange={(v) => update(r.key, { personId: v })} options={persons.map((p) => ({ value: p.id, label: p.name }))} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {showProject && (
@@ -702,19 +660,7 @@ export function ExpenseTable({
                   )}
                   {showGroup && (
                     <td className={cellClass("group")}>
-                      <select
-                        value={r.groupId}
-                        disabled={isDeleted}
-                        onChange={(e) => update(r.key, { groupId: e.target.value })}
-                        className={cn(ctrl, "appearance-none")}
-                      >
-                        <option value="">—</option>
-                        {groups.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Dropdown value={r.groupId} disabled={isDeleted} onChange={(v) => update(r.key, { groupId: v })} options={groups.map((g) => ({ value: g.id, label: g.name }))} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {isVisible("review") && (

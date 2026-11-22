@@ -1,12 +1,12 @@
 "use client";
 
 import { useCategoryCreator } from "./useCategoryCreator";
+import { Dropdown } from "@/components/ui/Dropdown";
 import type { ExpenseCategory } from "@/lib/types";
 
-const NEW = "__new_category__";
-
-// Kategória-legördülő „+ Új kategória…" opcióval: szép modállal hoz létre újat,
+// Kategória-legördülő „+ Új kategória…" sorral: szép modállal hoz létre újat,
 // a szülő listájába teszi és kiválasztja. A createFn cserélhető (pl. bevétel-kategória).
+// Story 10.10: saját legördülő (Dropdown) a natív <select> helyett.
 export function CategorySelect({
   categories,
   value,
@@ -15,6 +15,7 @@ export function CategorySelect({
   createFn,
   className,
   placeholder = "—",
+  disabled,
 }: {
   categories: ExpenseCategory[];
   value: string;
@@ -23,14 +24,11 @@ export function CategorySelect({
   createFn?: (name: string) => Promise<ExpenseCategory | null>;
   className?: string;
   placeholder?: string;
+  disabled?: boolean;
 }) {
   const { open, modal } = useCategoryCreator(createFn);
 
-  async function handle(v: string) {
-    if (v !== NEW) {
-      onChange(v);
-      return;
-    }
+  async function create() {
     const cat = await open();
     if (cat) {
       onCreated(cat);
@@ -41,19 +39,17 @@ export function CategorySelect({
   return (
     <>
       {modal}
-      <select
+      <Dropdown
         value={value}
-        onChange={(e) => handle(e.target.value)}
+        options={categories.map((c) => ({ value: c.id, label: c.name, color: c.color }))}
+        onChange={onChange}
+        placeholder={placeholder}
+        createLabel="Új kategória…"
+        onCreate={create}
+        disabled={disabled}
+        ariaLabel="Kategória"
         className={className}
-      >
-        <option value="">{placeholder}</option>
-        {categories.map((c) => (
-          <option key={c.id} value={c.id}>
-            {c.name}
-          </option>
-        ))}
-        <option value={NEW}>+ Új kategória…</option>
-      </select>
+      />
     </>
   );
 }

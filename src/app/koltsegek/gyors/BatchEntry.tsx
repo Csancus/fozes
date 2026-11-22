@@ -14,6 +14,7 @@ import { cn } from "@/lib/cn";
 import { Plus, X, CopyPlus } from "lucide-react";
 import { CategorySelect } from "../CategorySelect";
 import { ProjectSelect } from "../ProjectSelect";
+import { Dropdown } from "@/components/ui/Dropdown";
 import type {
   ExpenseCategory,
   ExpenseKind,
@@ -345,18 +346,11 @@ export function BatchEntry({
                     {i + 1}.
                   </td>
                   <td className={cellClass("kind")}>
-                    <select
-                      value={r.kind}
-                      onChange={(e) => update(r.key, { kind: e.target.value as ExpenseKind })}
-                      className={cn(
+                    <Dropdown value={r.kind} onChange={(v) => update(r.key, { kind: v as ExpenseKind })} options={[{ value: "expense", label: "Kiadás" }, { value: "income", label: "Bevétel" }]} emptyOption={false} className={cn(
                         ctrl,
                         "appearance-none font-medium",
                         inc && "text-emerald-600 dark:text-emerald-400"
-                      )}
-                    >
-                      <option value="expense">Kiadás</option>
-                      <option value="income">Bevétel</option>
-                    </select>
+                      )} />
                   </td>
                   <td className={cellClass("merchant")}>
                     <input
@@ -398,47 +392,18 @@ export function BatchEntry({
                       {inc ? (
                         <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
                       ) : (
-                        <select
-                          value={r.nature}
-                          onChange={(e) => update(r.key, { nature: e.target.value })}
-                          className={cn(ctrl, "appearance-none")}
-                        >
-                          <option value="avg">Havi átlagos</option>
-                          <option value="project">Eseti projekt</option>
-                        </select>
+                        <Dropdown value={r.nature} onChange={(v) => update(r.key, { nature: v })} options={[{ value: "avg", label: "Havi átlagos" }, { value: "project", label: "Eseti projekt" }]} emptyOption={false} className={cn(ctrl, "appearance-none")} />
                       )}
                     </td>
                   )}
                   {isVisible("payment") && (
                     <td className={cellClass("payment")}>
-                      <select
-                        value={r.paymentMethodId}
-                        onChange={(e) => update(r.key, { paymentMethodId: e.target.value })}
-                        className={cn(ctrl, "appearance-none")}
-                      >
-                        <option value="">—</option>
-                        {paymentMethods.map((pm) => (
-                          <option key={pm.id} value={pm.id}>
-                            {pm.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Dropdown value={r.paymentMethodId} onChange={(v) => update(r.key, { paymentMethodId: v })} options={paymentMethods.map((pm) => ({ value: pm.id, label: pm.name }))} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {showPerson && (
                     <td className={cellClass("person")}>
-                      <select
-                        value={r.personId}
-                        onChange={(e) => update(r.key, { personId: e.target.value })}
-                        className={cn(ctrl, "appearance-none")}
-                      >
-                        <option value="">—</option>
-                        {persons.map((p) => (
-                          <option key={p.id} value={p.id}>
-                            {p.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Dropdown value={r.personId} onChange={(v) => update(r.key, { personId: v })} options={persons.map((p) => ({ value: p.id, label: p.name }))} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {showProject && (
@@ -454,18 +419,7 @@ export function BatchEntry({
                   )}
                   {showGroup && (
                     <td className={cellClass("group")}>
-                      <select
-                        value={r.groupId}
-                        onChange={(e) => update(r.key, { groupId: e.target.value })}
-                        className={cn(ctrl, "appearance-none")}
-                      >
-                        <option value="">—</option>
-                        {groups.map((g) => (
-                          <option key={g.id} value={g.id}>
-                            {g.name}
-                          </option>
-                        ))}
-                      </select>
+                      <Dropdown value={r.groupId} onChange={(v) => update(r.key, { groupId: v })} options={groups.map((g) => ({ value: g.id, label: g.name }))} className={cn(ctrl, "appearance-none")} />
                     </td>
                   )}
                   {isVisible("review") && (

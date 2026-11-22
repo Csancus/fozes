@@ -84,3 +84,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | [10.7](stories/story-10.7-oszlop-osszecsukas.md) | Tétel-tábla és gyors rögzítés: oszlopok egyenkénti összecsukása / kinyitása | ✅ |
 | [10.8](stories/story-10.8-rogzitett-fejlec.md) | Táblázatok: rögzített oszlopfejléc görgetéskor | ✅ |
 | [10.9](stories/story-10.9-projekt-helyben.md) | Új projekt helyben a gyors / képes rögzítésből és a tétel-táblából | ✅ |
+| [10.10](stories/story-10.10-sajat-legordulo.md) | Saját, sötét módban is szép legördülő a rögzítő táblákban | ✅ |

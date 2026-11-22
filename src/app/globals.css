@@ -522,14 +522,16 @@ a {
 /* űrlapmezők: kicsit tömörebb anyag, finom fókusz-gyűrű */
 :root[data-style="csempe"] input[class*="bg-[var(--color-card)]"],
 :root[data-style="csempe"] textarea[class*="bg-[var(--color-card)]"],
-:root[data-style="csempe"] select[class*="bg-[var(--color-card)]"] {
+:root[data-style="csempe"] select[class*="bg-[var(--color-card)]"],
+:root[data-style="csempe"] button[aria-haspopup="listbox"][class*="bg-[var(--color-card)]"] {
   background-color: var(--csempe-glass-strong);
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
 :root[data-style="csempe"] input[class*="bg-[var(--color-card)]"]:focus,
 :root[data-style="csempe"] textarea[class*="bg-[var(--color-card)]"]:focus,
-:root[data-style="csempe"] select[class*="bg-[var(--color-card)]"]:focus {
+:root[data-style="csempe"] select[class*="bg-[var(--color-card)]"]:focus,
+:root[data-style="csempe"] button[aria-haspopup="listbox"][class*="bg-[var(--color-card)]"]:focus {
   border-color: var(--primary);
   box-shadow: 0 0 0 3px var(--ring);
 }

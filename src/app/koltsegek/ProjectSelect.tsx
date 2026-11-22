@@ -1,11 +1,10 @@
 "use client";
 
 import { useProjectCreator } from "./useCategoryCreator";
+import { Dropdown } from "@/components/ui/Dropdown";
 import type { Project } from "@/lib/types";
 
-const NEW = "__new_project__";
-
-// Story 10.9 – projekt-legördülő „+ Új projekt…" opcióval (mint a CategorySelect).
+// Story 10.9 – projekt-legördülő „+ Új projekt…" sorral (mint a CategorySelect).
 export function ProjectSelect({
   projects,
   value,
@@ -23,11 +22,7 @@ export function ProjectSelect({
 }) {
   const { open, modal } = useProjectCreator();
 
-  async function handle(v: string) {
-    if (v !== NEW) {
-      onChange(v);
-      return;
-    }
+  async function create() {
     const p = await open();
     if (p) {
       onCreated(p);
@@ -38,20 +33,16 @@ export function ProjectSelect({
   return (
     <>
       {modal}
-      <select
+      <Dropdown
         value={value}
+        options={projects.map((p) => ({ value: p.id, label: p.name, color: p.color }))}
+        onChange={onChange}
+        createLabel="Új projekt…"
+        onCreate={create}
         disabled={disabled}
-        onChange={(e) => handle(e.target.value)}
+        ariaLabel="Projekt"
         className={className}
-      >
-        <option value="">—</option>
-        {projects.map((p) => (
-          <option key={p.id} value={p.id}>
-            {p.name}
-          </option>
-        ))}
-        <option value={NEW}>+ Új projekt…</option>
-      </select>
+      />
     </>
   );
 }
