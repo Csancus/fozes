@@ -205,7 +205,8 @@ export type DateHit = { day: string; index: number; end: number; relative?: bool
  */
 export function findDate(line: string, now: Date = new Date()): DateHit | null {
   const y0 = now.getFullYear();
-  const low = fold(line);
+  // OCR-elírás a hónapnévben: „aua. 16.”, „auq. 16.” → aug. (azonos hossz, az indexek maradnak)
+  const low = fold(line).replace(/\bau[aq]\./g, "aug.");
 
   let m = line.match(/(20\d{2})\s?[.,\-/]\s?(\d{1,2})\s?[.,\-/]\s?(\d{1,2})(?!\d)/);
   if (m) {

@@ -115,8 +115,13 @@ function isSubtitle(s: string): boolean {
 
 /** Bolt-név takarítás: széli zaj (ikonból olvasott jelek, „ or”, „ .”) le. */
 export function cleanMerchant(s: string): string {
-  let t = s.replace(/\s{2,}/g, " ").trim();
+  let t = s
+    .replace(/\s{2,}/g, " ")
+    .trim()
+    // Revolut-visszatérítés: „Visszatérítés tőle: MÁV” → „MÁV”
+    .replace(/^(?:visszat[eé]r[ií]t[eé]s\s+t[őo]le|refund\s+from)\s*:?\s*/iu, "");
   t = t.replace(/^[^\p{L}\p{N}]+/u, "");
+  t = t.replace(/^(?:visszat[eé]r[ií]t[eé]s\s+t[őo]le|refund\s+from)\s*:?\s*/iu, "");
   // elöl ikonból olvasott zaj-token: betű nélküli („<2’”, „==”), írásjeles vagy kisbetűs
   // 1–2 betűs („o Bakeshop”, „fo! GoBuda”, „sm Strahov”), vagy két nagybetű egy
   // Nagybetűs szó előtt („MW Havelska”)
@@ -124,8 +129,16 @@ export function cleanMerchant(s: string): string {
     t = t
       .replace(/^(?:[^\p{L}\s]+\s+)+(?=\S)/u, "")
       .replace(/^(?:\p{L}{1,2}|\S{1,2}[^\p{L}\p{N}\s])\s+(?=\p{Lu}\p{Ll}{2})/u, "")
-      .replace(/^(?:\p{Ll}{1,2}[^\p{L}\s]?|\S{1,2}[^\p{L}\p{N}\s])\s+(?=\p{Lu})/u, "");
+      .replace(/^(?:\p{Ll}{1,2}[^\p{L}\s]?|\S{1,2}[^\p{L}\p{N}\s])\s+(?=\p{Lu})/u, "")
+      // Revolut-ikon zaja nagybetűs név előtt: „oS MAV”, „Mm BILLA”, „NM FOXPOST”
+      .replace(/^\p{L}{1,2}\s+(?=\p{Lu}{3,}(?:\s|$))/u, "")
+      // kisbetűs 3 betűs zaj írásjellel: „emo, Kacsakő Bisztro”
+      .replace(/^\p{Ll}{1,3}[,;:]\s+(?=\p{Lu})/u, "");
   }
+  // ikon + név ugyanaz kétszer: „BILLA BILLA” → „BILLA”
+  t = t.replace(/^(\p{L}{3,})\s+\1(?=\s|$)/iu, "$1");
+  // „Trio 8. Fornetti”: az „&” jelet az OCR 8-asnak olvassa két név között
+  t = t.replace(/(\p{L})\s8\.?\s(?=\p{Lu}\p{Ll})/u, "$1 & ");
   for (let i = 0; i < 3; i++) {
     const before = t;
     t = t.replace(/[\s·•\-.,:;|_~!\]\[]+$/u, "");
@@ -189,9 +202,25 @@ function parseReceipt(lines: string[], now: Date): ParsedTx | null {
   return { kind: "expense", amount, merchant, day, note: itemLines.length ? `${itemLines.length} tétel a blokkon` : "" };
 }
 
+// Teljes hónapnevek (a Revolut hónap-fül sorához).
+const MONTH_WORDS =
+  /\b(januar|februar|marcius|aprilis|majus|junius|julius|augusztus|szeptember|oktober|november|december|january|february|march|april|june|july|august|september|october)\b/g;
+function monthWords(line: string): number {
+  return (fold(line).match(MONTH_WORDS) ?? []).length;
+}
+
+/** Napfejléc a napi összeggel („aug. 15. -155 000 Ft” – Revolut): a dátum az elején, más szöveg nincs. */
+function dayHeaderWithTotal(line: string, now: Date): string | null {
+  const d = findDate(line, now);
+  if (!d || d.relative || d.index > 3) return null;
+  const rest = (line.slice(0, d.index) + " " + line.slice(d.end)).replace(/[+\-]?\s?\d[\d .,]*\s*(Ft|HUF|forint)?/g, " ");
+  return letters(rest) < 2 && findAmounts(line).length ? d.day : null;
+}
+
 function detectDateAfter(lines: string[], now: Date): boolean {
   for (const line of lines) {
     const amounts = findAmounts(line);
+    if (amounts.length && dayHeaderWithTotal(line, now)) return false; // dátum-fejléc a tételek felett
     if (amounts.length) {
       if (SKIP_RE.test(line)) continue;
       const rest = line.slice(0, amounts[amounts.length - 1].index);
@@ -213,16 +242,30 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
     .split("\n")
     // Másodlagos devizás összeg (Revolut: „-1 463 Kč” a forint alatt) – csak a forint számít (Story 10.4).
     .map((l) => l.replace(FOREIGN_AMOUNT_RE, " ").replace(/\s{2,}/g, " ").trim())
+    // Elveszett tizedesvessző a fillér előtt: „-16 67716 Ft” → „-16 677,16 Ft” (Story 10.12)
+    .map((l) => l.replace(/(?<![\d:.,])(\d{1,3}(?:[ .]\d{3})+)(\d{2})(?=\s*(?:Ft|HUF)\b)/g, "$1,$2"))
     .filter(Boolean);
   // A telefon állapotsora (óra + ikonok + akku: „21:48 … 71%”, OCR-rel gyakran „2148 … 7158”) nem tétel-név.
   if (lines.length && /^\d{1,2}[:.]?\d{2}\b/.test(lines[0]) && !findAmounts(lines[0]).length && !findDate(lines[0], now)) {
     lines.shift();
   }
 
+  // Revolut-fejléc (Story 10.12): egyenleg, „aug. 15., 3:53”, hónap-fülek („június július augusztus …”).
+  // Minden a hónap-fül sorig (azzal együtt) fejléc, nem tétel.
+  const tabs = lines.findIndex((l) => monthWords(l) >= 2);
+  // Az egyenleg időpontja („nov. 13., 21:10”) a legutóbbi tétel napja: az első napfejléc előtti tételek ezt kapják.
+  let headerDay: string | null = null;
+  if (tabs >= 0 && tabs <= 6) {
+    for (const l of lines.splice(0, tabs + 1)) {
+      const d = findDate(l, now);
+      if (d && !d.relative) headerDay = d.day;
+    }
+  }
+
   const receipt = parseReceipt(lines, now);
   if (receipt) return [receipt];
 
-  let currentDay = today(now);
+  let currentDay = headerDay ?? today(now);
   // Elrendezés: a dátum a tétel FELETT (fejléc – K&H, OTP) vagy ALATTA (Erste: név+összeg, dátum, típus, kategória).
   // Ha az első tétel-sor előbb jön, mint az első csak-dátum sor, „alatta” módban vagyunk.
   const dateAfter = detectDateAfter(lines, now);
@@ -285,6 +328,13 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
 
     if (amounts.length && FEE_LINE_RE.test(line)) continue;
 
+    const header = amounts.length ? dayHeaderWithTotal(line, now) : null;
+    if (header) {
+      currentDay = header;
+      candidates = [];
+      continue;
+    }
+
     if (amounts.length) {
       const balance = afterBalanceLabel || SKIP_RE.test(line) || NON_TX_RE.test(line);
       afterBalanceLabel = false;
@@ -338,7 +388,12 @@ export function parseBankText(text: string, now: Date = new Date()): ParsedTx[] 
       continue;
     }
     if (SKIP_RE.test(line) || NON_TX_RE.test(line)) continue;
-    if (/^\d{1,2}[:.]\d{2}\b/.test(line) && letters(line) < 4) continue; // állapotsor / idő
+    // idő-alsor („21:38 · Bankkártya hitelesítése”, „15:24”): a fölötte lévő név már elhasználódott
+    // (összeg nélküli tétel) – ne ragadjon a következő tételre.
+    if (/^(?:\S{1,3}\s+)?([01]?\d|2[0-3])[:.][0-5]\d\b/.test(line)) {
+      candidates = [];
+      continue;
+    }
     if (/\d\s*(EUR|USD|€|\$)/i.test(line)) continue; // másodlagos devizás sor
     if (isSubtitle(line)) continue;
     if (letters(line) >= 2 && line.length <= 48) candidates.push(line);

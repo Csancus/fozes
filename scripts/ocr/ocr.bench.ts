@@ -30,7 +30,8 @@ type Fixture = {
   tokens?: string[];
 };
 
-const dir = path.resolve("tests/fixtures/ocr");
+// OCR_DIR=<mappa> → más képkészlet (saját expected.json-nal), pl. a repón kívüli valódi képernyőképek.
+const dir = path.resolve(process.env.OCR_DIR ?? "tests/fixtures/ocr");
 const spec = JSON.parse(readFileSync(path.join(dir, "expected.json"), "utf8")) as {
   now: string;
   fixtures: Fixture[];
