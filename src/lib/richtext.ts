@@ -69,7 +69,8 @@ export function plainToRichText(text: string): string {
 
 export function sanitizeRichText(input: string): string {
   if (!input) return "";
-  let html = input.slice(0, 200_000);
+  // a helyőrző-jelek nem fordulhatnak elő a bemenetben
+  let html = input.slice(0, 200_000).replace(/[\u0001\u0002]/g, "");
 
   // Veszélyes blokkok tartalmastul.
   html = html
@@ -80,10 +81,22 @@ export function sanitizeRichText(input: string): string {
   const openStack: string[] = [];
   // Nyitott lista-szintek: igaz, ha az adott <ul> pipálható lista.
   const listStack: boolean[] = [];
+  // A kiadott (biztonságos) tageket helyőrzőként tesszük vissza, hogy utána minden megmaradt
+  // `<`/`>` escape-elhető legyen. Enélkül egy le nem zárt tag (`<img src=x onerror=… x=`) a
+  // regexen átcsúszik, és a végén hozzáfűzött záró tag `>`-je zárná le → XSS.
+  const emitted: string[] = [];
+  const emit = (t: string) => (t ? `\u0001${emitted.push(t) - 1}\u0002` : "");
 
   html = html.replace(
     /<\s*(\/)?\s*([a-zA-Z][a-zA-Z0-9]*)\b([^>]*)>/g,
-    (_m, closing: string | undefined, rawName: string, attrs: string) => {
+    (_m, closing: string | undefined, rawName: string, attrs: string) => emit(tagOut(closing, rawName, attrs))
+  );
+  html = html
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/\u0001(\d+)\u0002/g, (_m, i: string) => emitted[Number(i)] ?? "");
+
+  function tagOut(closing: string | undefined, rawName: string, attrs: string): string {
       const tag = rawName.toLowerCase();
       if (!ALLOWED_TAGS.has(tag)) return "";
 
@@ -124,8 +137,7 @@ export function sanitizeRichText(input: string): string {
 
       openStack.push(tag);
       return `<${tag}>`;
-    }
-  );
+  }
 
   // Nyitva maradt tagek zárása.
   for (let i = openStack.length - 1; i >= 0; i -= 1) {

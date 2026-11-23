@@ -2,12 +2,12 @@
 
 import { useState } from "react";
 import { Input, Textarea, Field } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import { Card } from "@/components/ui/Card";
 import { compressImageToDataUrl } from "@/lib/photo";
 import { saveCookedMealAction } from "../actions";
 import { Camera, Save, Star, RefreshCcw, AlertCircle } from "lucide-react";
 import { cn } from "@/lib/cn";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 function todayInput(): string {
   const d = new Date();
@@ -180,14 +180,9 @@ export function CookedMealForm({
         <Textarea name="notes" rows={4} placeholder="Írj néhány gondolatot…" />
       </Field>
 
-      <Button
-        type="submit"
-        size="lg"
-        fullWidth
-        leftIcon={<Save className="w-4 h-4" />}
-      >
+      <SubmitButton size="lg" fullWidth leftIcon={<Save className="w-4 h-4" />}>
         Mentés
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

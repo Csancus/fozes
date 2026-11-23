@@ -127,11 +127,6 @@ export function Dropdown({
     listRef.current?.querySelector<HTMLElement>(`[data-idx="${active}"]`)?.scrollIntoView({ block: "nearest" });
   }, [active, open]);
 
-  // gépelés közben az első találat legyen aktív
-  useEffect(() => {
-    setActive(0);
-  }, [query]);
-
   const onKey = (e: React.KeyboardEvent) => {
     if (!open) {
       if (["ArrowDown", "ArrowUp", "Enter", " "].includes(e.key)) {
@@ -146,7 +141,8 @@ export function Dropdown({
     } else if (e.key === "ArrowUp") {
       e.preventDefault();
       setActive((a) => Math.max(0, a - 1));
-    } else if (e.key === "Enter") {
+    } else if (e.key === "Enter" || (e.key === " " && e.target === triggerRef.current)) {
+      // szóköz a gombon is választ (különben a natív kattintás csak bezárná)
       e.preventDefault();
       if (total) choose(active);
     } else if (e.key === "Escape") {
@@ -166,6 +162,7 @@ export function Dropdown({
         aria-haspopup="listbox"
         aria-expanded={open}
         aria-controls={open ? listId : undefined}
+        aria-activedescendant={open ? `${listId}-${active}` : undefined}
         aria-label={ariaLabel}
         onClick={() => (open ? close() : openPanel())}
         onKeyDown={onKey}
@@ -201,7 +198,13 @@ export function Dropdown({
                 <input
                   autoFocus
                   value={query}
-                  onChange={(e) => setQuery(e.target.value)}
+                  onChange={(e) => {
+                    setQuery(e.target.value);
+                    // gépelés közben az első találat legyen aktív (újranyitáskor a kiválasztott marad)
+                    setActive(0);
+                  }}
+                  aria-controls={listId}
+                  aria-activedescendant={`${listId}-${active}`}
                   placeholder="Keresés…"
                   className="flex-1 min-w-0 bg-transparent text-[13px] focus:outline-none"
                 />
@@ -223,6 +226,7 @@ export function Dropdown({
                     type="button"
                     role="option"
                     aria-selected={isSel}
+                    id={`${listId}-${i}`}
                     data-idx={i}
                     onMouseEnter={() => setActive(i)}
                     onClick={() => choose(i)}
@@ -246,6 +250,9 @@ export function Dropdown({
               {onCreate && (
                 <button
                   type="button"
+                  role="option"
+                  aria-selected={false}
+                  id={`${listId}-${items.length}`}
                   data-idx={items.length}
                   onMouseEnter={() => setActive(items.length)}
                   onClick={() => choose(items.length)}

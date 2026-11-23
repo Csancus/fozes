@@ -28,6 +28,7 @@ import {
   createCategoryInline,
   createIncomeCategoryInline,
 } from "../actions";
+import { groupDigits } from "@/lib/amount-input";
 
 function slugify(s: string): string {
   return s
@@ -51,12 +52,6 @@ function fmtFt(n: number): string {
 
 function toNum(v: string): number {
   return Number(v.replace(/\s/g, "").replace(",", "."));
-}
-
-// Hármas tagolás beviteli mezőhöz (mentéskor a szerver eltávolítja a szóközöket).
-function groupDigits(s: string): string {
-  const d = s.replace(/\D/g, "");
-  return d ? d.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "";
 }
 
 type Row = {
@@ -350,7 +345,7 @@ export function BatchEntry({
                     {i + 1}.
                   </td>
                   <td className={cellClass("kind")}>
-                    <Dropdown value={r.kind} onChange={(v) => update(r.key, { kind: v as ExpenseKind })} options={[{ value: "expense", label: "Kiadás" }, { value: "income", label: "Bevétel" }]} emptyOption={false} className={cn(
+                    <Dropdown ariaLabel="Típus" value={r.kind} onChange={(v) => update(r.key, { kind: v as ExpenseKind })} options={[{ value: "expense", label: "Kiadás" }, { value: "income", label: "Bevétel" }]} emptyOption={false} className={cn(
                         ctrl,
                         "appearance-none font-medium",
                         inc && "text-emerald-600 dark:text-emerald-400"
@@ -382,6 +377,7 @@ export function BatchEntry({
                         categories={rowCats}
                         value={r.categoryId}
                         onChange={(id) => update(r.key, { categoryId: id })}
+                        createFn={inc ? createIncomeCategoryInline : undefined}
                         onCreated={(c) =>
                           inc
                             ? setIncomeCatList((cur) => [...cur, c])
@@ -396,7 +392,7 @@ export function BatchEntry({
                       {inc ? (
                         <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
                       ) : (
-                        <Dropdown value={r.nature} onChange={(v) => update(r.key, { nature: v })} options={[{ value: "avg", label: "Havi átlagos" }, { value: "project", label: "Eseti projekt" }]} emptyOption={false} className={cn(ctrl, "appearance-none")} />
+                        <Dropdown ariaLabel="Jelleg" value={r.nature} onChange={(v) => update(r.key, { nature: v })} options={[{ value: "avg", label: "Havi átlagos" }, { value: "project", label: "Eseti projekt" }]} emptyOption={false} className={cn(ctrl, "appearance-none")} />
                       )}
                     </td>
                   )}

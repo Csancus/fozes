@@ -88,6 +88,7 @@ export function OcrImport({
   const [progress, setProgress] = useState<{ done: number; total: number; status: string; pct: number } | null>(null);
   const [dragOver, setDragOver] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [openError, setOpenError] = useState<string | null>(null);
   const inputRef = useRef<HTMLInputElement | null>(null);
   const dragDepth = useRef(0);
@@ -199,7 +200,13 @@ export function OcrImport({
     const fd = new FormData();
     fd.set("drafts", JSON.stringify(payload));
     setSaving(true);
-    void action(fd);
+    // siker esetén az akció átirányít (a redirect a hívó felé hibaként jön – azt tovább kell engedni);
+    // valódi hibánál a gomb ne ragadjon „mentés” állapotban
+    Promise.resolve(action(fd)).catch((e: unknown) => {
+      if (String((e as { digest?: string } | null)?.digest ?? "").startsWith("NEXT_REDIRECT")) return;
+      setSaving(false);
+      setSaveError(true);
+    });
   }
 
   return (
@@ -327,6 +334,11 @@ export function OcrImport({
               {valid.length} elem mentése
             </button>
           </div>
+          {saveError && (
+            <p className="max-w-md md:max-w-4xl mx-auto px-5 pb-2 -mt-1 text-xs text-red-600 dark:text-red-400">
+              Nem sikerült menteni – próbáld újra.
+            </p>
+          )}
         </div>
       )}
     </div>

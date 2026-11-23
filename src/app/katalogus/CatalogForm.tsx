@@ -142,7 +142,8 @@ export function CatalogForm({ initial }: { initial?: CatalogItem }) {
             <ScanBarcode className="w-4 h-4" />
             Vonalkód beolvasása
           </div>
-          <div className="flex gap-2">
+          {/* mobilon a mező külön sorban, alatta a két gomb – különben kilógnak a képernyőből */}
+          <div className="flex flex-wrap gap-2">
             <input
               type="text"
               inputMode="numeric"
@@ -151,11 +152,12 @@ export function CatalogForm({ initial }: { initial?: CatalogItem }) {
               value={barcode}
               onChange={(e) => setBarcode(e.target.value.replace(/\D/g, ""))}
               placeholder="EAN-13"
-              className="flex-1 h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3.5 text-[15px]"
+              className="w-full sm:w-auto sm:flex-1 min-w-0 h-11 rounded-xl border border-[var(--color-input)] bg-[var(--color-card)] px-3.5 text-[15px]"
             />
             <Button
               type="button"
               onClick={() => setScannerOpen(true)}
+              className="flex-1 sm:flex-none"
               variant="soft"
               leftIcon={<Camera className="w-4 h-4" />}
             >
@@ -164,6 +166,7 @@ export function CatalogForm({ initial }: { initial?: CatalogItem }) {
             <Button
               type="button"
               onClick={() => lookup(barcode)}
+              className="flex-1 sm:flex-none"
               disabled={barcode.length < 6 || lookupBusy}
               leftIcon={
                 lookupBusy ? (

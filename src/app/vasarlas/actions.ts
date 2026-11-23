@@ -96,6 +96,13 @@ export async function updatePurchaseAction(fd: FormData) {
     unitPrice: number;
   }> = [];
 
+  const lineKey = (name: string, loc: string) => `${slug(name)}|${loc}`;
+  const alreadyInPantry = new Set(
+    (existing.lines ?? [])
+      .filter((l) => l.addToPantry && l.locationId)
+      .map((l) => lineKey(l.name, l.locationId as string))
+  );
+
   for (let i = 0; i < count; i++) {
     const name = String(fd.get(`name-${i}`) ?? "").trim();
     if (!name) continue;
@@ -119,7 +126,9 @@ export async function updatePurchaseAction(fd: FormData) {
       expiresAt,
     });
 
-    if (addToPantry && locationId) {
+    // Újramentéskor a már egyszer spájzba tett sort nem tesszük be még egyszer (különben minden
+    // mentés megduplázná a spájzt és az ártörténetet) – csak az új vagy most bepipált sorok mennek.
+    if (addToPantry && locationId && !alreadyInPantry.has(lineKey(name, locationId))) {
       pantryOps.push({
         name,
         qty: isNaN(qty) || qty <= 0 ? 1 : qty,

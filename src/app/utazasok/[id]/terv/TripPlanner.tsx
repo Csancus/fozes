@@ -17,10 +17,14 @@ import {
 import { TRIP_PLAN_COLUMNS } from "@/lib/types";
 import type { TripDay, TripPlanItem } from "@/lib/types";
 
-let counter = 0;
+// Az azonosítók elmentődnek, ezért oldalbetöltésenként újrainduló számláló nem jó (ütközne
+// a már mentett „d-1”, „i-1” azonosítókkal) – véletlen azonosító kell.
 function uid(prefix: string): string {
-  counter += 1;
-  return `${prefix}-${counter}`;
+  const r =
+    typeof crypto !== "undefined" && "randomUUID" in crypto
+      ? crypto.randomUUID()
+      : `${Date.now().toString(36)}${Math.random().toString(36).slice(2)}`;
+  return `${prefix}-${r}`;
 }
 
 function emptyItem(): TripPlanItem {
@@ -91,6 +95,7 @@ export function TripPlanner({
   const [collapsed, setCollapsed] = useState<Set<string>>(new Set());
   const [dirty, setDirty] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState(false);
   const [pending, startTransition] = useTransition();
   const cleanRef = useRef(JSON.stringify(initialDays));
   const cleanNoteRef = useRef(initialNote);
@@ -169,8 +174,15 @@ export function TripPlanner({
     fd.set("id", tripId);
     fd.set("days", JSON.stringify(days));
     fd.set("planNote", currentNote);
+    setSaveError(false);
     startTransition(async () => {
-      await action(fd);
+      try {
+        await action(fd);
+      } catch {
+        // a terv maradjon a képernyőn (dirty), hogy újra lehessen próbálni
+        setSaveError(true);
+        return;
+      }
       cleanRef.current = JSON.stringify(days);
       cleanNoteRef.current = currentNote;
       setDirty(false);
@@ -381,8 +393,14 @@ export function TripPlanner({
       <div className="fixed inset-x-0 bottom-[var(--bottom-nav-h)] z-30 border-t border-[var(--color-border)] bg-[var(--color-background)]/95 backdrop-blur-md md:pl-64">
         <div className="max-w-md md:max-w-5xl mx-auto px-5 py-3 flex items-center justify-between gap-3">
           <div className="text-sm text-[var(--color-muted-foreground)]">
-            {days.length} nap ·{" "}
-            {days.reduce((n, d) => n + d.items.length, 0)} programpont
+            {saveError ? (
+              <span className="text-red-600 dark:text-red-400">Nem sikerült menteni – próbáld újra</span>
+            ) : (
+              <>
+                {days.length} nap ·{" "}
+                {days.reduce((n, d) => n + d.items.length, 0)} programpont
+              </>
+            )}
           </div>
           <button
             type="button"

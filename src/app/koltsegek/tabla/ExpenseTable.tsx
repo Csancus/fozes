@@ -27,6 +27,7 @@ import type {
   Project,
   ExpenseGroup,
 } from "@/lib/types";
+import { groupDigits } from "@/lib/amount-input";
 
 function slugify(s: string): string {
   return s
@@ -43,12 +44,6 @@ function fmtFt(n: number): string {
 
 function toNum(v: string): number {
   return Number(v.replace(/\s/g, "").replace(",", "."));
-}
-
-// Hármas tagolás beviteli mezőhöz (mentéskor a szóközöket a szerver eltávolítja).
-function groupDigits(s: string): string {
-  const d = s.replace(/\D/g, "");
-  return d ? d.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "";
 }
 
 function tsToDay(ts: number): string {
@@ -175,6 +170,7 @@ const COL_W: Record<string, number> = {
 
 export function ExpenseTable({
   action,
+  showAll = false,
   expenses,
   categories,
   incomeCategories = [],
@@ -185,6 +181,7 @@ export function ExpenseTable({
   merchantMap,
   knownMerchants,
 }: {
+  showAll?: boolean;
   action: (fd: FormData) => void | Promise<void>;
   expenses: Expense[];
   categories: ExpenseCategory[];
@@ -356,9 +353,11 @@ export function ExpenseTable({
   const dirty = rows.filter(
     (r) => !deleted.has(r.id) && serialize(r) !== original.get(r.id)
   );
-  const validDirty = dirty.filter(
-    (r) => toNum(r.amount) > 0 && r.merchant.trim()
-  );
+  // hiányos sor (összeg, név vagy dátum nélkül) nem mehet a szerverre – az üres dátumból „ma” lenne
+  const isComplete = (r: Row) => toNum(r.amount) > 0 && !!r.merchant.trim() && !!r.spentAt;
+  const validDirty = dirty.filter(isComplete);
+  // a még üres, kitöltetlen új sor nem hiba
+  const invalidDirty = dirty.filter((r) => !isComplete(r) && (r.id || r.amount || r.merchant.trim()));
   const changeCount = validDirty.length + deleted.size;
 
   const payload = JSON.stringify(
@@ -400,6 +399,7 @@ export function ExpenseTable({
     <form action={action} className="mt-5">
       <input type="hidden" name="rows" value={payload} />
       <input type="hidden" name="deletedIds" value={deletedPayload} />
+      {showAll && <input type="hidden" name="minden" value="1" />}
 
       <datalist id="table-merchants">
         {knownMerchants.map((m) => (
@@ -476,16 +476,16 @@ export function ExpenseTable({
               </TChip>
             ))}
           </TChipGroup>
-          {(categories.length > 0 || incomeCategories.length > 0) && (
+          {(catList.length > 0 || incomeCatList.length > 0) && (
             <TChipGroup label="Kategória">
-              {[...categories, ...incomeCategories].map((c) => (
+              {[...catList, ...incomeCatList].map((c) => (
                 <DotChip key={c.id} color={c.color} active={cats.has(c.id)} onClick={() => toggleSet(cats, setCats, c.id)}>
                   {c.name}
                 </DotChip>
               ))}
             </TChipGroup>
           )}
-          {paymentMethods.length > 0 && (
+          {payList.length > 0 && (
             <TChipGroup label="Fizetés">
               {payList.map((p) => (
                 <DotChip key={p.id} color={p.color} active={pays.has(p.id)} onClick={() => toggleSet(pays, setPays, p.id)}>
@@ -528,6 +528,7 @@ export function ExpenseTable({
                 setKindF("all");
                 setNatureF("all");
                 setReviewF(false);
+                setPlannedF("all");
                 setCats(new Set());
                 setPays(new Set());
                 setPeople(new Set());
@@ -588,11 +589,12 @@ export function ExpenseTable({
                     "align-top",
                     isDeleted && "opacity-40",
                     r.planned && !isDeleted && "bg-indigo-500/[0.06]",
-                    isDirty && "ring-1 ring-[var(--color-primary)]/30 rounded-lg"
+                    isDirty && "ring-1 ring-[var(--color-primary)]/30 rounded-lg",
+                    isDirty && invalidDirty.includes(r) && "ring-red-500/60 bg-red-500/[0.05]"
                   )}
                 >
                   <td className={cellClass("kind")}>
-                    <Dropdown value={r.kind} disabled={isDeleted} onChange={(v) => update(r.key, { kind: v as ExpenseKind })} options={[{ value: "expense", label: "Kiadás" }, { value: "income", label: "Bevétel" }]} emptyOption={false} className={cn(
+                    <Dropdown ariaLabel="Típus" value={r.kind} disabled={isDeleted} onChange={(v) => update(r.key, { kind: v as ExpenseKind })} options={[{ value: "expense", label: "Kiadás" }, { value: "income", label: "Bevétel" }]} emptyOption={false} className={cn(
                         ctrl,
                         "appearance-none font-medium",
                         r.kind === "income" && "text-emerald-600 dark:text-emerald-400"
@@ -653,7 +655,7 @@ export function ExpenseTable({
                       {r.kind === "income" ? (
                         <div className={cn(ctrl, "flex items-center text-[var(--color-muted-foreground)]")}>—</div>
                       ) : (
-                        <Dropdown value={r.nature} disabled={isDeleted} onChange={(v) => update(r.key, { nature: v })} options={[{ value: "avg", label: "Havi átlagos" }, { value: "project", label: "Eseti projekt" }]} emptyOption={false} className={cn(ctrl, "appearance-none")} />
+                        <Dropdown ariaLabel="Jelleg" value={r.nature} disabled={isDeleted} onChange={(v) => update(r.key, { nature: v })} options={[{ value: "avg", label: "Havi átlagos" }, { value: "project", label: "Eseti projekt" }]} emptyOption={false} className={cn(ctrl, "appearance-none")} />
                       )}
                     </td>
                   )}
@@ -798,6 +800,11 @@ export function ExpenseTable({
               )}
             </span>
           </div>
+          {invalidDirty.length > 0 && (
+            <span className="text-xs text-red-600 dark:text-red-400">
+              {invalidDirty.length} hiányos sor nem kerül mentésre (összeg, név és dátum kell)
+            </span>
+          )}
           <SubmitButton
             disabled={changeCount === 0}
             leftIcon={

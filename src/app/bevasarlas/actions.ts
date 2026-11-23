@@ -57,10 +57,11 @@ export async function toggleItemAction(fd: FormData) {
 
   const list = await getShoppingList(me.householdId, listId);
   if (!list) return;
-  if (itemIndex >= list.items.length) return;
+  const idx = resolveItemIndex(list.items, itemIndex, fd.get("itemName"));
+  if (idx < 0) return;
 
   const items = list.items.map((it, i) =>
-    i === itemIndex ? { ...it, checked: !it.checked } : it
+    i === idx ? { ...it, checked: !it.checked } : it
   );
   const allChecked = items.length > 0 && items.every((it) => it.checked || it.need === 0);
   const next: ShoppingList = {
@@ -124,9 +125,10 @@ export async function removeItemAction(fd: FormData) {
 
   const list = await getShoppingList(me.householdId, listId);
   if (!list) return;
-  if (itemIndex >= list.items.length) return;
+  const idx = resolveItemIndex(list.items, itemIndex, fd.get("itemName"));
+  if (idx < 0) return;
 
-  const items = list.items.filter((_, i) => i !== itemIndex);
+  const items = list.items.filter((_, i) => i !== idx);
   const allChecked =
     items.length > 0 && items.every((it) => it.checked || it.need === 0);
   const next: ShoppingList = {
@@ -137,4 +139,13 @@ export async function removeItemAction(fd: FormData) {
   await saveShoppingList(me.householdId, next);
   revalidatePath(`/bevasarlas/${listId}`);
   revalidatePath("/bevasarlas");
+}
+
+// A sorszám mellé a tétel nevét is küldjük: ha közben (dupla koppintás, másik családtag) változott
+// a lista, a név alapján a valódi tételt találjuk meg – nem a helyére csúszott következőt.
+function resolveItemIndex(items: { name: string }[], index: number, rawName: FormDataEntryValue | null): number {
+  const name = rawName == null ? null : String(rawName);
+  if (name === null) return index < items.length ? index : -1;
+  if (items[index]?.name === name) return index;
+  return items.findIndex((it) => it.name === name);
 }

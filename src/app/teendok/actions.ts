@@ -22,7 +22,7 @@ import {
   deleteTaskTag,
 } from "@/lib/data";
 import { offloadImage } from "@/lib/r2";
-import { newId } from "@/lib/redis";
+import { newId, redis } from "@/lib/redis";
 import type {
   Task,
   Subtask,
@@ -100,6 +100,13 @@ function parseRepeat(unitRaw: unknown, everyRaw: unknown): TaskRepeat | null {
 // a címkék, az alteendők (kipipálva-nullázva) és a hozzárendelések igen.
 async function spawnNextOccurrence(hh: string, task: Task) {
   if (!task.repeat) return;
+  // Egy előfordulásból csak egyszer jöhet létre a következő: kész → vissza → kész, dupla koppintás
+  // vagy két családtag egyszerre ne gyártson két „következő” teendőt.
+  const claimed = await redis.set(`task-spawn:${hh}:${task.id}:${task.dueDate ?? "-"}`, 1, {
+    nx: true,
+    ex: 60 * 60 * 24 * 400,
+  });
+  if (claimed === null) return;
   const now = Date.now();
   await saveTask(hh, {
     ...task,

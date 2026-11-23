@@ -742,7 +742,7 @@ export async function updateExpensesBatchAction(fd: FormData) {
   revalidatePath("/koltsegek");
   revalidatePath("/koltsegek/tabla");
   revalidatePath("/");
-  redirect("/koltsegek/tabla");
+  redirect(fd.get("minden") === "1" ? "/koltsegek/tabla?minden=1" : "/koltsegek/tabla");
 }
 
 // Story 10.15 – helyben létrehozás a rögzítő táblák legördülőiből (fizetési mód, ki(nek), csoport).

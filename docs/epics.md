@@ -90,3 +90,4 @@ meglévő story bővítése) és teszt**, ahol a logika tesztelhető. Részletek
 | [10.13](stories/story-10.13-uj-tetel-szurovel.md) | Tétel-tábla: az „Új tétel” szűrés mellett is látszik és a szűrő értékeit kapja | ✅ |
 | [10.14](stories/story-10.14-projektek-koltseg-beallitasban.md) | Projektek szerkesztése a költség-beállításokban | ✅ |
 | [10.15](stories/story-10.15-uj-elem-legordulobol.md) | Új csoport / fizetési mód / ki(nek) a rögzítő táblák legördülőjéből | ✅ |
+| [10.16](stories/story-10.16-audit-javitasok.md) | Teljes UX- és kód-átvizsgálás: XSS, duplikációk, időzóna, összeg-beillesztés, dupla mentés | ✅ |

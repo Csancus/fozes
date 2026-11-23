@@ -20,6 +20,7 @@ import type {
   Project,
   ExpenseGroup,
 } from "@/lib/types";
+import { groupDigits } from "@/lib/amount-input";
 
 function slugify(s: string): string {
   return s
@@ -35,12 +36,6 @@ function todayStr(): string {
   const m = String(d.getMonth() + 1).padStart(2, "0");
   const day = String(d.getDate()).padStart(2, "0");
   return `${d.getFullYear()}-${m}-${day}`;
-}
-
-// Hármas tagolás beviteli mezőhöz (mentéskor a szerver eltávolítja a szóközöket).
-function groupDigits(s: string): string {
-  const d = s.replace(/\D/g, "");
-  return d ? d.replace(/\B(?=(\d{3})+(?!\d))/g, " ") : "";
 }
 
 export function ExpenseForm({

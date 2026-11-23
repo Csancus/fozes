@@ -58,7 +58,8 @@ export default async function MaPage({
   const overdue = open.filter(
     (t) => (t.dueDate && t.dueDate < today) || isOverdue(t.dueDate, t.dueTime)
   );
-  const dueToday = open.filter((t) => t.dueDate === today);
+  // a mai, de már lejárt időpontú teendő a „Lejárt” közé kerül – ne szerepeljen kétszer
+  const dueToday = open.filter((t) => t.dueDate === today && !isOverdue(t.dueDate, t.dueTime));
   const dueTomorrow = open.filter((t) => t.dueDate === tomorrow);
 
   // Kiválasztott időszak: a határidő az időszakba esik (nyitott és kész is).

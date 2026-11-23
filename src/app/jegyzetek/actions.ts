@@ -13,6 +13,7 @@ import { sanitizeRichText, toggleChecklistItem } from "@/lib/richtext";
 import type { Note } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { hit } from "@/lib/rate-limit";
 
 function parseTags(raw: string): string[] {
   return raw
@@ -163,6 +164,9 @@ export async function unlockSurpriseAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const me = await requireUser();
   const pw = String(fd.get("password") ?? "");
+  // próbálgatás ellen: 15 percenként legfeljebb 10 kísérlet felhasználónként
+  const lim = await hit(`surprise-unlock:${me.userId}`, 10, 15 * 60);
+  if (!lim.ok) return { ok: false, error: "Túl sok próbálkozás – próbáld újra negyed óra múlva." };
   const ok = await verifySurprisePassword(me.householdId, pw);
   if (!ok) return { ok: false, error: "Hibás jelszó." };
   const session = await getSession();

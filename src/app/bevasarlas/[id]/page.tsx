@@ -99,6 +99,7 @@ export default async function ShoppingListPage({
                       <form action={removeItemAction}>
                         <input type="hidden" name="listId" value={list.id} />
                         <input type="hidden" name="itemIndex" value={i} />
+                        <input type="hidden" name="itemName" value={it.name} />
                         <button
                           type="submit"
                           aria-label="Törlés"
@@ -207,6 +208,7 @@ function ItemRow({
           <form action={toggleItemAction} className="flex-1">
             <input type="hidden" name="listId" value={listId} />
             <input type="hidden" name="itemIndex" value={index} />
+            <input type="hidden" name="itemName" value={item.name} />
             <button
               type="submit"
               className="w-full flex items-center gap-3 p-3.5 text-left rounded-2xl hover:bg-[var(--color-muted)]/40 transition"
@@ -249,6 +251,7 @@ function ItemRow({
           >
             <input type="hidden" name="listId" value={listId} />
             <input type="hidden" name="itemIndex" value={index} />
+            <input type="hidden" name="itemName" value={item.name} />
             <button
               type="submit"
               aria-label="Törlés"

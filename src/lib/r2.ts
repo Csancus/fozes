@@ -65,7 +65,8 @@ export async function uploadDataUrl(
         Bucket: BUCKET!,
         Key: key,
         Body: buffer,
-        ContentType: mime,
+        // ismeretlen típus (pl. text/html, image/svg+xml) ne fusson le böngészőben a publikus bucketből
+        ContentType: EXT[mime] ? mime : "application/octet-stream",
         CacheControl: "public, max-age=31536000, immutable",
       })
     );

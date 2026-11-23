@@ -1422,6 +1422,21 @@ export async function runDueRecurring(hh: string): Promise<number> {
       const due = new Date(y, m, day, 12, 0, 0);
       if (due.getTime() > nowMs) break; // jövőbeli esedékesség → itt megállunk
 
+      // Párhuzamos oldalbetöltés (két tab, két családtag) ne generálja kétszer ugyanazt a hónapot:
+      // a periódust előbb atomikusan lefoglaljuk, és csak a nyertes hozza létre a tételt.
+      const period = periodStr(y, m);
+      const claimed = await redis.set(`recurring-run:${hh}:${rule.id}:${period}`, 1, { nx: true, ex: 60 * 60 * 24 * 400 });
+      if (claimed === null) {
+        last = period;
+        if (m >= 11) {
+          m = 0;
+          y += 1;
+        } else {
+          m += 1;
+        }
+        continue;
+      }
+
       await saveExpense(hh, {
         kind: rule.kind ?? "expense",
         amount: rule.amount,

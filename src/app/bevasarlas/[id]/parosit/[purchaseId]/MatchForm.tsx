@@ -9,13 +9,13 @@ import type {
 import { fmt } from "@/lib/units";
 import { finalizeMatchAction } from "../../szamla/actions";
 import { Select, Input, Field } from "@/components/ui/Input";
-import { Button } from "@/components/ui/Button";
 import { Badge } from "@/components/ui/Badge";
 import { Card } from "@/components/ui/Card";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { cn } from "@/lib/cn";
 import { Check, Sparkles, Package, Receipt } from "lucide-react";
 import Link from "next/link";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 function fmtFt(n: number): string {
   return `${new Intl.NumberFormat("hu-HU").format(Math.round(n))} Ft`;
@@ -224,14 +224,9 @@ export function MatchForm({
         })}
       </ul>
 
-      <Button
-        type="submit"
-        size="lg"
-        fullWidth
-        leftIcon={<Check className="w-4 h-4" />}
-      >
+      <SubmitButton size="lg" fullWidth leftIcon={<Check className="w-4 h-4" />}>
         Mentés
-      </Button>
+      </SubmitButton>
     </form>
   );
 }

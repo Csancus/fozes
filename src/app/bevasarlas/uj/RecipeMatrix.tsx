@@ -10,6 +10,7 @@ import { Input, Field } from "@/components/ui/Input";
 import { Card } from "@/components/ui/Card";
 import { Section } from "@/components/ui/Section";
 import { BookOpen, ChefHat, Plus, ChevronRight, Table2 } from "lucide-react";
+import { SubmitButton } from "@/components/ui/SubmitButton";
 
 export function RecipeMatrix({ recipes }: { recipes: Recipe[] }) {
   const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -181,15 +182,15 @@ export function RecipeMatrix({ recipes }: { recipes: Recipe[] }) {
       )}
 
       <div className="flex gap-2">
-        <Button
-          type="submit"
+        <SubmitButton
           size="lg"
           leftIcon={<Plus className="w-4 h-4" />}
           disabled={selected.size === 0 && !name.trim()}
           className="flex-1"
+          pendingText="Létrehozás…"
         >
           Létrehozás
-        </Button>
+        </SubmitButton>
         <Button href="/bevasarlas" variant="secondary" size="lg">
           Mégse
         </Button>

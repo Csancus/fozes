@@ -9,6 +9,7 @@ import {
   deleteSavedFile,
   setSurprisePassword,
   verifySurprisePassword,
+  hasSurprisePassword,
   setSurpriseForItems,
   createSavedType,
   updateSavedType,
@@ -26,6 +27,7 @@ import type {
 } from "@/lib/types";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { hit } from "@/lib/rate-limit";
 
 type IncomingFile = SavedFileMeta & { dataUrl?: string };
 
@@ -434,12 +436,23 @@ export async function deleteSavedTypeAction(fd: FormData) {
 // ---- Meglepetés ----
 
 // Közös háztartás-szintű Meglepetés-jelszó beállítása (Család oldal).
-export async function setSurprisePasswordAction(fd: FormData) {
+// Ha már van jelszó, a cseréhez/törléshez a régi is kell – különben épp az tudná lecserélni (és
+// így feloldani), aki elől a meglepetést elrejtették.
+export async function setSurprisePasswordAction(fd: FormData): Promise<{ ok: boolean; error?: string }> {
   const me = await requireUser();
   const pw = String(fd.get("password") ?? "");
+  if (await hasSurprisePassword(me.householdId)) {
+    const lim = await hit(`surprise-unlock:${me.userId}`, 10, 15 * 60);
+    if (!lim.ok) return { ok: false, error: "Túl sok próbálkozás – próbáld újra negyed óra múlva." };
+    const current = String(fd.get("current") ?? "");
+    if (!(await verifySurprisePassword(me.householdId, current))) {
+      return { ok: false, error: "A jelenlegi jelszó nem stimmel." };
+    }
+  }
   await setSurprisePassword(me.householdId, pw);
   revalidatePath("/csalad");
   revalidatePath("/bakancslista");
+  return { ok: true };
 }
 
 // A rejtett tételek feloldása erre a munkamenetre (helyes jelszó esetén).
@@ -449,6 +462,9 @@ export async function unlockSurpriseAction(
 ): Promise<{ ok: boolean; error?: string }> {
   const me = await requireUser();
   const pw = String(fd.get("password") ?? "");
+  // próbálgatás ellen: 15 percenként legfeljebb 10 kísérlet felhasználónként
+  const lim = await hit(`surprise-unlock:${me.userId}`, 10, 15 * 60);
+  if (!lim.ok) return { ok: false, error: "Túl sok próbálkozás – próbáld újra negyed óra múlva." };
   const ok = await verifySurprisePassword(me.householdId, pw);
   if (!ok) return { ok: false, error: "Hibás jelszó." };
   const session = await getSession();
